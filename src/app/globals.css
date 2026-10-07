@@ -1,26 +1,173 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ink: #1b2a8f;
+  --ink-deep: #121a4d;
+  --marigold: #ffb81c;
+  --paper: #f2f4f8;
+  --white: #ffffff;
+  --signal: #d8342c;
+  --stock-mint: #cfebdd;
+  --stock-pink: #f9d2dc;
+  --stock-sky: #cfe2f7;
+  --stock-butter: #fbebb0;
+  --line: 1.5px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-ink: var(--ink);
+  --color-ink-deep: var(--ink-deep);
+  --color-marigold: var(--marigold);
+  --color-paper: var(--paper);
+  --color-white: var(--white);
+  --color-signal: var(--signal);
+  --color-stock-mint: var(--stock-mint);
+  --color-stock-pink: var(--stock-pink);
+  --color-stock-sky: var(--stock-sky);
+  --color-stock-butter: var(--stock-butter);
+  --font-sans: var(--font-archivo), system-ui, sans-serif;
+  --radius-sm: 4px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--paper);
+  color: var(--ink-deep);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink-deep);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
 }
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+@layer components {
+  .offer-text {
+    font-weight: 850;
+    font-variation-settings: "wdth" 68;
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+  }
+
+  .wordmark {
+    font-weight: 800;
+    font-variation-settings: "wdth" 75;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0 1.25rem;
+    border-radius: 4px;
+    border: var(--line) solid var(--ink);
+    background: var(--ink);
+    color: var(--white);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .btn-secondary {
+    background: transparent;
+    color: var(--ink);
+  }
+
+  .field-label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.375rem;
+  }
+  .field-input {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 0.75rem;
+    border-radius: 4px;
+    border: var(--line) solid var(--ink);
+    background: var(--white);
+    color: var(--ink-deep);
+  }
+  .field-input[aria-invalid="true"] {
+    border-color: var(--signal);
+  }
+  .field-error {
+    margin-top: 0.375rem;
+    color: var(--signal);
+    font-size: 0.875rem;
+  }
+
+  .panel {
+    background: var(--white);
+    border: var(--line) solid var(--ink);
+    border-radius: 4px;
+  }
+}
+
+/* Ticket: two parts, notched where they meet, joined by a dashed perforation. */
+.ticket {
+  --notch: 12px;
+  --ticket-bg: var(--white);
+  display: flex;
+  flex-direction: column;
+  color: var(--ink-deep);
+}
+.ticket[data-tint="mint"] { --ticket-bg: var(--stock-mint); }
+.ticket[data-tint="pink"] { --ticket-bg: var(--stock-pink); }
+.ticket[data-tint="sky"] { --ticket-bg: var(--stock-sky); }
+.ticket[data-tint="butter"] { --ticket-bg: var(--stock-butter); }
+
+.ticket-main,
+.ticket-stub {
+  position: relative;
+  background: var(--ticket-bg);
+  border: var(--line) solid var(--ink);
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+}
+.ticket-main {
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+  mask-image:
+    radial-gradient(circle at 0 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at 100% 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
+}
+.ticket-stub {
+  border-top-style: dashed;
+  border-radius: 0 0 6px 6px;
+  mask-image:
+    radial-gradient(circle at 0 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at 100% 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
+}
+
+/* Ink arcs that outline each notch. Centred on the outer corner where the two parts meet. */
+.ticket-main::before,
+.ticket-main::after,
+.ticket-stub::before,
+.ticket-stub::after {
+  content: "";
+  position: absolute;
+  width: calc(2 * (var(--notch) + var(--line)));
+  height: calc(2 * (var(--notch) + var(--line)));
+  border: var(--line) solid var(--ink);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.ticket-main::before { left: calc(-1 * (var(--notch) + var(--line)) - var(--line)); bottom: calc(-1 * (var(--notch) + var(--line))); }
+.ticket-main::after { right: calc(-1 * (var(--notch) + var(--line)) - var(--line)); bottom: calc(-1 * (var(--notch) + var(--line))); }
+.ticket-stub::before { left: calc(-1 * (var(--notch) + var(--line)) - var(--line)); top: calc(-1 * (var(--notch) + var(--line)) - var(--line)); }
+.ticket-stub::after { right: calc(-1 * (var(--notch) + var(--line)) - var(--line)); top: calc(-1 * (var(--notch) + var(--line)) - var(--line)); }
