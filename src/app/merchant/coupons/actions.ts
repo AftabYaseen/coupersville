@@ -6,7 +6,8 @@ import { z } from "zod";
 import { requireManagedBusiness, subscriptionIsActive } from "@/lib/merchant";
 import { couponView } from "@/lib/coupons";
 import { endOfDayInZone, startOfDayInZone } from "@/lib/dates";
-import { COUPON_IMAGE_BUCKET, isBusinessImagePath } from "@/lib/storage";
+import { COUPON_IMAGE_BUCKET, IMAGE_ERROR, isBusinessImagePath } from "@/lib/storage";
+import { verifyStoredImage } from "@/lib/verify-image";
 import { couponIntentSchema, couponSchema } from "@/lib/validation/merchant";
 import type { ActionResult } from "@/lib/validation/auth";
 import type { PostgrestError } from "@supabase/supabase-js";
@@ -69,6 +70,10 @@ export async function saveCoupon(couponId: unknown, input: unknown, intentInput:
       .maybeSingle();
     if (!data) return { ok: false, error: "This coupon no longer exists." };
     existing = data;
+  }
+
+  if (v.imagePath && v.imagePath !== existing?.image_path && !(await verifyStoredImage(supabase, COUPON_IMAGE_BUCKET, v.imagePath))) {
+    return { ok: false, error: IMAGE_ERROR };
   }
 
   let status: "draft" | "published" | "paused";

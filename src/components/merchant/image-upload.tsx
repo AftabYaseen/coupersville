@@ -4,13 +4,9 @@ import Image from "next/image";
 import { useId, useRef, useState } from "react";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import {
-  IMAGE_EXTENSIONS,
-  IMAGE_MAX_BYTES,
-  IMAGE_TYPES,
-  publicImageUrl,
-  type ImageBucket,
-} from "@/lib/storage";
+import { checkImageFile, IMAGE_EXTENSIONS, publicImageUrl, type ImageBucket } from "@/lib/storage";
+
+const ACCEPT = "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
 
 type Props = {
   label: string;
@@ -31,21 +27,18 @@ export function ImageUpload({ label, hint, bucket, businessId, value, onChange, 
 
   async function handleFile(file: File) {
     setError(null);
-    if (!(IMAGE_TYPES as readonly string[]).includes(file.type)) {
-      setError("Use a JPG, PNG, or WebP image.");
-      return;
-    }
-    if (file.size > IMAGE_MAX_BYTES) {
-      setError("That image is over 5 MB. Choose a smaller one.");
+    // The type is read from the file's bytes, so a renamed PDF is caught here.
+    const check = await checkImageFile(file);
+    if (!check.ok) {
+      setError(check.error);
       return;
     }
 
     setUploading(true);
-    const ext = IMAGE_EXTENSIONS[file.type as (typeof IMAGE_TYPES)[number]];
-    const path = `${businessId}/${crypto.randomUUID()}.${ext}`;
+    const path = `${businessId}/${crypto.randomUUID()}.${IMAGE_EXTENSIONS[check.type]}`;
     const { error: uploadError } = await createClient()
       .storage.from(bucket)
-      .upload(path, file, { contentType: file.type, upsert: false });
+      .upload(path, file, { contentType: check.type, upsert: false });
 
     if (uploadError) {
       setUploading(false);
@@ -86,7 +79,7 @@ export function ImageUpload({ label, hint, bucket, businessId, value, onChange, 
           ref={inputRef}
           id={inputId}
           type="file"
-          accept={IMAGE_TYPES.join(",")}
+          accept={ACCEPT}
           className="sr-only"
           aria-labelledby={`${inputId}-label`}
           disabled={disabled || uploading}

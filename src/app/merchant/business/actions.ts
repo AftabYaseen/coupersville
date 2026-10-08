@@ -4,7 +4,8 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { requireManagedBusiness } from "@/lib/merchant";
 import { businessRow } from "@/lib/merchant-rows";
-import { isBusinessImagePath, LOGO_BUCKET } from "@/lib/storage";
+import { IMAGE_ERROR, isBusinessImagePath, LOGO_BUCKET } from "@/lib/storage";
+import { verifyStoredImage } from "@/lib/verify-image";
 import { businessSchema } from "@/lib/validation/merchant";
 import type { ActionResult } from "@/lib/validation/auth";
 
@@ -35,6 +36,9 @@ export async function updateBusinessImage(input: unknown): Promise<ActionResult>
   const { kind, path } = parsed.data;
   if (path !== null && !isBusinessImagePath(path, business.id)) {
     return { ok: false, error: "That image could not be saved. Upload it again." };
+  }
+  if (path !== null && !(await verifyStoredImage(supabase, LOGO_BUCKET, path))) {
+    return { ok: false, error: IMAGE_ERROR };
   }
 
   const column = kind === "logo" ? "logo_path" : "cover_path";
