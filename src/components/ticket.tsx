@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { CalendarClock, MapPin, ReceiptText } from "lucide-react";
 import type { Enums } from "@/lib/supabase/database.types";
+import { formatDay } from "@/lib/dates";
 
 export type StockTint = Enums<"stock_tint">;
 
@@ -12,14 +13,13 @@ export type TicketProps = {
   description?: string;
   expiresAt?: Date | string;
   expiringSoon?: boolean;
+  timeZone?: string;
   limits?: string;
   store?: string;
   children?: ReactNode;
   stubActions?: ReactNode;
   className?: string;
 };
-
-const dateFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
 
 export function formatOffer(type: Enums<"discount_type">, value: number): string {
   if (type === "percent") return `${Number(value)}% OFF`;
@@ -35,6 +35,7 @@ export function Ticket({
   description,
   expiresAt,
   expiringSoon = false,
+  timeZone = "UTC",
   limits,
   store,
   children,
@@ -64,7 +65,7 @@ export function Ticket({
               <CalendarClock aria-hidden size={16} strokeWidth={1.5} className={expiringSoon ? "text-signal" : "text-ink"} />
               <span>
                 {expiringSoon ? "Expiring soon, " : "Expires "}
-                <time dateTime={expires.toISOString()}>{dateFormat.format(expires)}</time>
+                <time dateTime={expires.toISOString()}>{formatDay(expires, timeZone)}</time>
               </span>
             </li>
           )}

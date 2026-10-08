@@ -69,6 +69,7 @@ export type Database = {
           owner_id: string
           primary_category_id: string | null
           status: Database["public"]["Enums"]["business_status"]
+          timezone: string
           updated_at: string
           website_url: string | null
         }
@@ -84,6 +85,7 @@ export type Database = {
           owner_id: string
           primary_category_id?: string | null
           status?: Database["public"]["Enums"]["business_status"]
+          timezone?: string
           updated_at?: string
           website_url?: string | null
         }
@@ -99,6 +101,7 @@ export type Database = {
           owner_id?: string
           primary_category_id?: string | null
           status?: Database["public"]["Enums"]["business_status"]
+          timezone?: string
           updated_at?: string
           website_url?: string | null
         }
@@ -354,6 +357,8 @@ export type Database = {
           store_name: string
           store_number: string | null
           updated_at: string
+          lat: number | null
+          lng: number | null
         }
         Insert: {
           active?: boolean
@@ -786,6 +791,18 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_privileged: { Args: never; Returns: boolean }
+      lat: {
+        Args: { "": Database["public"]["Tables"]["locations"]["Row"] }
+        Returns: {
+          error: true
+        } & "the function public.lat with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache"
+      }
+      lng: {
+        Args: { "": Database["public"]["Tables"]["locations"]["Row"] }
+        Returns: {
+          error: true
+        } & "the function public.lng with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache"
+      }
       verify_redemption: {
         Args: { p_location_id: string; p_token_or_code: string }
         Returns: Json
