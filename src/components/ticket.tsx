@@ -58,32 +58,35 @@ export function Ticket({
       </div>
 
       <div className="ticket-stub px-5 pt-4 pb-4 text-sm">
-        <dl className="grid gap-1.5">
+        <ul className="grid gap-1.5">
           {expires && (
-            <div className={`flex items-center gap-2 ${expiringSoon ? "font-semibold text-signal" : ""}`}>
+            <li className={`flex items-center gap-2 tabular ${expiringSoon ? "font-semibold text-signal" : ""}`}>
               <CalendarClock aria-hidden size={16} strokeWidth={1.5} className={expiringSoon ? "text-signal" : "text-ink"} />
-              <dt className="sr-only">Expires</dt>
-              <dd className="tabular">
+              <span>
                 {expiringSoon ? "Expiring soon, " : "Expires "}
                 <time dateTime={expires.toISOString()}>{dateFormat.format(expires)}</time>
-              </dd>
-            </div>
+              </span>
+            </li>
           )}
           {limits && (
-            <div className="flex items-start gap-2">
+            <li className="flex items-start gap-2">
               <ReceiptText aria-hidden size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-ink" />
-              <dt className="sr-only">Limits</dt>
-              <dd>{limits}</dd>
-            </div>
+              <span>
+                <span className="sr-only">Limits: </span>
+                {limits}
+              </span>
+            </li>
           )}
           {store && (
-            <div className="flex items-start gap-2">
+            <li className="flex items-start gap-2">
               <MapPin aria-hidden size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-ink" />
-              <dt className="sr-only">Store</dt>
-              <dd>{store}</dd>
-            </div>
+              <span>
+                <span className="sr-only">Store: </span>
+                {store}
+              </span>
+            </li>
           )}
-        </dl>
+        </ul>
         {stubActions && <div className="mt-4">{stubActions}</div>}
       </div>
     </article>

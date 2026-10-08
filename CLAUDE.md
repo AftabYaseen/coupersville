@@ -156,6 +156,14 @@ One family: **Archivo** (variable, via `next/font/google`, with the width axis e
 - Buttons: solid `--ink` with white text, 4px radius. Secondary buttons: ink outline. No pill buttons.
 - Mobile first. Design every consumer screen at 380px wide before scaling up. Tap targets at least 44px.
 
+### Imagery and identity (client update, 2026-10-08)
+
+- Name stays "Coupersville". No logo or wordmark for now; the header uses plain text.
+- `public/Img-1.jpeg` (the welcome sign) appears only on the home page, as a postcard: natural size up to 800px wide, white surface, 1.5px ink outline, no text over it, via `next/image`. Not on sign-in or sign-up.
+- `public/Img-2.jpeg` (shop interior) is reference for the long-term look. Do not use it anywhere yet.
+- Palette confirmed: keep the ink and marigold tokens above. No palette change.
+- Long-term vision, targeted around March 2027: the site feels like a small town, and opening a category feels like walking into that shop to see its coupons. Until then, build for function.
+
 ### The one animated moment
 
 When a redemption is verified, the consumer's redeem screen shows an ink stamp reading "Redeemed" with the date, rotated a few degrees, pressing onto the ticket, and the stub tears away. Respect `prefers-reduced-motion`. No other decorative animation anywhere: no fade-in-on-scroll, no hover effects on every card.

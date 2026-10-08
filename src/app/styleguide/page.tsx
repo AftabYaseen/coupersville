@@ -31,7 +31,7 @@ export default function StyleguidePage() {
           offer={formatOffer("percent", 15)}
           title="Dinner for two"
           description="Any two mains from the evening menu."
-          expiresAt="2026-11-30T23:59:00Z"
+          expiresAt="2026-11-30T12:00:00Z"
           limits="Dine in only. Not valid on holidays."
           store="4 Elm Street"
         />
@@ -40,7 +40,7 @@ export default function StyleguidePage() {
           merchant="Corner Grocer"
           offer={formatOffer("amount", 5)}
           title="Weekly shop"
-          expiresAt="2026-10-10T23:59:00Z"
+          expiresAt="2026-10-10T12:00:00Z"
           expiringSoon
           limits="Minimum spend $40"
           store="All locations"
@@ -50,7 +50,7 @@ export default function StyleguidePage() {
           merchant="Little Wheels Toys"
           offer={formatOffer("percent", 30)}
           title="Wooden puzzles"
-          expiresAt="2027-01-15T23:59:00Z"
+          expiresAt="2027-01-15T12:00:00Z"
           limits="One per customer"
           store="22 Mill Road"
           stubActions={
@@ -64,7 +64,7 @@ export default function StyleguidePage() {
           merchant="Main Street Bakery"
           offer={formatOffer("amount", 2.5)}
           title="Any dozen cookies"
-          expiresAt="2026-12-31T23:59:00Z"
+          expiresAt="2026-12-31T12:00:00Z"
           store="12 Main Street"
           stubActions={
             <button type="button" className="btn btn-secondary w-full">
