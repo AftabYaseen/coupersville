@@ -8,32 +8,45 @@ function blankToUndefined(value: unknown) {
   return value;
 }
 
+// The browser submits already-parsed values (blank text is null by then) and the server parses
+// them again, so every optional field must accept its own output.
+const nullToEmpty = (value: unknown) => (value === null || value === undefined ? "" : value);
+
 const optionalText = (max: number) =>
-  z
-    .string()
-    .trim()
-    .max(max, { error: `Use ${max} characters or fewer.` })
-    .transform((v) => (v === "" ? null : v));
+  z.preprocess(
+    nullToEmpty,
+    z
+      .string()
+      .trim()
+      .max(max, { error: `Use ${max} characters or fewer.` })
+      .transform((v) => (v === "" ? null : v)),
+  );
 
 const requiredText = (max: number, message: string) =>
   z.string().trim().min(1, { error: message }).max(max, { error: `Use ${max} characters or fewer.` });
 
 const optionalNumber = (schema: z.ZodNumber) => z.preprocess(blankToUndefined, schema.optional());
 
-const optionalEmail = z
-  .string()
-  .trim()
-  .refine((v) => v === "" || z.email().safeParse(v).success, { error: "Enter a valid email address." })
-  .transform((v) => (v === "" ? null : v));
+const optionalEmail = z.preprocess(
+  nullToEmpty,
+  z
+    .string()
+    .trim()
+    .refine((v) => v === "" || z.email().safeParse(v).success, { error: "Enter a valid email address." })
+    .transform((v) => (v === "" ? null : v)),
+);
 
-const optionalWebsite = z
-  .string()
-  .trim()
-  .max(300)
-  .refine((v) => v === "" || /^https?:\/\/[^\s/.]+\.[^\s]+$/i.test(v), {
-    error: "Enter the full address, starting with https://",
-  })
-  .transform((v) => (v === "" ? null : v));
+const optionalWebsite = z.preprocess(
+  nullToEmpty,
+  z
+    .string()
+    .trim()
+    .max(300)
+    .refine((v) => v === "" || /^https?:\/\/[^\s/.]+\.[^\s]+$/i.test(v), {
+      error: "Enter the full address, starting with https://",
+    })
+    .transform((v) => (v === "" ? null : v)),
+);
 
 export const businessSchema = z.object({
   name: requiredText(120, "Enter your business name."),

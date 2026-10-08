@@ -31,6 +31,10 @@ type Props = {
   defaults: CouponInput;
 };
 
+function text(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
+
 function toNumber(v: unknown): number | null {
   if (v === "" || v === null || v === undefined) return null;
   const n = Number(v);
@@ -295,7 +299,7 @@ export function CouponForm(props: Props) {
             merchant={businessName}
             offer={formatOffer(values.discountType ?? "percent", discountValue)}
             title={values.title || "Your coupon title"}
-            description={values.description || undefined}
+            description={text(values.description) || undefined}
             expiresAt={previewExpires}
             timeZone={timeZone}
             limits={
@@ -304,7 +308,7 @@ export function CouponForm(props: Props) {
                 min_qty: toNumber(values.minQty),
                 max_people: toNumber(values.maxPeople),
                 per_user_limit: toNumber(values.perUserLimit),
-                limits_text: values.limitsText || null,
+                limits_text: text(values.limitsText) || null,
               }) || undefined
             }
             store={storeText}
