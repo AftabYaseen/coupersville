@@ -128,6 +128,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          shop_label: string
           slug: string
           sort_order: number
           stock_tint: Database["public"]["Enums"]["stock_tint"]
@@ -138,6 +139,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          shop_label: string
           slug: string
           sort_order?: number
           stock_tint: Database["public"]["Enums"]["stock_tint"]
@@ -148,6 +150,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          shop_label?: string
           slug?: string
           sort_order?: number
           stock_tint?: Database["public"]["Enums"]["stock_tint"]
@@ -802,6 +805,65 @@ export type Database = {
         Returns: {
           error: true
         } & "the function public.lng with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache"
+      }
+      my_saved_coupons: {
+        Args: never
+        Returns: {
+          business_name: string
+          business_timezone: string
+          coupon_id: string
+          discount_type: Database["public"]["Enums"]["discount_type"]
+          discount_value: number
+          expires_at: string
+          is_live: boolean
+          saved_at: string
+          stock_tint: Database["public"]["Enums"]["stock_tint"]
+          title: string
+        }[]
+      }
+      search_live_coupons: {
+        Args: {
+          p_category?: string
+          p_discount_type?: Database["public"]["Enums"]["discount_type"]
+          p_ending_within_days?: number
+          p_featured_only?: boolean
+          p_lat?: number
+          p_limit?: number
+          p_lng?: number
+          p_offset?: number
+          p_place?: string
+          p_query?: string
+          p_radius_m?: number
+          p_sort?: string
+        }
+        Returns: {
+          business_id: string
+          business_name: string
+          business_timezone: string
+          category_name: string
+          category_slug: string
+          created_at: string
+          description: string
+          discount_type: Database["public"]["Enums"]["discount_type"]
+          discount_value: number
+          distance_m: number
+          expires_at: string
+          featured: boolean
+          id: string
+          included_products: string
+          limits_text: string
+          max_people: number
+          min_qty: number
+          min_spend: number
+          nearest_store: string
+          per_user_limit: number
+          shop_label: string
+          starts_at: string
+          stock_tint: Database["public"]["Enums"]["stock_tint"]
+          store_count: number
+          title: string
+          total_count: number
+        }[]
       }
       verify_redemption: {
         Args: { p_location_id: string; p_token_or_code: string }

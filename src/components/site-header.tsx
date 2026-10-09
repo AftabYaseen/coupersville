@@ -1,19 +1,31 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { CircleUser, LayoutDashboard, Store } from "lucide-react";
+import { Bookmark, CircleUser, LayoutDashboard, Search, Store, type LucideIcon } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { signOut } from "@/app/(auth)/actions";
+
+function NavLink({ href, label, Icon }: { href: string; label: string; Icon: LucideIcon }) {
+  return (
+    <Link href={href} className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 px-2 font-medium text-ink">
+      <Icon aria-hidden size={20} strokeWidth={1.5} />
+      <span className="sr-only md:not-sr-only">{label}</span>
+    </Link>
+  );
+}
 
 export function SiteHeader() {
   return (
     <header className="border-b-[1.5px] border-ink bg-white">
-      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4">
+      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-2 px-4">
         <Link href="/" className="wordmark text-2xl text-ink">
           Coupersville
         </Link>
-        <Suspense fallback={<div className="h-11 w-24" aria-hidden />}>
-          <UserNav />
-        </Suspense>
+        <div className="flex items-center gap-1">
+          <NavLink href="/search" label="Search" Icon={Search} />
+          <Suspense fallback={<div className="h-11 w-11" aria-hidden />}>
+            <UserNav />
+          </Suspense>
+        </div>
       </div>
     </header>
   );
@@ -24,7 +36,7 @@ async function UserNav() {
 
   if (!user) {
     return (
-      <Link href="/login" className="btn btn-secondary">
+      <Link href="/login" className="btn btn-secondary ml-1 px-3">
         Sign in
       </Link>
     );
@@ -38,21 +50,12 @@ async function UserNav() {
         : null;
 
   return (
-    <nav className="flex items-center gap-1 sm:gap-2" aria-label="Account">
-      {portal && (
-        <Link href={portal.href} className="inline-flex min-h-11 items-center gap-1.5 px-2 font-medium text-ink">
-          <portal.Icon aria-hidden size={20} strokeWidth={1.5} />
-          <span className="hidden sm:inline">{portal.label}</span>
-          <span className="sr-only sm:hidden">{portal.label}</span>
-        </Link>
-      )}
-      <Link href="/account" className="inline-flex min-h-11 items-center gap-1.5 px-2 font-medium text-ink">
-        <CircleUser aria-hidden size={20} strokeWidth={1.5} />
-        <span className="hidden sm:inline">Account</span>
-        <span className="sr-only sm:hidden">Account</span>
-      </Link>
-      <form action={signOut}>
-        <button type="submit" className="btn btn-secondary px-3">
+    <nav className="flex items-center gap-1" aria-label="Account">
+      {portal && <NavLink {...portal} />}
+      <NavLink href="/saved" label="Saved" Icon={Bookmark} />
+      <NavLink href="/account" label="Account" Icon={CircleUser} />
+      <form action={signOut} className="hidden sm:block">
+        <button type="submit" className="btn btn-secondary ml-1 px-3">
           Sign out
         </button>
       </form>

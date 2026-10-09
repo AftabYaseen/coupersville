@@ -60,7 +60,7 @@ Store these in a single-row `platform_settings` table so they can be changed wit
 All tables have `id uuid` primary keys, `created_at`, and `updated_at` where it makes sense. Enable RLS on every table.
 
 - **profiles**: `id` (matches `auth.users.id`), `role` (`consumer` | `merchant` | `admin`), `full_name`, `phone`, `status` (`active` | `suspended`). Created by a trigger on signup.
-- **categories**: `name`, `slug`, `stock_tint` (`mint` | `pink` | `sky` | `butter`), `sort_order`, `active`. Seed: Restaurants, Grocery, Bakeries, Toys, Jewelry, Clothes, Shoes, Household Supplies, Pharmacy, Luggage/Bags/Wallets, Millinery, Beauty, Other. Rotate the four tints across them.
+- **categories**: `name`, `slug`, `shop_label` (how the category appears on Main Street, such as "The bakery"), `stock_tint` (`mint` | `pink` | `sky` | `butter`), `sort_order`, `active`. Seed: Restaurants, Grocery, Bakeries, Toys, Jewelry, Clothes, Shoes, Household Supplies, Pharmacy, Luggage/Bags/Wallets, Millinery, Beauty, Other. Rotate the four tints across them.
 - **businesses**: `owner_id`, `name`, `description`, `primary_category_id`, `logo_path`, `cover_path`, `contact_email`, `contact_phone`, `website_url`, `status` (`draft` | `active` | `suspended`), `timezone` (IANA name; coupon dates are calendar days in this zone). Onboarding creates the business as `draft`; server code sets it `active` once the profile and first store are saved.
 - **business_members**: `business_id`, `user_id`, `role` (`owner` | `manager` | `staff`). Staff can only use the scanner.
 - **locations**: `business_id`, `store_name`, `store_number`, `address_line1`, `address_line2`, `city`, `state`, `postal_code`, `geo` (PostGIS `geography(Point)`), `phone`, `active`.
