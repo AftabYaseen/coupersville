@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { requireManagedBusiness } from "@/lib/merchant";
 import { loadCouponBuilderData } from "@/lib/merchant-coupons";
-import { COUPON_VIEW_STATUS, couponView } from "@/lib/coupons";
+import { COUPON_VIEW_STATUS, REMOVED_LABEL, couponView } from "@/lib/coupons";
 import { dayInZone } from "@/lib/dates";
 import { PageLoading } from "@/components/page-loading";
 import { CouponForm } from "@/components/merchant/coupon-form";
@@ -48,8 +48,23 @@ async function EditCouponContent({ params }: { params: PageProps<"/merchant/coup
           <h1 className="wordmark text-4xl text-ink">Edit coupon</h1>
           <p className="mt-1 font-medium">Status: {COUPON_VIEW_STATUS[view]}</p>
         </div>
-        <CouponStatusActions couponId={coupon.id} status={coupon.status} ended={view === "expired"} />
+        <CouponStatusActions
+          couponId={coupon.id}
+          status={coupon.status}
+          ended={view === "expired"}
+          held={coupon.admin_hold}
+        />
       </div>
+      {coupon.admin_hold && (
+        <div role="note" className="mb-8 rounded-sm border-[1.5px] border-signal bg-white p-4">
+          <p className="font-semibold text-signal">{REMOVED_LABEL}</p>
+          <p className="mt-1">{coupon.hold_reason ? `Reason: ${coupon.hold_reason}` : "No reason was given."}</p>
+          <p className="mt-2 text-sm">
+            Shoppers cannot see or redeem this coupon, and it cannot be published again. You can still edit or delete
+            it. Contact Coupersville support if you think this is a mistake.
+          </p>
+        </div>
+      )}
       <CouponForm
         couponId={coupon.id}
         status={coupon.status}
@@ -58,6 +73,7 @@ async function EditCouponContent({ params }: { params: PageProps<"/merchant/coup
         timeZone={tz}
         today={data.today}
         planActive={data.planActive}
+        held={coupon.admin_hold}
         categories={data.categories}
         locations={data.locations}
         defaults={{

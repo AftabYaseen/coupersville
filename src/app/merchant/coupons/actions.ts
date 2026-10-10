@@ -19,7 +19,13 @@ const PLAN_REQUIRED: ActionResult = {
   error: "Your plan is not active yet, so this coupon cannot be published. Save it as a draft for now.",
 };
 
+const HELD: ActionResult = {
+  ok: false,
+  error: "Coupersville removed this coupon, so it cannot be published or resumed. You can still edit or delete it.",
+};
+
 function writeError(error: PostgrestError): ActionResult {
+  if (error.hint === "admin_hold") return HELD;
   return error.hint === "subscription_required" ? PLAN_REQUIRED : FAILED;
 }
 
@@ -60,17 +66,19 @@ export async function saveCoupon(couponId: unknown, input: unknown, intentInput:
     if (count !== locationIds.length) return { ok: false, error: "One of the chosen stores is not yours. Choose again." };
   }
 
-  let existing: { id: string; status: "draft" | "published" | "paused"; image_path: string | null } | null = null;
+  let existing: { id: string; status: "draft" | "published" | "paused"; image_path: string | null; admin_hold: boolean } | null =
+    null;
   if (id) {
     const { data } = await supabase
       .from("coupons")
-      .select("id, status, image_path")
+      .select("id, status, image_path, admin_hold")
       .eq("id", id.data)
       .eq("business_id", business.id)
       .maybeSingle();
     if (!data) return { ok: false, error: "This coupon no longer exists." };
     existing = data;
   }
+  if (existing?.admin_hold && intent.data === "publish") return HELD;
 
   if (v.imagePath && v.imagePath !== existing?.image_path && !(await verifyStoredImage(supabase, COUPON_IMAGE_BUCKET, v.imagePath))) {
     return { ok: false, error: IMAGE_ERROR };
@@ -134,7 +142,7 @@ export async function saveCoupon(couponId: unknown, input: unknown, intentInput:
     await supabase.storage.from(COUPON_IMAGE_BUCKET).remove([existing.image_path]);
   }
 
-  const view = couponView({ status, starts_at: row.starts_at, expires_at: row.expires_at }, now);
+  const view = couponView({ status, starts_at: row.starts_at, expires_at: row.expires_at, admin_hold: existing?.admin_hold }, now);
   redirect(`/merchant/coupons?view=${view}`);
 }
 
@@ -146,11 +154,12 @@ export async function setCouponStatus(couponId: unknown, statusInput: unknown): 
   const { business, supabase } = await requireManagedBusiness("/merchant/coupons");
   const { data: coupon } = await supabase
     .from("coupons")
-    .select("status, expires_at")
+    .select("status, expires_at, admin_hold")
     .eq("id", id.data)
     .eq("business_id", business.id)
     .maybeSingle();
   if (!coupon || coupon.status === "draft") return FAILED;
+  if (coupon.admin_hold) return HELD;
 
   if (status.data === "published") {
     if (new Date(coupon.expires_at).getTime() <= Date.now()) {
@@ -173,22 +182,40 @@ export async function setCouponStatus(couponId: unknown, statusInput: unknown): 
   };
 }
 
-export async function deleteDraftCoupon(couponId: unknown): Promise<ActionResult> {
+// Drafts can always be deleted, and so can a coupon Coupersville removed. A removed coupon that was
+// redeemed is kept, because deleting it would also delete those redemptions from the records.
+export async function deleteCoupon(couponId: unknown): Promise<ActionResult> {
   const id = z.uuid().safeParse(couponId);
   if (!id.success) return INVALID;
 
   const { business, supabase } = await requireManagedBusiness("/merchant/coupons");
+  const { data: coupon } = await supabase
+    .from("coupons")
+    .select("status, admin_hold")
+    .eq("id", id.data)
+    .eq("business_id", business.id)
+    .maybeSingle();
+  if (!coupon) return { ok: false, error: "This coupon no longer exists." };
+  if (coupon.status !== "draft" && !coupon.admin_hold) {
+    return { ok: false, error: "Only drafts can be deleted. Pause a published coupon instead." };
+  }
+  if (coupon.admin_hold) {
+    const { count } = await supabase.from("redemptions").select("id", { count: "exact", head: true }).eq("coupon_id", id.data);
+    if (count) {
+      return { ok: false, error: "This coupon has been redeemed, so it is kept for your records. Shoppers cannot see it." };
+    }
+  }
+
   const { data: deleted, error } = await supabase
     .from("coupons")
     .delete()
     .eq("id", id.data)
     .eq("business_id", business.id)
-    .eq("status", "draft")
     .select("image_path");
-  if (error || !deleted?.length) return { ok: false, error: "Only drafts can be deleted. Pause a published coupon instead." };
+  if (error || !deleted?.length) return { ok: false, error: "We could not delete this coupon. Try again in a moment." };
 
   const image = deleted[0].image_path;
   if (image) await supabase.storage.from(COUPON_IMAGE_BUCKET).remove([image]);
 
-  redirect("/merchant/coupons?view=draft");
+  redirect(coupon.admin_hold ? "/merchant/coupons" : "/merchant/coupons?view=draft");
 }

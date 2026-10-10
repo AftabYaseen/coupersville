@@ -1,7 +1,10 @@
 import type { Enums } from "@/lib/supabase/database.types";
 
-export const COUPON_VIEWS = ["live", "scheduled", "draft", "paused", "expired"] as const;
+// "removed" is a coupon an admin has put on hold. Lists show it only when there is one.
+export const COUPON_VIEWS = ["live", "scheduled", "draft", "paused", "expired", "removed"] as const;
 export type CouponView = (typeof COUPON_VIEWS)[number];
+
+export const REMOVED_LABEL = "Removed by Coupersville";
 
 export const COUPON_VIEW_LABELS: Record<CouponView, string> = {
   live: "Live",
@@ -9,6 +12,7 @@ export const COUPON_VIEW_LABELS: Record<CouponView, string> = {
   draft: "Drafts",
   paused: "Paused",
   expired: "Expired",
+  removed: REMOVED_LABEL,
 };
 
 export const COUPON_VIEW_STATUS: Record<CouponView, string> = {
@@ -17,6 +21,7 @@ export const COUPON_VIEW_STATUS: Record<CouponView, string> = {
   draft: "Draft",
   paused: "Paused",
   expired: "Ended",
+  removed: REMOVED_LABEL,
 };
 
 function money(value: number): string {
@@ -42,10 +47,12 @@ export function describeLimits(c: {
 }
 
 // Where a coupon sits for its merchant. "Expired" is derived from the dates, never stored.
+// A hold outranks everything: the coupon is not live whatever its status says.
 export function couponView(
-  coupon: { status: Enums<"coupon_status">; starts_at: string; expires_at: string },
+  coupon: { status: Enums<"coupon_status">; starts_at: string; expires_at: string; admin_hold?: boolean },
   now: number,
 ): CouponView {
+  if (coupon.admin_hold) return "removed";
   if (coupon.status === "draft") return "draft";
   if (new Date(coupon.expires_at).getTime() <= now) return "expired";
   if (coupon.status === "paused") return "paused";

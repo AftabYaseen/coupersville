@@ -201,12 +201,122 @@ async function main() {
   check("remove from featured", unfeature.ok === true);
   const badFlag = await act(boss, "admin/coupons/actions.ts", "setCouponFeatured", coupon.id, "yes");
   check("featured must be true or false", badFlag.ok === false, badFlag);
-  const unpublish = await act(boss, "admin/coupons/actions.ts", "unpublishCoupon", coupon.id);
-  check("unpublish", unpublish.ok === true, unpublish);
-  check("coupon is paused and hidden", must(await admin.from("coupons").select("status").eq("id", coupon.id).single(), "c").status === "paused" && !(await isLive(coupon.id)));
-  const unpublishAgain = await act(boss, "admin/coupons/actions.ts", "unpublishCoupon", coupon.id);
-  check("unpublishing twice says it is not published", unpublishAgain.ok === false, unpublishAgain);
-  must(await admin.from("coupons").update({ status: "published" }).eq("id", coupon.id), "republish");
+  console.log("\nAdmin hold (unpublish that sticks)");
+  const M = "merchant/coupons/actions.ts";
+  const merchantSays = async (name, ...args) => {
+    const r = await callAction(base, owner.cookie, A(M), name, args);
+    return r.value ?? r;
+  };
+  const selfHold = await owner.client.from("coupons").update({ admin_hold: true }).eq("id", coupon.id);
+  check("a merchant cannot place a hold", Boolean(selfHold.error));
+  const heldEarlier = must(await shopper.client.rpc("create_redemption_token", { p_coupon_id: coupon.id }), "token before hold");
+  const reason = "Price does not match the shop window";
+  const hold = await act(boss, "admin/coupons/actions.ts", "holdCoupon", coupon.id, reason);
+  check("admin unpublishes with a reason", hold.ok === true, hold);
+  const held = must(await admin.from("coupons").select("*").eq("id", coupon.id).single(), "held");
+  check("hold, reason, who and when are recorded", held.admin_hold && held.hold_reason === reason && held.held_by === boss.id && Boolean(held.held_at), held);
+  check("status is left as it was", held.status === "published");
+  check("held coupon is not in live_coupons or search", !(await isLive(coupon.id)));
+  const heldToken = must(await shopper.client.rpc("create_redemption_token", { p_coupon_id: coupon.id }), "token");
+  check("shoppers cannot get a code for it", heldToken.result === "not_live", heldToken);
+  const heldVerify = must(await owner.client.rpc("verify_redemption", { p_token_or_code: heldEarlier.token, p_location_id: store.id }), "verify");
+  check("a code issued before the hold cannot be redeemed", heldVerify.result === "coupon_not_live", heldVerify);
+  const heldPreview = must(await owner.client.rpc("preview_redemption", { p_token_or_code: heldEarlier.short_code, p_location_id: store.id }), "preview");
+  check("the confirm screen refuses it too", heldPreview.result === "coupon_not_live", heldPreview);
+  const holdAgain = await act(boss, "admin/coupons/actions.ts", "holdCoupon", coupon.id, "");
+  check("unpublishing twice says so", holdAgain.ok === false && /already unpublished/.test(holdAgain.error), holdAgain);
+  const longReason = await act(boss, "admin/coupons/actions.ts", "holdCoupon", coupon.id, "x".repeat(501));
+  check("a reason over 500 characters is refused", longReason.ok === false, longReason);
+
+  const pause = await merchantSays("setCouponStatus", coupon.id, "paused");
+  check("merchant cannot pause or resume it through the app", pause.ok === false && /removed this coupon/.test(pause.error), pause);
+  const directPause = await owner.client.from("coupons").update({ status: "paused" }).eq("id", coupon.id).select("status");
+  check("a status change that is not publishing is allowed in the database", !directPause.error && directPause.data?.[0]?.status === "paused", directPause.error);
+  const directPublish = await owner.client.from("coupons").update({ status: "published" }).eq("id", coupon.id);
+  check("merchant cannot republish it, even straight to the database", directPublish.error?.message?.includes("removed this coupon"), directPublish.error);
+  const resume = await merchantSays("setCouponStatus", coupon.id, "published");
+  check("Resume coupon is refused", resume.ok === false && /removed this coupon/.test(resume.error), resume);
+  const selfRelease = await owner.client.from("coupons").update({ admin_hold: false }).eq("id", coupon.id);
+  check("merchant cannot release the hold in the database", Boolean(selfRelease.error));
+  const reasonEdit = await owner.client.from("coupons").update({ hold_reason: "All fine now" }).eq("id", coupon.id);
+  check("merchant cannot change the reason", Boolean(reasonEdit.error));
+  const ownerRelease = await callAction(base, owner.cookie, A("admin/coupons/actions.ts"), "releaseCouponHold", [coupon.id]);
+  check("merchant cannot use the admin release action", ownerRelease.blocked === true, ownerRelease);
+
+  const editInput = {
+    title: `Admin test coupon ${run}`,
+    description: "Edited while removed",
+    categoryId,
+    discountType: "percent",
+    discountValue: 15,
+    includedProducts: "",
+    limitsText: "",
+    minSpend: "",
+    minQty: "",
+    maxPeople: "",
+    startsOn: day(0),
+    expiresOn: day(7),
+    imagePath: null,
+    allLocations: true,
+    locationIds: [],
+    perUserLimit: 1,
+    totalLimit: "",
+  };
+  const publishEdit = await merchantSays("saveCoupon", coupon.id, editInput, "publish");
+  check("saving with Publish is refused", publishEdit.ok === false && /removed this coupon/.test(publishEdit.error), publishEdit);
+  const saveEdit = await merchantSays("saveCoupon", coupon.id, editInput, "save");
+  check("merchant can still edit it", Boolean(saveEdit.redirect), saveEdit);
+  const edited = must(await admin.from("coupons").select("description, admin_hold, status").eq("id", coupon.id).single(), "edited");
+  check("the edit saved and the hold stayed", edited.description === "Edited while removed" && edited.admin_hold && edited.status === "paused", edited);
+
+  const fetchPage = (path, who) =>
+    fetch(`${base}${path}`, { redirect: "manual", headers: { cookie: who.cookie } }).then(async (r) => (await r.text()).replaceAll("<!-- -->", ""));
+  const merchantList = await fetchPage("/merchant/coupons?view=removed", owner);
+  check("merchant list shows Removed by Coupersville with the reason", merchantList.includes("Removed by Coupersville") && merchantList.includes(reason));
+  const merchantEdit = await fetchPage(`/merchant/coupons/${coupon.id}`, owner);
+  check("edit page explains the removal, offers Delete coupon and no Resume", merchantEdit.includes(`Reason: ${reason}`) && merchantEdit.includes("Delete coupon") && !merchantEdit.includes("Resume coupon") && !merchantEdit.includes("Publish coupon"));
+  const adminRemoved = await fetchPage("/admin/coupons?view=removed", boss);
+  check("admin removed filter lists it with the reason and Release hold", adminRemoved.includes(`Admin test coupon ${run}`) && adminRemoved.includes(reason) && adminRemoved.includes("Release hold"));
+
+  const release = await act(boss, "admin/coupons/actions.ts", "releaseCouponHold", coupon.id);
+  check("admin releases the hold", release.ok === true, release);
+  const released = must(await admin.from("coupons").select("*").eq("id", coupon.id).single(), "released");
+  check("hold fields are cleared", !released.admin_hold && released.hold_reason === null && released.held_by === null && released.held_at === null, released);
+  const releaseAgain = await act(boss, "admin/coupons/actions.ts", "releaseCouponHold", coupon.id);
+  check("releasing twice says it is not on hold", releaseAgain.ok === false, releaseAgain);
+  const resumeAfter = await merchantSays("setCouponStatus", coupon.id, "published");
+  check("after release the merchant can resume it", resumeAfter.ok === true, resumeAfter);
+  check("and it is live again", await isLive(coupon.id));
+
+  // Deleting a held coupon: allowed, unless it has redemptions (that would erase them).
+  const spare = must(
+    await admin
+      .from("coupons")
+      .insert({
+        business_id: shop.id,
+        category_id: categoryId,
+        title: `Spare ${run}`,
+        discount_type: "amount",
+        discount_value: 1,
+        starts_at: new Date(Date.now() - 3_600_000).toISOString(),
+        expires_at: new Date(Date.now() + 86_400_000).toISOString(),
+        status: "published",
+      })
+      .select()
+      .single(),
+    "spare",
+  );
+  const spareToken = must(await shopper.client.rpc("create_redemption_token", { p_coupon_id: spare.id }), "spare token");
+  must(await owner.client.rpc("verify_redemption", { p_token_or_code: spareToken.token, p_location_id: store.id }), "spare redeem");
+  await act(boss, "admin/coupons/actions.ts", "holdCoupon", spare.id, "");
+  const keepRedeemed = await merchantSays("deleteCoupon", spare.id);
+  check("a removed coupon that was redeemed is kept", keepRedeemed.ok === false && /kept for your records/.test(keepRedeemed.error), keepRedeemed);
+  must(await admin.from("redemptions").delete().eq("coupon_id", spare.id), "clear spare redemptions");
+  const deleteHeld = await merchantSays("deleteCoupon", spare.id);
+  check("a removed coupon with no redemptions can be deleted", Boolean(deleteHeld.redirect), deleteHeld);
+  check("it is gone", (await admin.from("coupons").select("id").eq("id", spare.id)).data.length === 0);
+  const deleteLive = await merchantSays("deleteCoupon", coupon.id);
+  check("a live coupon still cannot be deleted", deleteLive.ok === false, deleteLive);
 
   console.log("\nCategories");
   const before = must(await admin.from("categories").select("id"), "count").length;
@@ -283,19 +393,13 @@ async function main() {
   check("merchant cannot add categories", ownerCat.blocked === true, ownerCat);
 
   console.log("\nSettings");
-  const settings = {
-    redemption_method: "qr_with_code",
-    coupon_moderation: "instant",
-    subscription_expiry: "hide_coupons",
-    consumer_login: "login_required",
-    plans: "single_annual",
-    region_restriction: "Test County",
-  };
+  const settings = { subscription_expiry: "hide_coupons", plans: "single_annual" };
   const save = await act(boss, "admin/settings/actions.ts", "updateSettings", settings);
   check("save settings", save.ok === true, save);
+  const sneaky = await act(boss, "admin/settings/actions.ts", "updateSettings", { ...settings, consumer_login: "login_required" });
   const stored = must(await admin.from("platform_settings").select("*").eq("singleton", true).single(), "settings");
-  check("stored", stored.consumer_login === "login_required" && stored.region_restriction === "Test County");
-  const invalid = await act(boss, "admin/settings/actions.ts", "updateSettings", { ...settings, redemption_method: "carrier_pigeon" });
+  check("settings not shown in the UI cannot be changed through the action", sneaky.ok === true && stored.consumer_login === originalSettings.consumer_login, stored);
+  const invalid = await act(boss, "admin/settings/actions.ts", "updateSettings", { ...settings, plans: "monthly" });
   check("an unknown value is refused", invalid.ok === false, invalid);
   const ownerSettings = await callAction(base, owner.cookie, A("admin/settings/actions.ts"), "updateSettings", [settings]);
   check("merchant cannot change settings", ownerSettings.blocked === true, ownerSettings);
@@ -319,11 +423,13 @@ async function main() {
     [`/admin/coupons?business=${shop.id}`, `Admin test coupon ${run}`],
     ["/admin/subscriptions", `No plan shop ${run}`],
     ["/admin/categories", "Main Street order"],
-    ["/admin/settings", "Redemption method"],
+    ["/admin/settings", "When a plan ends"],
   ]) {
     const r = await page(path, boss);
     check(`admin ${path}`, r.status === 200 && r.body.includes(text), `${r.status} ${r.location}`);
   }
+  const settingsPage = await page("/admin/settings", boss);
+  check("settings page leaves out the settings not built yet", !/Redemption method|Coupon moderation|Shopper sign-in|Region restriction/.test(settingsPage.body));
   const merchantAdmin = await page("/admin/merchants", owner);
   check("merchant is sent away from /admin", merchantAdmin.status === 307 && merchantAdmin.location.includes("/merchant"), merchantAdmin.location);
 

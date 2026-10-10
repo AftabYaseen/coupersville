@@ -10,7 +10,8 @@ import { formatDay } from "@/lib/dates";
 import { formatOffer } from "@/components/ticket";
 import { PageLoading } from "@/components/page-loading";
 import { ActionButton } from "@/components/admin/action-button";
-import { setCouponFeatured, unpublishCoupon } from "@/app/admin/coupons/actions";
+import { releaseCouponHold, setCouponFeatured } from "@/app/admin/coupons/actions";
+import { HoldCouponButton } from "@/components/admin/hold-coupon-button";
 
 export const metadata: Metadata = { title: "All coupons" };
 
@@ -61,14 +62,16 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/admi
   let query = supabase
     .from("coupons")
     .select(
-      "id, title, status, starts_at, expires_at, discount_type, discount_value, featured, total_limit, business_id, businesses(name, status, timezone, subscriptions(status, current_period_end, source)), categories(name, active)",
+      "id, title, status, starts_at, expires_at, discount_type, discount_value, featured, total_limit, admin_hold, hold_reason, held_at, business_id, businesses(name, status, timezone, subscriptions(status, current_period_end, source)), categories(name, active)",
       { count: "exact" },
     );
   if (f.q) query = query.ilike("title", `%${escapeLike(f.q)}%`);
   if (f.business) query = query.eq("business_id", f.business);
   if (f.category) query = query.eq("category_id", f.category);
   if (f.featured) query = query.eq("featured", true);
-  // The same rules as couponView, written as filters so paging stays correct.
+  // The same rules as couponView, written as filters so paging stays correct. A hold outranks the rest.
+  if (f.view === "removed") query = query.eq("admin_hold", true);
+  else if (f.view) query = query.eq("admin_hold", false);
   if (f.view === "draft") query = query.eq("status", "draft");
   if (f.view === "expired") query = query.neq("status", "draft").lte("expires_at", nowIso);
   if (f.view === "paused") query = query.eq("status", "paused").gt("expires_at", nowIso);
@@ -206,15 +209,28 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/admi
                     {COUPON_VIEW_STATUS[view]}, {formatDay(c.starts_at, tz)} to {formatDay(c.expires_at, tz)}
                   </p>
                   {hidden && <p className="text-sm font-semibold text-signal">{hidden}</p>}
+                  {c.admin_hold && (
+                    <p className="text-sm text-signal">
+                      <span className="font-semibold">Unpublished by Coupersville</span>
+                      {c.held_at ? ` on ${formatDay(c.held_at, tz)}` : ""}
+                      {c.hold_reason ? `: ${c.hold_reason}` : ", no reason given"}
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2 md:justify-end">
-                  {c.status === "published" && view !== "expired" && (
+                  {c.admin_hold ? (
                     <ActionButton
-                      action={unpublishCoupon.bind(null, c.id)}
-                      confirm={{ question: "Unpublish this coupon? Shoppers stop seeing it straight away.", yes: "Yes, unpublish", no: "Keep" }}
+                      action={releaseCouponHold.bind(null, c.id)}
+                      confirm={{
+                        question: "Release this coupon? The merchant gets control of it back.",
+                        yes: "Yes, release",
+                        no: "Keep unpublished",
+                      }}
                     >
-                      Unpublish
+                      Release hold
                     </ActionButton>
+                  ) : (
+                    c.status !== "draft" && view !== "expired" && <HoldCouponButton couponId={c.id} />
                   )}
                   <ActionButton action={setCouponFeatured.bind(null, c.id, !c.featured)} showSuccess={false}>
                     {c.featured ? "Remove from featured" : "Feature"}

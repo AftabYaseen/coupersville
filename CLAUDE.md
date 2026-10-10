@@ -49,7 +49,7 @@ Store these in a single-row `platform_settings` table so they can be changed wit
 | Decision | Default |
 |---|---|
 | Redemption method | QR code with a 6-digit code fallback |
-| Coupon moderation | Merchant coupons go live instantly; admin can unpublish |
+| Coupon moderation | Merchant coupons go live instantly; admin can unpublish (an admin hold the merchant cannot undo) |
 | Subscription expiry | Coupons are hidden from consumers until the merchant renews |
 | Consumer login | Browsing is open; saving and redeeming require an account |
 | Plans | One annual plan |
@@ -64,16 +64,17 @@ All tables have `id uuid` primary keys, `created_at`, and `updated_at` where it 
 - **businesses**: `owner_id`, `name`, `description`, `primary_category_id`, `logo_path`, `cover_path`, `contact_email`, `contact_phone`, `website_url`, `status` (`draft` | `active` | `suspended`), `timezone` (IANA name; coupon dates are calendar days in this zone). Onboarding creates the business as `draft`; server code sets it `active` once the profile and first store are saved.
 - **business_members**: `business_id`, `user_id`, `role` (`owner` | `manager` | `staff`). Staff can only use the scanner.
 - **locations**: `business_id`, `store_name`, `store_number`, `address_line1`, `address_line2`, `city`, `state`, `postal_code`, `geo` (PostGIS `geography(Point)`), `phone`, `active`.
-- **coupons**: `business_id`, `category_id`, `title`, `description`, `discount_type` (`percent` | `amount`), `discount_value`, `included_products`, `limits_text`, `min_spend`, `min_qty`, `max_people`, `starts_at`, `expires_at`, `status` (`draft` | `published` | `paused`), `image_path`, `all_locations` (bool), `per_user_limit` (default 1), `total_limit` (nullable), `featured` (bool, admin only), `created_by`.
+- **coupons**: `business_id`, `category_id`, `title`, `description`, `discount_type` (`percent` | `amount`), `discount_value`, `included_products`, `limits_text`, `min_spend`, `min_qty`, `max_people`, `starts_at`, `expires_at`, `status` (`draft` | `published` | `paused`), `image_path`, `all_locations` (bool), `per_user_limit` (default 1), `total_limit` (nullable), `featured` (bool, admin only), `created_by`, `admin_hold` (bool), `hold_reason`, `held_by`, `held_at`.
+- **Admin hold**: an admin unpublishes a coupon by setting `admin_hold` with an optional reason; the database fills in `held_by` and `held_at`. A held coupon is never live, so it is left out of `live_coupons` and every redemption check. The merchant sees it as "Removed by Coupersville" with the reason, cannot resume or republish it, and can still edit it, or delete it if it was never redeemed. Only an admin can release the hold, which returns the coupon to the merchant's own status.
 - **coupon_locations**: `coupon_id`, `location_id` (used when `all_locations` is false).
 - **favorites**: `user_id`, `coupon_id`, unique together.
 - **redemption_tokens**: `coupon_id`, `user_id`, `token` (random, for the QR), `short_code` (6 digits), `expires_at` (5 minutes), `used_at`.
 - **redemptions**: `coupon_id`, `user_id`, `business_id`, `location_id`, `token_id`, `method` (`qr` | `code`), `verified_by`, `redeemed_at`.
 - **staff_invites**: `business_id`, `email` (lowercase), `token` (random, for the join link), `invited_by`, `expires_at` (14 days), `accepted_at`, `accepted_by`. Owners create them; `accept_staff_invite` adds the member when the signed-in email matches.
 - **subscriptions**: `business_id` (unique), `source` (`stripe` | `complimentary`), `stripe_customer_id`, `stripe_subscription_id`, `status` (`active` | `past_due` | `canceled` | `expired`), `current_period_end`, `cancel_at_period_end`.
-- **platform_settings**: single row holding the decisions above.
+- **platform_settings**: single row holding the decisions above. `/admin/settings` shows only the settings the app acts on (plan expiry and plans). The others stay in the table, out of the UI, until they are built.
 
-"Expired" is never stored on a coupon. A coupon is live when `status = 'published'`, now is between `starts_at` and `expires_at`, the business is active, and its subscription is active. Put this in a view or SQL function (`live_coupons`) and have every consumer query use it.
+"Expired" is never stored on a coupon. A coupon is live when `status = 'published'`, it is not under an admin hold, now is between `starts_at` and `expires_at`, the business is active, and its subscription is active. Put this in a view or SQL function (`live_coupons`) and have every consumer query use it.
 
 ### Access rules (RLS)
 

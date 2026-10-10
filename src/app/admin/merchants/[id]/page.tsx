@@ -47,7 +47,7 @@ async function BusinessContent({ params }: { params: PageProps<"/admin/merchants
         .order("store_name"),
       supabase
         .from("coupons")
-        .select("id, title, status, starts_at, expires_at, discount_type, discount_value, featured")
+        .select("id, title, status, starts_at, expires_at, discount_type, discount_value, featured, admin_hold")
         .eq("business_id", id)
         .order("updated_at", { ascending: false }),
       supabase.rpc("business_team", { p_business_id: id }),

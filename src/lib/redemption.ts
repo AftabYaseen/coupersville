@@ -59,7 +59,7 @@ export const VERIFY_FAILURES: Record<VerifyFailure, { title: string; body: strin
   },
   coupon_not_live: {
     title: "Coupon no longer live",
-    body: "This coupon is paused, has ended, or your plan is not active. It cannot be redeemed right now.",
+    body: "This coupon is paused, has ended, was removed by Coupersville, or your plan is not active. It cannot be redeemed right now.",
   },
   not_found: {
     title: "Code not found",

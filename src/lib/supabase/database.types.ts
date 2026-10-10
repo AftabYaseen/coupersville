@@ -203,6 +203,7 @@ export type Database = {
       }
       coupons: {
         Row: {
+          admin_hold: boolean
           all_locations: boolean
           business_id: string
           category_id: string
@@ -213,6 +214,9 @@ export type Database = {
           discount_value: number
           expires_at: string
           featured: boolean
+          held_at: string | null
+          held_by: string | null
+          hold_reason: string | null
           id: string
           image_path: string | null
           included_products: string | null
@@ -228,6 +232,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          admin_hold?: boolean
           all_locations?: boolean
           business_id: string
           category_id: string
@@ -238,6 +243,9 @@ export type Database = {
           discount_value: number
           expires_at: string
           featured?: boolean
+          held_at?: string | null
+          held_by?: string | null
+          hold_reason?: string | null
           id?: string
           image_path?: string | null
           included_products?: string | null
@@ -253,6 +261,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          admin_hold?: boolean
           all_locations?: boolean
           business_id?: string
           category_id?: string
@@ -263,6 +272,9 @@ export type Database = {
           discount_value?: number
           expires_at?: string
           featured?: boolean
+          held_at?: string | null
+          held_by?: string | null
+          hold_reason?: string | null
           id?: string
           image_path?: string | null
           included_products?: string | null
@@ -730,6 +742,7 @@ export type Database = {
     Views: {
       live_coupons: {
         Row: {
+          admin_hold: boolean | null
           all_locations: boolean | null
           business_id: string | null
           category_id: string | null
@@ -740,6 +753,9 @@ export type Database = {
           discount_value: number | null
           expires_at: string | null
           featured: boolean | null
+          held_at: string | null
+          held_by: string | null
+          hold_reason: string | null
           id: string | null
           image_path: string | null
           included_products: string | null
@@ -755,6 +771,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          admin_hold?: boolean | null
           all_locations?: boolean | null
           business_id?: string | null
           category_id?: string | null
@@ -765,6 +782,9 @@ export type Database = {
           discount_value?: number | null
           expires_at?: string | null
           featured?: boolean | null
+          held_at?: string | null
+          held_by?: string | null
+          hold_reason?: string | null
           id?: string | null
           image_path?: string | null
           included_products?: string | null
@@ -780,6 +800,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          admin_hold?: boolean | null
           all_locations?: boolean | null
           business_id?: string | null
           category_id?: string | null
@@ -790,6 +811,9 @@ export type Database = {
           discount_value?: number | null
           expires_at?: string | null
           featured?: boolean | null
+          held_at?: string | null
+          held_by?: string | null
+          hold_reason?: string | null
           id?: string | null
           image_path?: string | null
           included_products?: string | null

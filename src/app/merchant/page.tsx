@@ -54,7 +54,7 @@ async function MerchantHome() {
       supabase.from("subscriptions").select("*").eq("business_id", managed.businessId).maybeSingle(),
       supabase
         .from("coupons")
-        .select("id, title, status, starts_at, expires_at, total_limit")
+        .select("id, title, status, starts_at, expires_at, total_limit, admin_hold")
         .eq("business_id", managed.businessId),
       supabase
         .from("locations")
@@ -174,7 +174,7 @@ async function MerchantHome() {
           Coupons
         </h2>
         <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
-          {COUPON_VIEWS.map((view) => (
+          {COUPON_VIEWS.filter((view) => view !== "removed" || counts.removed > 0).map((view) => (
             <li key={view}>
               <Link href={`/merchant/coupons?view=${view}`} className="panel block p-4">
                 <span className="block text-3xl font-semibold tabular">{counts[view]}</span>

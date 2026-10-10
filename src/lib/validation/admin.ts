@@ -48,21 +48,10 @@ export const planEndSchema = z.preprocess(
     .transform((v) => (v === "" ? null : v)),
 );
 
+// Only the settings the app acts on today. The other platform_settings columns (redemption method,
+// moderation, shopper sign-in, region) stay in the database and come back here when they are built.
 export const SETTING_OPTIONS = {
-  redemption_method: [
-    { value: "qr_with_code", label: "QR code with a 6-digit code fallback" },
-    { value: "qr_only", label: "QR code only" },
-    { value: "code_only", label: "6-digit code only" },
-  ],
-  coupon_moderation: [
-    { value: "instant", label: "Merchant coupons go live instantly; admins can unpublish" },
-    { value: "review", label: "An admin reviews coupons before they go live" },
-  ],
   subscription_expiry: [{ value: "hide_coupons", label: "Coupons are hidden until the merchant renews" }],
-  consumer_login: [
-    { value: "browse_open", label: "Anyone can browse; saving and redeeming need an account" },
-    { value: "login_required", label: "Shoppers must sign in to browse" },
-  ],
   plans: [{ value: "single_annual", label: "One annual plan" }],
 } as const;
 
@@ -70,18 +59,7 @@ const values = <K extends keyof typeof SETTING_OPTIONS>(key: K) =>
   SETTING_OPTIONS[key].map((o) => o.value) as unknown as [string, ...string[]];
 
 export const settingsSchema = z.object({
-  redemption_method: z.enum(values("redemption_method")),
-  coupon_moderation: z.enum(values("coupon_moderation")),
   subscription_expiry: z.enum(values("subscription_expiry")),
-  consumer_login: z.enum(values("consumer_login")),
   plans: z.enum(values("plans")),
-  region_restriction: z.preprocess(
-    nullToEmpty,
-    z
-      .string()
-      .trim()
-      .max(200, { error: "Use 200 characters or fewer." })
-      .transform((v) => (v === "" ? null : v)),
-  ),
 });
 export type SettingsInput = z.input<typeof settingsSchema>;

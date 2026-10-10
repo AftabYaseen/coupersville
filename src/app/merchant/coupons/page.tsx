@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Plus } from "lucide-react";
 import { requireManagedBusiness } from "@/lib/merchant";
-import { COUPON_VIEWS, COUPON_VIEW_LABELS, couponView, type CouponView } from "@/lib/coupons";
+import { COUPON_VIEWS, COUPON_VIEW_LABELS, REMOVED_LABEL, couponView, type CouponView } from "@/lib/coupons";
 import { formatDay } from "@/lib/dates";
 import { parseStats } from "@/lib/redemption-stats";
 import { formatOffer } from "@/components/ticket";
@@ -17,6 +17,7 @@ const EMPTY: Record<CouponView, string> = {
   draft: "No drafts. Start a coupon and save it as a draft to finish later.",
   paused: "No paused coupons.",
   expired: "No coupons have ended yet.",
+  removed: "Coupersville has not removed any of your coupons.",
 };
 
 const TINT_BG = {
@@ -50,7 +51,7 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/merc
   const [{ data: coupons }, { data: rawStats }] = await Promise.all([
     supabase
       .from("coupons")
-      .select("id, title, status, discount_type, discount_value, starts_at, expires_at, total_limit, categories(name, stock_tint)")
+      .select("id, title, status, discount_type, discount_value, starts_at, expires_at, total_limit, admin_hold, hold_reason, categories(name, stock_tint)")
       .eq("business_id", business.id)
       .order("updated_at", { ascending: false }),
     supabase.rpc("business_redemption_stats", { p_business_id: business.id }),
@@ -79,7 +80,7 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/merc
 
       <nav aria-label="Coupon status" className="mt-6 overflow-x-auto">
         <ul className="flex gap-2">
-          {COUPON_VIEWS.map((v) => (
+          {COUPON_VIEWS.filter((v) => v !== "removed" || counts.removed > 0 || view === "removed").map((v) => (
             <li key={v}>
               <Link
                 href={`/merchant/coupons?view=${v}`}
@@ -121,6 +122,12 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/merc
                       {formatDay(c.starts_at, tz)} to {formatDay(c.expires_at, tz)}
                       {c.categories?.name ? `, ${c.categories.name}` : ""}
                     </span>
+                    {c.admin_hold && (
+                      <span className="block text-sm font-semibold text-signal">
+                        {REMOVED_LABEL}
+                        {c.hold_reason ? `: ${c.hold_reason}` : ""}
+                      </span>
+                    )}
                     {c.status !== "draft" && (
                       <span className="block text-sm tabular">
                         {redeemedLabel(redeemed[c.id] ?? 0, c.total_limit)}

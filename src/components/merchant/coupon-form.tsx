@@ -29,6 +29,8 @@ type Props = {
   categories: CouponCategoryOption[];
   locations: CouponLocationOption[];
   defaults: CouponInput;
+  // Removed by Coupersville: it can be edited but never published from here.
+  held?: boolean;
 };
 
 function text(v: unknown): string {
@@ -56,7 +58,7 @@ export function CouponForm(props: Props) {
   } = form;
   const values = useWatch({ control });
 
-  const isDraft = status === null || status === "draft";
+  const isDraft = (status === null || status === "draft") && !props.held;
 
   function submit(intent: CouponIntent) {
     return form.handleSubmit((data) => {
