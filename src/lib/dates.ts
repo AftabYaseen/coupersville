@@ -77,3 +77,10 @@ export function formatDay(instant: Date | string | number, tz: string): string {
 }
 
 export const EXPIRING_SOON_MS = 3 * 24 * 60 * 60 * 1000;
+
+// The same calendar day one year on, as "YYYY-MM-DD". February 29 becomes February 28.
+export function dayOneYearOn(day: string): string {
+  const [y, m, d] = day.split("-").map(Number);
+  const dd = m === 2 && d === 29 ? 28 : d;
+  return `${y + 1}-${String(m).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
+}

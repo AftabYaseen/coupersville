@@ -4,21 +4,31 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { NavLink } from "@/lib/merchant-links";
 
-export function MerchantNav({ links }: { links: NavLink[] }) {
+export function MerchantNav({ links, label = "Merchant" }: { links: NavLink[]; label?: string }) {
   const pathname = usePathname();
   if (pathname.startsWith("/merchant/onboarding")) return null;
-  return <MerchantNavLinks pathname={pathname} links={links} />;
+  return <MerchantNavLinks pathname={pathname} links={links} label={label} />;
 }
 
 // Rendered on its own as the static fallback, before the current path and role are known.
-export function MerchantNavLinks({ pathname, links }: { pathname: string | null; links: NavLink[] }) {
+// Also used for the admin portal.
+export function MerchantNavLinks({
+  pathname,
+  links,
+  label = "Merchant",
+}: {
+  pathname: string | null;
+  links: NavLink[];
+  label?: string;
+}) {
   return (
-    <nav aria-label="Merchant" className="min-h-11 border-b-[1.5px] border-ink bg-white">
+    <nav aria-label={label} className="min-h-11 border-b-[1.5px] border-ink bg-white">
       <ul className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4">
         {links.map((link) => {
+          // A portal's home link ("/merchant", "/admin") only matches itself.
+          const isHome = link.href.split("/").length === 2;
           const active =
-            pathname !== null &&
-            (link.href === "/merchant" ? pathname === "/merchant" : pathname.startsWith(link.href));
+            pathname !== null && (isHome ? pathname === link.href : pathname.startsWith(link.href));
           return (
             <li key={link.href}>
               <Link

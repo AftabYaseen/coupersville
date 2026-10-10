@@ -46,4 +46,10 @@ BASE_URL=http://localhost:3100 node --env-file=.env.local scripts/test-pages.mjs
 
 Fetches pages as a shopper, a staff member, an owner and a signed-out visitor, and checks access and content.
 
+```
+BASE_URL=http://localhost:3100 node --env-file=.env.local scripts/test-admin-actions.mjs
+```
+
+Calls the admin server actions, and the redeem, scanner and staff actions, over HTTP the way the browser does, as an admin, a merchant, a shopper and a signed-out visitor. Needs the same running build. It restores the category order and platform settings afterwards.
+
 The camera scanner, the stamp animation and the screen wake lock are not covered here. Test them on real phones.

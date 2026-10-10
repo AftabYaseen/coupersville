@@ -831,6 +831,31 @@ export type Database = {
     }
     Functions: {
       accept_staff_invite: { Args: { p_token: string }; Returns: Json }
+      admin_list_businesses: {
+        Args: {
+          p_query?: string
+          p_status?: Database["public"]["Enums"]["business_status"]
+        }
+        Returns: {
+          category_name: string
+          coupon_count: number
+          created_at: string
+          id: string
+          live_coupon_count: number
+          name: string
+          owner_email: string
+          owner_name: string
+          plan_active: boolean
+          plan_ends_at: string
+          plan_source: Database["public"]["Enums"]["subscription_source"]
+          plan_status: Database["public"]["Enums"]["subscription_status"]
+          redemptions_30d: number
+          status: Database["public"]["Enums"]["business_status"]
+          store_count: number
+          timezone: string
+        }[]
+      }
+      admin_platform_stats: { Args: never; Returns: Json }
       business_is_publishable: {
         Args: { p_business_id: string }
         Returns: boolean
