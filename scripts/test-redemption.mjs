@@ -330,7 +330,7 @@ async function main() {
   console.log("\nStats");
   const stats = must(await owner.client.rpc("business_redemption_stats", { p_business_id: shop.id }), "stats");
   const actual = await redemptionCount({ business_id: shop.id });
-  check("owner total matches redemptions", stats.total === actual && stats.today === actual && stats.week === actual, { stats, actual });
+  check("owner total matches redemptions", stats.total === actual && stats.today === actual && stats.last_7_days === actual, { stats, actual });
   check("per-coupon count for the race coupon is 2", stats.by_coupon?.[raceCoupon.id] === 2, stats.by_coupon);
   const staffStats = must(await staff.client.rpc("business_redemption_stats", { p_business_id: shop.id }), "staff stats");
   check("staff do not see stats", staffStats.total === 0, staffStats);

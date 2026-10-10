@@ -123,7 +123,7 @@ async function MerchantHome() {
         <dl className="mt-3 grid grid-cols-3 gap-3">
           {[
             { label: "Today", value: stats.today },
-            { label: "This week", value: stats.week },
+            { label: "Last 7 days", value: stats.last7Days },
             { label: "All time", value: stats.total },
           ].map((s) => (
             <div key={s.label} className="panel p-4">
@@ -132,7 +132,7 @@ async function MerchantHome() {
             </div>
           ))}
         </dl>
-        <p className="mt-2 text-sm">Today and this week follow your business timezone. Weeks start on Monday.</p>
+        <p className="mt-2 text-sm">Today follows your business timezone.</p>
         {byCoupon.length > 0 ? (
           <div className="panel mt-3 overflow-x-auto">
             <table className="w-full text-left">
