@@ -618,6 +618,67 @@ export type Database = {
           },
         ]
       }
+      staff_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          business_id: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          business_id: string
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          business_id?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_invites_accepted_by_fkey"
+            columns: ["accepted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_invites_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_invites_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           business_id: string
@@ -769,9 +830,25 @@ export type Database = {
       }
     }
     Functions: {
+      accept_staff_invite: { Args: { p_token: string }; Returns: Json }
       business_is_publishable: {
         Args: { p_business_id: string }
         Returns: boolean
+      }
+      business_redemption_stats: {
+        Args: { p_business_id: string }
+        Returns: Json
+      }
+      business_team: {
+        Args: { p_business_id: string }
+        Returns: {
+          email: string
+          full_name: string
+          joined_at: string
+          member_id: string
+          role: Database["public"]["Enums"]["member_role"]
+          user_id: string
+        }[]
       }
       can_manage_business: { Args: { p_business_id: string }; Returns: boolean }
       can_manage_business_path: { Args: { p_name: string }; Returns: boolean }
@@ -806,6 +883,54 @@ export type Database = {
           error: true
         } & "the function public.lng with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache"
       }
+      my_redemption_token: {
+        Args: { p_token_id: string }
+        Returns: {
+          business_name: string
+          business_timezone: string
+          coupon_expires_at: string
+          coupon_id: string
+          description: string
+          discount_type: Database["public"]["Enums"]["discount_type"]
+          discount_value: number
+          expires_at: string
+          included_products: string
+          limits_text: string
+          max_people: number
+          min_qty: number
+          min_spend: number
+          only_store: string
+          per_user_limit: number
+          redeemed_at: string
+          redeemed_store: string
+          short_code: string
+          stock_tint: Database["public"]["Enums"]["stock_tint"]
+          store_count: number
+          title: string
+          token: string
+          token_id: string
+          used_at: string
+        }[]
+      }
+      my_redemptions: {
+        Args: never
+        Returns: {
+          business_name: string
+          business_timezone: string
+          coupon_id: string
+          coupon_is_live: boolean
+          discount_type: Database["public"]["Enums"]["discount_type"]
+          discount_value: number
+          method: Database["public"]["Enums"]["redemption_method"]
+          redeemed_at: string
+          redemption_id: string
+          stock_tint: Database["public"]["Enums"]["stock_tint"]
+          store_city: string
+          store_name: string
+          store_number: string
+          title: string
+        }[]
+      }
       my_saved_coupons: {
         Args: never
         Returns: {
@@ -820,6 +945,26 @@ export type Database = {
           stock_tint: Database["public"]["Enums"]["stock_tint"]
           title: string
         }[]
+      }
+      preview_redemption: {
+        Args: { p_location_id: string; p_token_or_code: string }
+        Returns: Json
+      }
+      redemption_offer: {
+        Args: { p_coupon: Database["public"]["Tables"]["coupons"]["Row"] }
+        Returns: Json
+      }
+      redemption_problem: {
+        Args: {
+          p_coupon: Database["public"]["Tables"]["coupons"]["Row"]
+          p_location: Database["public"]["Tables"]["locations"]["Row"]
+          p_token: Database["public"]["Tables"]["redemption_tokens"]["Row"]
+        }
+        Returns: string
+      }
+      resolve_redemption_input: {
+        Args: { p_business_id: string; p_input: string }
+        Returns: Record<string, unknown>
       }
       search_live_coupons: {
         Args: {
@@ -863,6 +1008,15 @@ export type Database = {
           store_count: number
           title: string
           total_count: number
+        }[]
+      }
+      staff_invite_details: {
+        Args: { p_token: string }
+        Returns: {
+          accepted: boolean
+          business_name: string
+          expired: boolean
+          masked_email: string
         }[]
       }
       verify_redemption: {
