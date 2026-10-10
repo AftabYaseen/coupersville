@@ -1,20 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useState, useTransition } from "react";
+import { QrCode } from "lucide-react";
+import { startRedemption } from "@/app/redeem/actions";
+import { FormMessage } from "@/components/field";
 
-// Visible now so shoppers learn where it lives; in-store redemption arrives in the next phase.
-export function RedeemButton() {
-  const [open, setOpen] = useState(false);
+type Props = { couponId: string; signedIn: boolean; label?: string; variant?: "primary" | "secondary" };
+
+export function RedeemButton({ couponId, signedIn, label = "Redeem now", variant = "primary" }: Props) {
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const className = `btn w-full ${variant === "secondary" ? "btn-secondary" : ""}`;
+
+  if (!signedIn) {
+    return (
+      <Link href={`/login?next=${encodeURIComponent(`/coupon/${couponId}`)}`} className={className}>
+        <QrCode aria-hidden size={18} strokeWidth={1.5} />
+        Sign in to redeem
+      </Link>
+    );
+  }
+
+  function redeem() {
+    setError(null);
+    startTransition(async () => {
+      const result = await startRedemption(couponId);
+      if (!result.ok) setError(result.error);
+    });
+  }
+
   return (
     <div className="grid gap-2">
-      <button type="button" className="btn w-full" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-        Redeem now
+      <button type="button" className={className} disabled={pending} onClick={redeem}>
+        <QrCode aria-hidden size={18} strokeWidth={1.5} />
+        {pending ? "Getting your code" : label}
       </button>
-      {open && (
-        <p role="status" className="rounded-sm border-[1.5px] border-ink bg-white p-3 text-sm">
-          Redeeming in store is coming soon. Save this coupon so it is ready when it opens.
-        </p>
-      )}
+      {error && <FormMessage tone="error">{error}</FormMessage>}
     </div>
   );
 }

@@ -55,20 +55,29 @@ export type Membership = {
   businessStatus: Enums<"business_status">;
 };
 
-// Merchants, admins, and staff members of a business may enter /merchant.
-export async function requireMerchantAccess(nextPath = "/merchant") {
-  const user = await requireUser(nextPath);
+export const getMemberships = cache(async (userId: string): Promise<Membership[]> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("business_members")
     .select("business_id, role, businesses(name, status)")
-    .eq("user_id", user.id);
+    .eq("user_id", userId);
 
-  const memberships: Membership[] = (data ?? []).flatMap((row) =>
+  return (data ?? []).flatMap((row) =>
     row.businesses
       ? [{ businessId: row.business_id, role: row.role, businessName: row.businesses.name, businessStatus: row.businesses.status }]
       : [],
   );
+});
+
+// Staff only: on a team, but not an owner or manager anywhere. They may use the scanner and nothing else.
+export function isStaffOnly(memberships: Membership[]): boolean {
+  return memberships.length > 0 && memberships.every((m) => m.role === "staff");
+}
+
+// Merchants, admins, and staff members of a business may enter /merchant.
+export async function requireMerchantAccess(nextPath = "/merchant") {
+  const user = await requireUser(nextPath);
+  const memberships = await getMemberships(user.id);
 
   if (user.role !== "merchant" && user.role !== "admin" && memberships.length === 0) {
     redirect(homePathFor(user.role));

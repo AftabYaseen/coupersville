@@ -13,7 +13,13 @@ const ACCOUNT_TYPES = [
   { value: "merchant", title: "I run a business", body: "Publish coupons for your stores." },
 ] as const;
 
-export function SignupForm({ defaultType = "consumer" }: { defaultType?: SignupInput["accountType"] }) {
+export function SignupForm({
+  defaultType = "consumer",
+  next,
+}: {
+  defaultType?: SignupInput["accountType"];
+  next?: string;
+}) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -24,7 +30,7 @@ export function SignupForm({ defaultType = "consumer" }: { defaultType?: SignupI
     formState: { errors },
   } = useForm<SignupInput>({
     resolver: zodResolver(signupSchema),
-    defaultValues: { fullName: "", email: "", password: "", accountType: defaultType },
+    defaultValues: { fullName: "", email: "", password: "", accountType: defaultType, next },
   });
   const accountType = useWatch({ control, name: "accountType" });
 
@@ -41,7 +47,7 @@ export function SignupForm({ defaultType = "consumer" }: { defaultType?: SignupI
     return (
       <div className="grid gap-4">
         <FormMessage tone="success">{sent}</FormMessage>
-        <Link href="/login" className="btn btn-secondary">
+        <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="btn btn-secondary">
           Back to sign in
         </Link>
       </div>
@@ -111,7 +117,7 @@ export function SignupForm({ defaultType = "consumer" }: { defaultType?: SignupI
 
       <p className="text-sm">
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-ink underline underline-offset-4">
+        <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-medium text-ink underline underline-offset-4">
           Sign in
         </Link>
       </p>

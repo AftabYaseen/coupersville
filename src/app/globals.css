@@ -171,3 +171,46 @@ body {
 .ticket-main::after { right: calc(-1 * (var(--notch) + var(--line)) - var(--line)); bottom: calc(-1 * (var(--notch) + var(--line))); }
 .ticket-stub::before { left: calc(-1 * (var(--notch) + var(--line)) - var(--line)); top: calc(-1 * (var(--notch) + var(--line)) - var(--line)); }
 .ticket-stub::after { right: calc(-1 * (var(--notch) + var(--line)) - var(--line)); top: calc(-1 * (var(--notch) + var(--line)) - var(--line)); }
+
+/* The one animated moment: an ink stamp presses onto the ticket and the stub tears away. */
+.stamp {
+  position: absolute;
+  top: 2.5rem;
+  right: 1rem;
+  padding: 0.375rem 0.875rem 0.5rem;
+  border: 3px solid var(--ink);
+  border-radius: 4px;
+  color: var(--ink);
+  text-align: center;
+  transform: rotate(-8deg);
+  pointer-events: none;
+}
+.stamp-press {
+  animation: stamp-press 420ms cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
+}
+@keyframes stamp-press {
+  0% { opacity: 0; transform: rotate(-8deg) scale(1.9); }
+  65% { opacity: 1; transform: rotate(-8deg) scale(0.94); }
+  100% { opacity: 1; transform: rotate(-8deg) scale(1); }
+}
+.redeem-ticket.is-tearing .ticket-stub {
+  transform-origin: 0 0;
+  animation: stub-tear 900ms 500ms ease-in both;
+}
+@keyframes stub-tear {
+  0% { transform: none; opacity: 1; }
+  25% { transform: translateY(3px) rotate(1.5deg); opacity: 1; }
+  100% { transform: translate(16px, 72px) rotate(9deg); opacity: 0; }
+}
+.redeem-ticket.is-torn .ticket-stub {
+  display: none;
+}
+.redeem-ticket.is-torn .ticket-main {
+  border-bottom: var(--line) dashed var(--ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .stamp-press,
+  .redeem-ticket.is-tearing .ticket-stub {
+    animation: none;
+  }
+}

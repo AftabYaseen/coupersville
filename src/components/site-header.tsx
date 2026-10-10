@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { Bookmark, CircleUser, LayoutDashboard, Search, Store, type LucideIcon } from "lucide-react";
-import { getSessionUser } from "@/lib/auth";
+import { Bookmark, CircleUser, History, LayoutDashboard, ScanLine, Search, Store, type LucideIcon } from "lucide-react";
+import { getMemberships, getSessionUser } from "@/lib/auth";
 import { signOut } from "@/app/(auth)/actions";
 
 function NavLink({ href, label, Icon }: { href: string; label: string; Icon: LucideIcon }) {
@@ -42,17 +42,22 @@ async function UserNav() {
     );
   }
 
+  // Staff who are shoppers otherwise get a direct way to their shop's scanner.
+  const memberships = user.role === "consumer" ? await getMemberships(user.id) : [];
   const portal =
     user.role === "admin"
       ? { href: "/admin", label: "Admin", Icon: LayoutDashboard }
       : user.role === "merchant"
         ? { href: "/merchant", label: "Merchant portal", Icon: Store }
-        : null;
+        : memberships.length > 0
+          ? { href: "/merchant/scan", label: "Scanner", Icon: ScanLine }
+          : null;
 
   return (
     <nav className="flex items-center gap-1" aria-label="Account">
       {portal && <NavLink {...portal} />}
       <NavLink href="/saved" label="Saved" Icon={Bookmark} />
+      {!portal && <NavLink href="/history" label="History" Icon={History} />}
       <NavLink href="/account" label="Account" Icon={CircleUser} />
       <form action={signOut} className="hidden sm:block">
         <button type="submit" className="btn btn-secondary ml-1 px-3">

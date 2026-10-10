@@ -58,8 +58,8 @@ export async function signUp(input: unknown): Promise<ActionResult> {
   const parsed = signupSchema.safeParse(input);
   if (!parsed.success) return INVALID_INPUT;
 
-  const { fullName, email, password, accountType } = parsed.data;
-  const home = homePathFor(accountType);
+  const { fullName, email, password, accountType, next } = parsed.data;
+  const home = safeNextPath(next) ?? homePathFor(accountType);
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email,

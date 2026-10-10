@@ -18,6 +18,7 @@ export const signupSchema = z.object({
   email,
   password: newPassword,
   accountType: z.enum(["consumer", "merchant"], { error: "Choose an account type." }),
+  next: z.string().optional(),
 });
 export type SignupInput = z.infer<typeof signupSchema>;
 

@@ -37,6 +37,18 @@ async function AccountContent() {
           <dd>{ROLE_LABELS[user.role]}</dd>
         </div>
       </dl>
+      <ul className="panel mt-6 grid p-2">
+        <li>
+          <Link href="/saved" className="flex min-h-11 items-center px-3 font-medium text-ink">
+            Saved coupons
+          </Link>
+        </li>
+        <li>
+          <Link href="/history" className="flex min-h-11 items-center px-3 font-medium text-ink">
+            Redemption history
+          </Link>
+        </li>
+      </ul>
       <div className="mt-6 flex flex-wrap gap-3">
         <Link href="/reset-password" className="btn btn-secondary">
           Change password

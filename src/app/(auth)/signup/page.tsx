@@ -18,5 +18,6 @@ export default function SignupPage({ searchParams }: PageProps<"/signup">) {
 
 async function SignupFormWithParams({ searchParams }: { searchParams: PageProps<"/signup">["searchParams"] }) {
   const params = await searchParams;
-  return <SignupForm defaultType={params.type === "merchant" ? "merchant" : "consumer"} />;
+  const next = typeof params.next === "string" ? params.next : undefined;
+  return <SignupForm defaultType={params.type === "merchant" ? "merchant" : "consumer"} next={next} />;
 }

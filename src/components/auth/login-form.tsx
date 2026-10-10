@@ -67,7 +67,7 @@ export function LoginForm({ next, notice }: { next?: string; notice?: string }) 
         </Link>
         <p>
           New here?{" "}
-          <Link href="/signup" className="font-medium text-ink underline underline-offset-4">
+          <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="font-medium text-ink underline underline-offset-4">
             Create an account
           </Link>
         </p>

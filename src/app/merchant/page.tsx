@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, ScanLine } from "lucide-react";
+import { parseStats } from "@/lib/redemption-stats";
 import { requireMerchantAccess } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { subscriptionIsActive } from "@/lib/merchant";
@@ -35,34 +36,41 @@ async function MerchantHome() {
   const managed = memberships.find((m) => m.role === "owner" || m.role === "manager");
 
   if (!managed) {
-    if (memberships.length === 0 && user.role === "merchant") redirect("/merchant/onboarding");
+    if (memberships.length > 0) redirect("/merchant/scan");
+    if (user.role === "merchant") redirect("/merchant/onboarding");
     return (
       <div className="mx-auto max-w-5xl px-4 py-10">
         <h1 className="wordmark text-4xl text-ink">Merchant portal</h1>
-        <p className="panel mt-6 p-5">
-          {memberships.length > 0
-            ? "You are on the team for " + memberships[0].businessName + ". The store scanner will open here soon."
-            : "You do not manage a business on Coupersville."}
-        </p>
+        <p className="panel mt-6 p-5">You do not manage a business on Coupersville.</p>
       </div>
     );
   }
   if (managed.businessStatus === "draft") redirect("/merchant/onboarding");
 
   const supabase = await createClient();
-  const [{ data: business }, { data: subscription }, { data: coupons }, { count: storeCount }] = await Promise.all([
-    supabase.from("businesses").select("name, status, timezone").eq("id", managed.businessId).single(),
-    supabase.from("subscriptions").select("*").eq("business_id", managed.businessId).maybeSingle(),
-    supabase.from("coupons").select("status, starts_at, expires_at").eq("business_id", managed.businessId),
-    supabase
-      .from("locations")
-      .select("id", { count: "exact", head: true })
-      .eq("business_id", managed.businessId)
-      .eq("active", true),
-  ]);
+  const [{ data: business }, { data: subscription }, { data: coupons }, { count: storeCount }, { data: rawStats }] =
+    await Promise.all([
+      supabase.from("businesses").select("name, status, timezone").eq("id", managed.businessId).single(),
+      supabase.from("subscriptions").select("*").eq("business_id", managed.businessId).maybeSingle(),
+      supabase
+        .from("coupons")
+        .select("id, title, status, starts_at, expires_at, total_limit")
+        .eq("business_id", managed.businessId),
+      supabase
+        .from("locations")
+        .select("id", { count: "exact", head: true })
+        .eq("business_id", managed.businessId)
+        .eq("active", true),
+      supabase.rpc("business_redemption_stats", { p_business_id: managed.businessId }),
+    ]);
   if (!business) redirect("/merchant/onboarding");
 
   const { counts, planActive } = summarise(coupons ?? [], subscription);
+  const stats = parseStats(rawStats);
+  const byCoupon = (coupons ?? [])
+    .map((c) => ({ ...c, redeemed: stats.byCoupon[c.id] ?? 0 }))
+    .filter((c) => c.redeemed > 0)
+    .sort((a, b) => b.redeemed - a.redeemed);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -99,6 +107,65 @@ async function MerchantHome() {
             Your plan is not active yet. You can build coupons and save them as drafts. Publishing opens once
             Coupersville activates your plan.
           </p>
+        )}
+      </section>
+
+      <section className="mt-6" aria-labelledby="redemptions-heading">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 id="redemptions-heading" className="text-xl font-semibold">
+            Redemptions
+          </h2>
+          <Link href="/merchant/scan" className="btn btn-secondary">
+            <ScanLine aria-hidden size={18} strokeWidth={1.5} />
+            Open scanner
+          </Link>
+        </div>
+        <dl className="mt-3 grid grid-cols-3 gap-3">
+          {[
+            { label: "Today", value: stats.today },
+            { label: "This week", value: stats.week },
+            { label: "All time", value: stats.total },
+          ].map((s) => (
+            <div key={s.label} className="panel p-4">
+              <dt className="font-medium">{s.label}</dt>
+              <dd className="text-3xl font-semibold tabular">{s.value}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-2 text-sm">Today and this week follow your business timezone. Weeks start on Monday.</p>
+        {byCoupon.length > 0 ? (
+          <div className="panel mt-3 overflow-x-auto">
+            <table className="w-full text-left">
+              <caption className="sr-only">Redemptions by coupon</caption>
+              <thead>
+                <tr className="border-b-[1.5px] border-ink">
+                  <th scope="col" className="p-3 font-semibold">
+                    Coupon
+                  </th>
+                  <th scope="col" className="p-3 text-right font-semibold">
+                    Redeemed
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {byCoupon.map((c) => (
+                  <tr key={c.id} className="border-b border-ink/20 last:border-0">
+                    <td className="p-3">
+                      <Link href={`/merchant/coupons/${c.id}`} className="font-medium text-ink underline underline-offset-4">
+                        {c.title}
+                      </Link>
+                    </td>
+                    <td className="p-3 text-right tabular">
+                      {c.redeemed}
+                      {c.total_limit ? ` of ${c.total_limit}` : ""}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="panel mt-3 p-4">No coupons redeemed yet. When staff confirm one in the scanner, it is counted here.</p>
         )}
       </section>
 

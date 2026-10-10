@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { requireManagedBusiness } from "@/lib/merchant";
 import { COUPON_VIEWS, COUPON_VIEW_LABELS, couponView, type CouponView } from "@/lib/coupons";
 import { formatDay } from "@/lib/dates";
+import { parseStats } from "@/lib/redemption-stats";
 import { formatOffer } from "@/components/ticket";
 import { PageLoading } from "@/components/page-loading";
 
@@ -33,6 +34,11 @@ export default function CouponsPage({ searchParams }: PageProps<"/merchant/coupo
   );
 }
 
+function redeemedLabel(count: number, totalLimit: number | null) {
+  if (totalLimit) return `${count} of ${totalLimit} redeemed`;
+  return `${count} redeemed`;
+}
+
 function withViews<T extends Parameters<typeof couponView>[0]>(coupons: T[]) {
   const now = Date.now();
   return coupons.map((c) => ({ ...c, view: couponView(c, now) }));
@@ -41,11 +47,15 @@ function withViews<T extends Parameters<typeof couponView>[0]>(coupons: T[]) {
 async function CouponsContent({ searchParams }: { searchParams: PageProps<"/merchant/coupons">["searchParams"] }) {
   const { view: viewParam } = await searchParams;
   const { business, supabase } = await requireManagedBusiness("/merchant/coupons");
-  const { data: coupons } = await supabase
-    .from("coupons")
-    .select("id, title, status, discount_type, discount_value, starts_at, expires_at, categories(name, stock_tint)")
-    .eq("business_id", business.id)
-    .order("updated_at", { ascending: false });
+  const [{ data: coupons }, { data: rawStats }] = await Promise.all([
+    supabase
+      .from("coupons")
+      .select("id, title, status, discount_type, discount_value, starts_at, expires_at, total_limit, categories(name, stock_tint)")
+      .eq("business_id", business.id)
+      .order("updated_at", { ascending: false }),
+    supabase.rpc("business_redemption_stats", { p_business_id: business.id }),
+  ]);
+  const redeemed = parseStats(rawStats).byCoupon;
 
   const rows = withViews(coupons ?? []);
   const counts = Object.fromEntries(COUPON_VIEWS.map((v) => [v, rows.filter((r) => r.view === v).length]));
@@ -111,6 +121,11 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/merc
                       {formatDay(c.starts_at, tz)} to {formatDay(c.expires_at, tz)}
                       {c.categories?.name ? `, ${c.categories.name}` : ""}
                     </span>
+                    {c.status !== "draft" && (
+                      <span className="block text-sm tabular">
+                        {redeemedLabel(redeemed[c.id] ?? 0, c.total_limit)}
+                      </span>
+                    )}
                   </span>
                   <span className="offer-text bg-marigold px-2 pt-1 pb-0.5 text-2xl tabular">
                     {formatOffer(c.discount_type, Number(c.discount_value))}

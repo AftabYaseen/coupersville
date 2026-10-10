@@ -70,7 +70,7 @@ async function CouponContent({
           store={storeText}
           stubActions={
             <div className="grid gap-3">
-              <RedeemButton />
+              <RedeemButton couponId={id} signedIn={signedIn} />
               <SaveButton couponId={id} saved={saved} signedIn={signedIn} saveOnArrival={sp.save === "1"} />
             </div>
           }

@@ -77,13 +77,20 @@ export async function updateSession(request: NextRequest) {
     return redirectTo(role ? homePathFor(role) : "/");
   }
 
-  if (isMerchantArea && role !== "merchant" && role !== "admin") {
-    const { count } = await supabase
-      .from("business_members")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId);
-    if (!role || !count) {
-      return redirectTo("/");
+  if (isMerchantArea && role !== "admin") {
+    if (!role) return redirectTo("/");
+    const { data: rows } = await supabase.from("business_members").select("role").eq("user_id", userId);
+    const memberRoles = (rows ?? []).map((r) => r.role);
+    const manages = memberRoles.some((r) => r === "owner" || r === "manager");
+
+    if (!manages) {
+      // Staff can open the scanner and nothing else in the portal. A merchant who is only staff
+      // somewhere can still set up their own business.
+      if (memberRoles.length === 0) {
+        if (role !== "merchant") return redirectTo(homePathFor(role));
+      } else if (!under(path, "/merchant/scan") && !(role === "merchant" && under(path, "/merchant/onboarding"))) {
+        return redirectTo("/merchant/scan");
+      }
     }
   }
 

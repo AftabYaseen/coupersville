@@ -7,13 +7,13 @@ import type { Tables } from "@/lib/supabase/database.types";
 export type Business = Tables<"businesses">;
 export type Subscription = Tables<"subscriptions">;
 
-// For owner and manager pages. Staff and people without a business are sent elsewhere.
+// For owner and manager pages. Staff go to the scanner; merchants without a business go to onboarding.
 export async function requireManagedBusiness(nextPath: string) {
   const { user, memberships } = await requireMerchantAccess(nextPath);
   const membership = memberships.find((m) => m.role === "owner" || m.role === "manager");
 
   if (!membership) {
-    redirect(memberships.length === 0 ? "/merchant/onboarding" : "/merchant");
+    redirect(memberships.length === 0 ? "/merchant/onboarding" : "/merchant/scan");
   }
 
   const supabase = await createClient();
