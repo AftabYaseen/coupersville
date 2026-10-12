@@ -8,8 +8,10 @@ import { requireMerchantAccess } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { subscriptionIsActive } from "@/lib/merchant";
 import { COUPON_VIEWS, COUPON_VIEW_LABELS, couponView } from "@/lib/coupons";
-import { formatDay } from "@/lib/dates";
+import { planState } from "@/lib/billing";
+import { annualPriceLabel, stripeCustomerFor } from "@/lib/stripe";
 import { PageLoading } from "@/components/page-loading";
+import { PlanPanel } from "@/components/merchant/plan-panel";
 
 export const metadata: Metadata = { title: "Merchant portal" };
 
@@ -28,7 +30,7 @@ function summarise(
   const now = Date.now();
   const counts = Object.fromEntries(COUPON_VIEWS.map((v) => [v, 0])) as Record<(typeof COUPON_VIEWS)[number], number>;
   for (const c of coupons) counts[couponView(c, now)] += 1;
-  return { counts, planActive: subscriptionIsActive(subscription, now) };
+  return { counts, planActive: subscriptionIsActive(subscription, now), plan: planState(subscription, now) };
 }
 
 async function MerchantHome() {
@@ -65,7 +67,8 @@ async function MerchantHome() {
     ]);
   if (!business) redirect("/merchant/onboarding");
 
-  const { counts, planActive } = summarise(coupons ?? [], subscription);
+  const [customer, priceLabel] = await Promise.all([stripeCustomerFor(managed.businessId), annualPriceLabel()]);
+  const { counts, planActive, plan } = summarise(coupons ?? [], subscription);
   const stats = parseStats(rawStats);
   const byCoupon = (coupons ?? [])
     .map((c) => ({ ...c, redeemed: stats.byCoupon[c.id] ?? 0 }))
@@ -91,24 +94,10 @@ async function MerchantHome() {
         </p>
       )}
 
-      <section className="panel mt-6 p-5" aria-labelledby="plan-heading">
-        <h2 id="plan-heading" className="text-xl font-semibold">
-          Your plan
-        </h2>
-        {planActive && subscription ? (
-          <p className="mt-2">
-            {subscription.source === "complimentary" ? "Complimentary plan" : "Annual plan"}, active
-            {subscription.current_period_end
-              ? ` until ${formatDay(subscription.current_period_end, business.timezone)}.`
-              : " with no end date."}
-          </p>
-        ) : (
-          <p className="mt-2">
-            Your plan is not active yet. You can build coupons and save them as drafts. Publishing opens once
-            Coupersville activates your plan.
-          </p>
-        )}
-      </section>
+      {/* The plan comes first: a failed payment or a missing plan is the thing to fix. */}
+      <div className="mt-6" role={plan.kind === "past_due" || plan.kind === "expired" ? "alert" : undefined}>
+        <PlanPanel state={plan} timeZone={business.timezone} hasBillingAccount={Boolean(customer)} priceLabel={priceLabel} />
+      </div>
 
       <section className="mt-6" aria-labelledby="redemptions-heading">
         <div className="flex flex-wrap items-end justify-between gap-3">

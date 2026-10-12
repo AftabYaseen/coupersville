@@ -14,6 +14,32 @@ export type Database = {
   }
   public: {
     Tables: {
+      billing_customers: {
+        Row: {
+          business_id: string
+          created_at: string
+          stripe_customer_id: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          stripe_customer_id: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          stripe_customer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_customers_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_members: {
         Row: {
           business_id: string
@@ -691,6 +717,24 @@ export type Database = {
           },
         ]
       }
+      stripe_events: {
+        Row: {
+          id: string
+          received_at: string
+          type: string
+        }
+        Insert: {
+          id: string
+          received_at?: string
+          type: string
+        }
+        Update: {
+          id?: string
+          received_at?: string
+          type?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           business_id: string
@@ -698,6 +742,7 @@ export type Database = {
           created_at: string
           current_period_end: string | null
           id: string
+          past_due_since: string | null
           source: Database["public"]["Enums"]["subscription_source"]
           status: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id: string | null
@@ -710,6 +755,7 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           id?: string
+          past_due_since?: string | null
           source: Database["public"]["Enums"]["subscription_source"]
           status?: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id?: string | null
@@ -722,6 +768,7 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           id?: string
+          past_due_since?: string | null
           source?: Database["public"]["Enums"]["subscription_source"]
           status?: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id?: string | null
@@ -998,6 +1045,15 @@ export type Database = {
       preview_redemption: {
         Args: { p_location_id: string; p_token_or_code: string }
         Returns: Json
+      }
+      plan_is_current: {
+        Args: {
+          p_past_due_since: string
+          p_period_end: string
+          p_source: Database["public"]["Enums"]["subscription_source"]
+          p_status: Database["public"]["Enums"]["subscription_status"]
+        }
+        Returns: boolean
       }
       redemption_offer: {
         Args: { p_coupon: Database["public"]["Tables"]["coupons"]["Row"] }

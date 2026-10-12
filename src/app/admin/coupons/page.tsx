@@ -62,7 +62,7 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/admi
   let query = supabase
     .from("coupons")
     .select(
-      "id, title, status, starts_at, expires_at, discount_type, discount_value, featured, total_limit, admin_hold, hold_reason, held_at, business_id, businesses(name, status, timezone, subscriptions(status, current_period_end, source)), categories(name, active)",
+      "id, title, status, starts_at, expires_at, discount_type, discount_value, featured, total_limit, admin_hold, hold_reason, held_at, business_id, businesses(name, status, timezone, subscriptions(status, current_period_end, source, cancel_at_period_end, past_due_since)), categories(name, active)",
       { count: "exact" },
     );
   if (f.q) query = query.ilike("title", `%${escapeLike(f.q)}%`);

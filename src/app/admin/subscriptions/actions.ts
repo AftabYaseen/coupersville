@@ -5,12 +5,13 @@ import { z } from "zod";
 import { NOT_ADMIN, requireAdminAction } from "@/lib/admin";
 import { endOfDayInZone, formatDay } from "@/lib/dates";
 import { planEndSchema } from "@/lib/validation/admin";
+import { planIsCurrent } from "@/lib/billing";
 import type { ActionResult } from "@/lib/validation/auth";
 
 const NOT_FOUND: ActionResult = { ok: false, error: "That business could not be found." };
 const STRIPE: ActionResult = {
   ok: false,
-  error: "This business pays through Stripe, so its plan is managed there. Complimentary plans are for businesses without one.",
+  error: "This business pays through Stripe, so its plan is managed there. A complimentary plan can be granted once the paid plan lapses.",
 };
 const FAILED: ActionResult = { ok: false, error: "We could not change this plan. Try again in a moment." };
 
@@ -35,7 +36,8 @@ export async function setComplimentaryPlan(businessId: unknown, endsOnInput: unk
   if (!ctx) return NOT_ADMIN;
   const { business, plan } = await load(ctx, id.data);
   if (!business) return NOT_FOUND;
-  if (plan?.source === "stripe") return STRIPE;
+  // A current paid plan belongs to Stripe. Once it has lapsed, a complimentary plan may replace it.
+  if (plan?.source === "stripe" && planIsCurrent(plan)) return STRIPE;
 
   const endsAt = endsOn.data ? endOfDayInZone(endsOn.data, business.timezone) : null;
   if (endsAt && endsAt.getTime() <= Date.now()) {
@@ -48,6 +50,9 @@ export async function setComplimentaryPlan(businessId: unknown, endsOnInput: unk
     status: "active" as const,
     current_period_end: endsAt?.toISOString() ?? null,
     cancel_at_period_end: false,
+    // Drop the lapsed Stripe subscription, so a late webhook about it cannot touch this plan.
+    stripe_subscription_id: null,
+    past_due_since: null,
   };
   const { error } = plan
     ? await ctx.supabase.from("subscriptions").update(row).eq("id", plan.id)

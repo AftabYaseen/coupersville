@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { requireAdminPage } from "@/lib/admin";
-import { dayInZone, dayOneYearOn, formatDay } from "@/lib/dates";
+import { dayInZone, dayOneYearOn } from "@/lib/dates";
+import { planState, planSummary } from "@/lib/billing";
+import { stripeCustomerUrl } from "@/lib/stripe";
 import { PageLoading } from "@/components/page-loading";
 import { PlanBadge, StatusBadge } from "@/components/admin/badges";
 import { PlanControls } from "@/components/admin/plan-controls";
@@ -38,7 +40,13 @@ async function SubscriptionsContent({ searchParams }: { searchParams: PageProps<
   const { plan: planParam } = await searchParams;
   const filter: Filter = FILTERS.some((f) => f.value === planParam) ? (planParam as Filter) : "all";
 
-  const { data } = await supabase.rpc("admin_list_businesses", {});
+  const [{ data }, { data: plans }] = await Promise.all([
+    supabase.rpc("admin_list_businesses", {}),
+    supabase
+      .from("subscriptions")
+      .select("business_id, source, status, current_period_end, cancel_at_period_end, past_due_since, stripe_customer_id"),
+  ]);
+  const planBy = new Map((plans ?? []).map((p) => [p.business_id, p]));
   const now = clockNow();
   const rows = (data ?? []).filter((b) => b.status !== "draft");
   const endsSoon = (b: (typeof rows)[number]) =>
@@ -55,7 +63,7 @@ async function SubscriptionsContent({ searchParams }: { searchParams: PageProps<
     <div className="mx-auto max-w-5xl px-4 py-10">
       <h1 className="wordmark text-4xl text-ink">Subscriptions</h1>
       <p className="mt-2">
-        Grant, extend or revoke complimentary plans. Paid plans are managed in Stripe. Businesses still setting up are not listed.
+        Grant, extend or revoke complimentary plans. Paid plans are read-only here and managed in Stripe. Businesses still setting up are not listed.
       </p>
 
       <nav aria-label="Plan filter" className="mt-6 overflow-x-auto">
@@ -83,6 +91,9 @@ async function SubscriptionsContent({ searchParams }: { searchParams: PageProps<
           {visible.map((b) => {
             const today = dayInZone(now, b.timezone);
             const currentEnd = b.plan_ends_at ? dayInZone(b.plan_ends_at, b.timezone) : null;
+            const row = planBy.get(b.id) ?? null;
+            const plan = planState(row, now);
+            const customer = row?.stripe_customer_id ?? null;
             return (
               <li key={b.id} className="panel grid gap-4 p-4 md:grid-cols-[1fr_minmax(0,22rem)]">
                 <div className="min-w-0">
@@ -93,14 +104,8 @@ async function SubscriptionsContent({ searchParams }: { searchParams: PageProps<
                     <StatusBadge status={b.status} />
                     <PlanBadge source={b.plan_source} active={b.plan_active} />
                   </p>
-                  <p className={`mt-2 text-sm tabular ${endsSoon(b) ? "font-semibold text-signal" : ""}`}>
-                    {!b.plan_source
-                      ? "Never had a plan."
-                      : b.plan_active
-                        ? b.plan_ends_at
-                          ? `Active until ${formatDay(b.plan_ends_at, b.timezone)}`
-                          : "Active, no end date"
-                        : `Ended${b.plan_ends_at ? ` ${formatDay(b.plan_ends_at, b.timezone)}` : ""}`}
+                  <p className={`mt-2 text-sm tabular ${endsSoon(b) || plan.kind === "past_due" ? "font-semibold text-signal" : ""}`}>
+                    {planSummary(plan, b.timezone)}
                   </p>
                   <p className="text-sm break-all">{b.owner_email}</p>
                 </div>
@@ -113,6 +118,7 @@ async function SubscriptionsContent({ searchParams }: { searchParams: PageProps<
                   hasEndDate={Boolean(b.plan_ends_at)}
                   today={today}
                   suggestedEnd={b.plan_active ? (currentEnd ?? "") : dayOneYearOn(today)}
+                  stripeUrl={customer ? stripeCustomerUrl(customer) : null}
                 />
               </li>
             );

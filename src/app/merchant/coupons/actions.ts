@@ -16,7 +16,7 @@ const INVALID: ActionResult = { ok: false, error: "Some details are missing or i
 const FAILED: ActionResult = { ok: false, error: "We could not save this coupon. Try again in a moment." };
 const PLAN_REQUIRED: ActionResult = {
   ok: false,
-  error: "Your plan is not active yet, so this coupon cannot be published. Save it as a draft for now.",
+  error: "You need an active plan to publish. Save this as a draft, then start your annual plan on the Billing page.",
 };
 
 const HELD: ActionResult = {

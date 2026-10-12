@@ -71,7 +71,10 @@ All tables have `id uuid` primary keys, `created_at`, and `updated_at` where it 
 - **redemption_tokens**: `coupon_id`, `user_id`, `token` (random, for the QR), `short_code` (6 digits), `expires_at` (5 minutes), `used_at`.
 - **redemptions**: `coupon_id`, `user_id`, `business_id`, `location_id`, `token_id`, `method` (`qr` | `code`), `verified_by`, `redeemed_at`.
 - **staff_invites**: `business_id`, `email` (lowercase), `token` (random, for the join link), `invited_by`, `expires_at` (14 days), `accepted_at`, `accepted_by`. Owners create them; `accept_staff_invite` adds the member when the signed-in email matches.
-- **subscriptions**: `business_id` (unique), `source` (`stripe` | `complimentary`), `stripe_customer_id`, `stripe_subscription_id`, `status` (`active` | `past_due` | `canceled` | `expired`), `current_period_end`, `cancel_at_period_end`.
+- **subscriptions**: `business_id` (unique), `source` (`stripe` | `complimentary`), `stripe_customer_id`, `stripe_subscription_id`, `status` (`active` | `past_due` | `canceled` | `expired`), `current_period_end`, `cancel_at_period_end`, `past_due_since`.
+- **billing_customers**: `business_id` (primary key), `stripe_customer_id` (unique). One Stripe customer per business, reused for every Checkout and portal session. Server code writes it.
+- **stripe_events**: `id` (the Stripe event id), `type`, `received_at`. Webhook events already processed, so a repeated delivery is ignored. Server code only.
+- **Billing rules**: the webhook at `/api/stripe/webhook` is the only writer of Stripe plan state. It verifies the signature, skips event ids it has already processed, and always re-reads the subscription from Stripe, so late or out-of-order events cannot roll a plan back. A plan is current (`plan_is_current`) when it is active and not past its end date (Stripe plans get one extra day for a late renewal webhook), or when a Stripe plan is past due for under 7 days. A paid plan that starts replaces a complimentary one. An admin can grant a complimentary plan only once a paid plan has lapsed. The Checkout success page only waits for the webhook; it never marks a plan paid.
 - **platform_settings**: single row holding the decisions above. `/admin/settings` shows only the settings the app acts on (plan expiry and plans). The others stay in the table, out of the UI, until they are built.
 
 "Expired" is never stored on a coupon. A coupon is live when `status = 'published'`, it is not under an admin hold, now is between `starts_at` and `expires_at`, the business is active, and its subscription is active. Put this in a view or SQL function (`live_coupons`) and have every consumer query use it.
@@ -113,8 +116,10 @@ Buckets `logos` and `coupon-images`, public read, write restricted to members of
 /merchant/coupons  /merchant/coupons/new  /merchant/coupons/[id]
 /merchant/scan          staff scanner + code entry
 /merchant/staff         owner invites and removes staff
-/merchant/billing
+/merchant/billing       plan state, Start annual plan (Checkout), Manage billing (portal)
+/merchant/billing/success  waits for the webhook after Checkout
 /join/[token]           staff accept an invite
+/api/stripe/webhook     Stripe events
 
 /admin                  platform stats
 /admin/merchants  /admin/coupons  /admin/categories

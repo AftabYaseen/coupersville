@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireMerchantAccess } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
+import { planIsCurrent } from "@/lib/billing";
 
 export type Business = Tables<"businesses">;
 export type Subscription = Tables<"subscriptions">;
@@ -45,7 +46,7 @@ export function listTimezones(): string[] {
   return zones.includes("UTC") ? zones : ["UTC", ...zones];
 }
 
+// Whether the plan lets coupons go live, including the past-due grace period.
 export function subscriptionIsActive(subscription: Subscription | null, now = Date.now()): boolean {
-  if (!subscription || subscription.status !== "active") return false;
-  return !subscription.current_period_end || new Date(subscription.current_period_end).getTime() > now;
+  return planIsCurrent(subscription, now);
 }

@@ -52,4 +52,10 @@ BASE_URL=http://localhost:3100 node --env-file=.env.local scripts/test-admin-act
 
 Calls the admin server actions, and the redeem, scanner and staff actions, over HTTP the way the browser does, as an admin, a merchant, a shopper and a signed-out visitor. Needs the same running build. It restores the category order and platform settings afterwards.
 
+```
+BASE_URL=https://coupersville-7k2q.vercel.app node --env-file=.env.local scripts/test-billing.mjs
+```
+
+Stripe billing in test mode (it refuses to run with a live key): forged and duplicate webhooks, a successful payment, declined and failing cards, 3D Secure held for authentication, cancelling, a stale event arriving late, and a failed renewal using a Stripe test clock. Against the live site Stripe delivers the webhooks; against a local build (`BASE_URL=http://localhost:3100`) the script signs and sends them itself and also checks the Checkout and portal actions. Card entry in Checkout itself needs a person.
+
 The camera scanner, the stamp animation and the screen wake lock are not covered here. Test them on real phones.

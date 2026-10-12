@@ -263,8 +263,11 @@ export function CouponForm(props: Props) {
           <div className="grid gap-3">
             {isDraft && !planActive && (
               <p className="text-sm">
-                Your plan is not active yet, so you can save this as a draft. Publishing opens once Coupersville
-                activates your plan.
+                You need an active plan to publish. Save this as a draft for now, then{" "}
+                <Link href="/merchant/billing" className="font-medium text-ink underline underline-offset-4">
+                  start your annual plan
+                </Link>
+                .
               </p>
             )}
             <div className="flex flex-wrap gap-3">

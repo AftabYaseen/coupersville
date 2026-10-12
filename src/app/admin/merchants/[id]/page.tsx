@@ -6,6 +6,8 @@ import { ArrowLeft } from "lucide-react";
 import { z } from "zod";
 import { requireAdminPage } from "@/lib/admin";
 import { subscriptionIsActive } from "@/lib/merchant";
+import { planState, planSummary } from "@/lib/billing";
+import { stripeCustomerUrl } from "@/lib/stripe";
 import { COUPON_VIEW_STATUS, couponView } from "@/lib/coupons";
 import { dayInZone, dayOneYearOn, formatDay } from "@/lib/dates";
 import { formatOffer } from "@/components/ticket";
@@ -145,13 +147,7 @@ async function BusinessContent({ params }: { params: PageProps<"/admin/merchants
         <p>
           {!plan
             ? "No plan. Coupons cannot go live until the business has one."
-            : planActive
-              ? `${plan.source === "complimentary" ? "Complimentary" : "Paid"} plan, active ${
-                  plan.current_period_end ? `until ${formatDay(plan.current_period_end, tz)}` : "with no end date"
-                }.`
-              : `${plan.source === "complimentary" ? "Complimentary" : "Paid"} plan ended${
-                  plan.current_period_end ? ` ${formatDay(plan.current_period_end, tz)}` : ""
-                }. Coupons are hidden from shoppers.`}
+            : `${planSummary(planState(plan, now), tz)}.${planActive ? "" : " Coupons are hidden from shoppers."}`}
         </p>
         <PlanControls
           businessId={business.id}
@@ -161,6 +157,7 @@ async function BusinessContent({ params }: { params: PageProps<"/admin/merchants
           hasEndDate={Boolean(plan?.current_period_end)}
           today={today}
           suggestedEnd={planActive ? (currentEnd ?? "") : dayOneYearOn(today)}
+          stripeUrl={plan?.stripe_customer_id ? stripeCustomerUrl(plan.stripe_customer_id) : null}
         />
       </section>
 
