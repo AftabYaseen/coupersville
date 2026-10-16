@@ -22,6 +22,12 @@ Read this whole file before writing code. Build one phase at a time (see "Build 
 - Resend for email
 - Later: Capacitor Android wrapper that loads the live site (not part of the web build)
 
+## Domain
+
+- Live site: **https://www.coupersville.com**. `coupersville.com` redirects to it. Hosted on Vercel.
+- `NEXT_PUBLIC_SITE_URL` holds the live address (set in `.env.local` and on Vercel). Every absolute link the app sends out (auth email links, Stripe Checkout and portal return URLs, staff invite links, `metadataBase`) is built from it through `src/lib/site.ts`. Never build links from request headers or hard-code a domain.
+- Supabase Auth Site URL and redirect URLs, the Stripe webhook (`https://www.coupersville.com/api/stripe/webhook`) and the Stripe Customer Portal return URL all point at this domain.
+
 ## Supabase access
 
 - Project ref: `aidfrqepbtspddgwjpfw`
@@ -30,6 +36,7 @@ Read this whole file before writing code. Build one phase at a time (see "Build 
 - Env vars live in `.env.local` (already has the two public ones). Keep `.env.example` updated with names only.
 
 ```
+NEXT_PUBLIC_SITE_URL           # https://www.coupersville.com
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 SUPABASE_SECRET_KEY            # server only, added by the developer

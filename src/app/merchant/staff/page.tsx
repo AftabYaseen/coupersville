@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { headers } from "next/headers";
 import { requireManagedBusiness } from "@/lib/merchant";
+import { absoluteUrl } from "@/lib/site";
 import { formatDay } from "@/lib/dates";
 import { PageLoading } from "@/components/page-loading";
 import { CancelInviteButton, CopyLinkButton, InviteStaffForm, RemoveStaffButton } from "@/components/merchant/staff-controls";
@@ -14,13 +14,6 @@ export default function StaffPage() {
       <StaffContent />
     </Suspense>
   );
-}
-
-async function siteOrigin() {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}`;
 }
 
 function isPending(invite: { expires_at: string }, now: number) {
@@ -43,7 +36,7 @@ async function StaffContent() {
     );
   }
 
-  const [{ data: team }, { data: invites }, origin] = await Promise.all([
+  const [{ data: team }, { data: invites }] = await Promise.all([
     supabase.rpc("business_team", { p_business_id: business.id }),
     supabase
       .from("staff_invites")
@@ -51,7 +44,6 @@ async function StaffContent() {
       .eq("business_id", business.id)
       .is("accepted_at", null)
       .order("created_at", { ascending: false }),
-    siteOrigin(),
   ]);
   const now = clockNow();
   const tz = business.timezone;
@@ -98,7 +90,7 @@ async function StaffContent() {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {pending && <CopyLinkButton url={`${origin}/join/${inv.token}`} />}
+                    {pending && <CopyLinkButton url={absoluteUrl(`/join/${inv.token}`)} />}
                     <CancelInviteButton inviteId={inv.id} />
                   </div>
                 </li>

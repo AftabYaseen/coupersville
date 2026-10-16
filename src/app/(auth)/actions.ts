@@ -1,7 +1,7 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { absoluteUrl } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { homePathFor, safeNextPath } from "@/lib/roles";
 import {
@@ -14,14 +14,6 @@ import {
 
 const INVALID_INPUT: ActionResult = { ok: false, error: "Some details are missing or invalid. Check the form and try again." };
 
-async function siteOrigin() {
-  const h = await headers();
-  const origin = h.get("origin");
-  if (origin) return origin;
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  return `${proto}://${host}`;
-}
 
 export async function signIn(input: unknown): Promise<ActionResult> {
   const parsed = loginSchema.safeParse(input);
@@ -65,7 +57,7 @@ export async function signUp(input: unknown): Promise<ActionResult> {
     email,
     password,
     options: {
-      emailRedirectTo: `${await siteOrigin()}/auth/confirm?next=${encodeURIComponent(home)}`,
+      emailRedirectTo: absoluteUrl(`/auth/confirm?next=${encodeURIComponent(home)}`),
       data: { full_name: fullName, role: accountType },
     },
   });
@@ -88,7 +80,7 @@ export async function requestPasswordReset(input: unknown): Promise<ActionResult
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: `${await siteOrigin()}/auth/confirm?next=/reset-password`,
+    redirectTo: absoluteUrl("/auth/confirm?next=/reset-password"),
   });
 
   if (error?.status === 429) {

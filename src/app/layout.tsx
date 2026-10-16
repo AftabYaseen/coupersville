@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
+import { siteUrl } from "@/lib/site";
 import "./globals.css";
 
 const archivo = Archivo({
@@ -11,6 +12,8 @@ const archivo = Archivo({
 });
 
 export const metadata: Metadata = {
+  // Any absolute URL in page metadata (canonical links, Open Graph images) resolves against the live domain.
+  metadataBase: new URL(siteUrl()),
   title: { default: "Coupersville", template: "%s | Coupersville" },
   description: "Coupons from the shops in your town. Save them, then redeem them in store.",
 };

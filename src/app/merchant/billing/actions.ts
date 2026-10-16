@@ -1,7 +1,7 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { absoluteUrl } from "@/lib/site";
 import { requireManagedBusiness } from "@/lib/merchant";
 import { planIsCurrent, planState, type PlanState } from "@/lib/billing";
 import { annualPriceId, ensureStripeCustomer, getStripe, stripeConfigured, stripeCustomerFor } from "@/lib/stripe";
@@ -9,13 +9,6 @@ import type { ActionResult } from "@/lib/validation/auth";
 
 const NOT_READY: ActionResult = { ok: false, error: "Billing is not set up yet. Contact Coupersville support." };
 const STRIPE_DOWN: ActionResult = { ok: false, error: "We could not reach our payment provider. Try again in a moment." };
-
-async function siteOrigin() {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}`;
-}
 
 // Opens Stripe Checkout for the annual plan. Nothing is marked paid here: the webhook does that.
 export async function startCheckout(): Promise<ActionResult> {
@@ -30,7 +23,6 @@ export async function startCheckout(): Promise<ActionResult> {
   let url: string | null;
   try {
     const customer = await ensureStripeCustomer(business, user.email);
-    const origin = await siteOrigin();
     const session = await getStripe().checkout.sessions.create({
       mode: "subscription",
       customer,
@@ -38,8 +30,8 @@ export async function startCheckout(): Promise<ActionResult> {
       client_reference_id: business.id,
       metadata: { business_id: business.id },
       subscription_data: { metadata: { business_id: business.id } },
-      success_url: `${origin}/merchant/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/merchant/billing?checkout=canceled`,
+      success_url: absoluteUrl("/merchant/billing/success?session_id={CHECKOUT_SESSION_ID}"),
+      cancel_url: absoluteUrl("/merchant/billing?checkout=canceled"),
     });
     url = session.url;
   } catch (error) {
@@ -61,7 +53,7 @@ export async function openBillingPortal(): Promise<ActionResult> {
   try {
     const session = await getStripe().billingPortal.sessions.create({
       customer,
-      return_url: `${await siteOrigin()}/merchant/billing`,
+      return_url: absoluteUrl("/merchant/billing"),
     });
     url = session.url;
   } catch (error) {
