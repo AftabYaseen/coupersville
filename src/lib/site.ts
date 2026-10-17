@@ -1,5 +1,5 @@
 // The site's public address, for every absolute link the app sends out: auth emails, Stripe
-// return URLs and staff invite links. Set NEXT_PUBLIC_SITE_URL (https://www.coupersville.com in
+// return URLs and staff invite links. Set NEXT_PUBLIC_SITE_URL (https://coupersville.com in
 // production). Links are never built from request headers, which a proxy or a redirect can change.
 
 const FALLBACK = "http://localhost:3000";

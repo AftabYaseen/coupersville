@@ -1,7 +1,7 @@
 // Billing checks with Stripe in test mode.
 //
 //   Against the live site (Stripe delivers the webhooks itself):
-//     BASE_URL=https://www.coupersville.com node --env-file=.env.local scripts/test-billing.mjs
+//     BASE_URL=https://coupersville.com node --env-file=.env.local scripts/test-billing.mjs
 //   Against a local build (the script signs and sends the webhooks, since Stripe cannot reach it):
 //     npm run build && npx next start -p 3100
 //     BASE_URL=http://localhost:3100 node --env-file=.env.local scripts/test-billing.mjs

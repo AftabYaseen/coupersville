@@ -24,9 +24,9 @@ Read this whole file before writing code. Build one phase at a time (see "Build 
 
 ## Domain
 
-- Live site: **https://www.coupersville.com**. `coupersville.com` redirects to it. Hosted on Vercel.
-- `NEXT_PUBLIC_SITE_URL` holds the live address (set in `.env.local` and on Vercel). Every absolute link the app sends out (auth email links, Stripe Checkout and portal return URLs, staff invite links, `metadataBase`) is built from it through `src/lib/site.ts`. Never build links from request headers or hard-code a domain.
-- Supabase Auth Site URL and redirect URLs, the Stripe webhook (`https://www.coupersville.com/api/stripe/webhook`) and the Stripe Customer Portal return URL all point at this domain.
+- Live site: **https://coupersville.com** (primary domain). `www.coupersville.com` redirects to it. Hosted on Vercel.
+- `NEXT_PUBLIC_SITE_URL` holds the live address, `https://coupersville.com` (set in `.env.local` and on Vercel). It is read at build time, so changing it needs a redeploy. Every absolute link the app sends out (auth email links, Stripe Checkout and portal return URLs, staff invite links, `metadataBase`) is built from it through `src/lib/site.ts`. Never build links from request headers or hard-code a domain.
+- Supabase Auth Site URL (`https://coupersville.com`, redirect URLs `https://coupersville.com/**`), the Stripe webhook (`https://coupersville.com/api/stripe/webhook`) and the Stripe Customer Portal return URL (`https://coupersville.com/merchant/billing`) all point at this domain. Stripe does not follow redirects, so the webhook must use the primary domain.
 
 ## Supabase access
 
@@ -36,7 +36,7 @@ Read this whole file before writing code. Build one phase at a time (see "Build 
 - Env vars live in `.env.local` (already has the two public ones). Keep `.env.example` updated with names only.
 
 ```
-NEXT_PUBLIC_SITE_URL           # https://www.coupersville.com
+NEXT_PUBLIC_SITE_URL           # https://coupersville.com
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 SUPABASE_SECRET_KEY            # server only, added by the developer
