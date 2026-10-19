@@ -11,7 +11,7 @@ import {
 } from "react";
 import { CameraOff, CheckCircle2, Store, XCircle } from "lucide-react";
 import { confirmRedemption, previewRedemption } from "@/app/merchant/scan/actions";
-import { VERIFY_FAILURES, type Offer, type VerifyResponse } from "@/lib/redemption";
+import { verifyFailureText, type Offer, type VerifyResponse } from "@/lib/redemption";
 import { formatOffer } from "@/components/ticket";
 import { FormMessage } from "@/components/field";
 
@@ -244,6 +244,8 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
 
   if (phase.kind === "confirm") {
     const { offer } = phase.response;
+    // Only what staff can check by eye. The day, time and per-customer rules were already checked by
+    // the database before this screen opened.
     const conditions = [
       offer.min_spend ? `Minimum spend ${money(offer.min_spend)}` : null,
       offer.min_qty && offer.min_qty > 1 ? `Buy at least ${offer.min_qty}` : null,
@@ -315,7 +317,7 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
               {store.label}
               {response.redeemed_at ? `, ${clock(response.redeemed_at)}` : ""}
             </p>
-            <p>Apply the discount at the till.</p>
+            <p>{response.offer?.discount_type === "free" ? "Hand over the free item at the till." : "Apply the offer at the till."}</p>
             <button type="button" className="btn mt-4 min-h-14 w-full text-lg" onClick={backToScan}>
               Scan next customer
             </button>
@@ -323,7 +325,7 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
         </FullScreen>
       );
     }
-    const failure = VERIFY_FAILURES[response.result];
+    const failure = verifyFailureText(response.result, response.offer);
     return (
       <FullScreen label={failure.title} tone="failure">
         <div className="mx-auto grid w-full max-w-md justify-items-center gap-4 px-4 py-10 text-center">
@@ -339,7 +341,7 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
               , {response.offer.title}
             </p>
           )}
-          <p className="font-medium">Do not apply the discount.</p>
+          <p className="font-medium">Do not apply the offer.</p>
           <button type="button" className="btn mt-4 min-h-14 w-full text-lg" onClick={backToScan}>
             Scan again
           </button>

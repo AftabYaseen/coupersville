@@ -60,7 +60,7 @@ async function CouponContent({
         <Ticket
           tint={shop.stock_tint}
           merchant={business.name}
-          offer={formatOffer(coupon.discount_type!, Number(coupon.discount_value))}
+          offer={formatOffer(coupon.discount_type!, coupon.discount_value)}
           title={coupon.title!}
           description={coupon.description ?? undefined}
           expiresAt={coupon.expires_at!}
@@ -70,7 +70,7 @@ async function CouponContent({
           store={storeText}
           stubActions={
             <div className="grid gap-3">
-              <RedeemButton couponId={id} signedIn={signedIn} />
+              <RedeemButton couponId={id} signedIn={signedIn} unavailable={detail.availability} />
               <SaveButton couponId={id} saved={saved} signedIn={signedIn} saveOnArrival={sp.save === "1"} />
             </div>
           }

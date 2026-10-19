@@ -259,8 +259,14 @@ async function main() {
     imagePath: null,
     allLocations: true,
     locationIds: [],
-    perUserLimit: 1,
     totalLimit: "",
+    perUserMode: "once",
+    perUserLimit: "",
+    redeemFrequency: "none",
+    scheduleOn: false,
+    scheduleDays: [1, 2, 3, 4, 5, 6, 7],
+    scheduleStart: "",
+    scheduleEnd: "",
   };
   const publishEdit = await merchantSays("saveCoupon", coupon.id, editInput, "publish");
   check("saving with Publish is refused", publishEdit.ok === false && /removed this coupon/.test(publishEdit.error), publishEdit);
@@ -268,6 +274,48 @@ async function main() {
   check("merchant can still edit it", Boolean(saveEdit.redirect), saveEdit);
   const edited = must(await admin.from("coupons").select("description, admin_hold, status").eq("id", coupon.id).single(), "edited");
   check("the edit saved and the hold stayed", edited.description === "Edited while removed" && edited.admin_hold && edited.status === "paused", edited);
+
+  console.log("\nCoupon builder: new offer kinds and rules, through the merchant's save action");
+  const ruleInput = {
+    ...editInput,
+    title: `Free cookie Tuesdays ${run}`,
+    description: "",
+    discountType: "free",
+    discountValue: "",
+    perUserMode: "limited",
+    perUserLimit: 3,
+    redeemFrequency: "week",
+    scheduleOn: true,
+    scheduleDays: [4, 2],
+    scheduleStart: "11:00",
+    scheduleEnd: "15:00",
+  };
+  const savedRules = await merchantSays("saveCoupon", null, ruleInput, "publish");
+  check("a free coupon with rules publishes", Boolean(savedRules.redirect), savedRules);
+  const ruleRow = must(await admin.from("coupons").select("*").eq("title", ruleInput.title).single(), "rule coupon");
+  check(
+    "stored as: free with no value, up to 3 per customer, once a week, Tuesday and Thursday 11:00 to 15:00",
+    ruleRow.discount_type === "free" &&
+      ruleRow.discount_value === null &&
+      ruleRow.per_user_limit === 3 &&
+      ruleRow.redeem_frequency === "week" &&
+      JSON.stringify(ruleRow.schedule_days) === "[2,4]" &&
+      ruleRow.schedule_start === "11:00:00" &&
+      ruleRow.schedule_end === "15:00:00",
+    ruleRow,
+  );
+  const unlimitedInput = { ...ruleInput, title: `Unlimited ${run}`, discountType: "fixed_price", discountValue: 1, perUserMode: "unlimited", perUserLimit: "", redeemFrequency: "none", scheduleOn: false };
+  await merchantSays("saveCoupon", null, unlimitedInput, "draft");
+  const unlimitedRow = must(await admin.from("coupons").select("*").eq("title", unlimitedInput.title).single(), "unlimited coupon");
+  check("unlimited per customer is stored as no limit, fixed price keeps its price", unlimitedRow.per_user_limit === null && Number(unlimitedRow.discount_value) === 1 && unlimitedRow.schedule_days === null && unlimitedRow.schedule_start === null);
+  const noNumber = await merchantSays("saveCoupon", null, { ...ruleInput, title: `Bad ${run}`, perUserLimit: "" }, "draft");
+  check("Up to without a number is refused", noNumber.ok === false, noNumber);
+  const backwards = await merchantSays("saveCoupon", null, { ...ruleInput, title: `Bad ${run}`, scheduleStart: "16:00", scheduleEnd: "09:00" }, "draft");
+  check("a time window that ends before it starts is refused", backwards.ok === false, backwards);
+  const noDays = await merchantSays("saveCoupon", null, { ...ruleInput, title: `Bad ${run}`, scheduleDays: [] }, "draft");
+  check("a schedule with no days is refused", noDays.ok === false, noDays);
+  const noPrice = await merchantSays("saveCoupon", null, { ...ruleInput, title: `Bad ${run}`, discountType: "fixed_price", discountValue: "" }, "draft");
+  check("a fixed price with no price is refused", noPrice.ok === false, noPrice);
 
   const fetchPage = (path, who) =>
     fetch(`${base}${path}`, { redirect: "manual", headers: { cookie: who.cookie } }).then(async (r) => (await r.text()).replaceAll("<!-- -->", ""));

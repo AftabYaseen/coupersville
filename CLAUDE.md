@@ -58,7 +58,7 @@ Store these in a single-row `platform_settings` table so they can be changed wit
 | Redemption method | QR code with a 6-digit code fallback |
 | Coupon moderation | Merchant coupons go live instantly; admin can unpublish (an admin hold the merchant cannot undo) |
 | Subscription expiry | Coupons are hidden from consumers until the merchant renews |
-| Consumer login | Browsing is open; saving and redeeming require an account |
+| Consumer login | Browsing is open; saving and redeeming require an account. Shoppers sign in with a 6-digit email code (no password); merchants and admins use email and password |
 | Plans | One annual plan |
 | Region | No restriction |
 
@@ -66,18 +66,20 @@ Store these in a single-row `platform_settings` table so they can be changed wit
 
 All tables have `id uuid` primary keys, `created_at`, and `updated_at` where it makes sense. Enable RLS on every table.
 
-- **profiles**: `id` (matches `auth.users.id`), `role` (`consumer` | `merchant` | `admin`), `full_name`, `phone`, `status` (`active` | `suspended`). Created by a trigger on signup.
+- **profiles**: `id` (matches `auth.users.id`), `role` (`consumer` | `merchant` | `admin`), `full_name` (optional), `status` (`active` | `suspended`). Created by a trigger on signup.
 - **categories**: `name`, `slug`, `shop_label` (how the category appears on Main Street, such as "The bakery"), `stock_tint` (`mint` | `pink` | `sky` | `butter`), `sort_order`, `active`. Seed: Restaurants, Grocery, Bakeries, Toys, Jewelry, Clothes, Shoes, Household Supplies, Pharmacy, Luggage/Bags/Wallets, Millinery, Beauty, Other. Rotate the four tints across them.
 - **businesses**: `owner_id`, `name`, `description`, `primary_category_id`, `logo_path`, `cover_path`, `contact_email`, `contact_phone`, `website_url`, `status` (`draft` | `active` | `suspended`), `timezone` (IANA name; coupon dates are calendar days in this zone). Onboarding creates the business as `draft`; server code sets it `active` once the profile and first store are saved.
 - **business_members**: `business_id`, `user_id`, `role` (`owner` | `manager` | `staff`). Staff can only use the scanner.
 - **locations**: `business_id`, `store_name`, `store_number`, `address_line1`, `address_line2`, `city`, `state`, `postal_code`, `geo` (PostGIS `geography(Point)`), `phone`, `active`.
-- **coupons**: `business_id`, `category_id`, `title`, `description`, `discount_type` (`percent` | `amount`), `discount_value`, `included_products`, `limits_text`, `min_spend`, `min_qty`, `max_people`, `starts_at`, `expires_at`, `status` (`draft` | `published` | `paused`), `image_path`, `all_locations` (bool), `per_user_limit` (default 1), `total_limit` (nullable), `featured` (bool, admin only), `created_by`, `admin_hold` (bool), `hold_reason`, `held_by`, `held_at`.
+- **coupons**: `business_id`, `category_id`, `title`, `description`, `discount_type` (`percent` | `amount` | `fixed_price` | `free`), `discount_value` (the percent, the amount off, or the price; empty for `free`), `included_products`, `limits_text`, `min_spend`, `min_qty`, `max_people`, `starts_at`, `expires_at`, `status` (`draft` | `published` | `paused`), `image_path`, `all_locations` (bool), `per_user_limit` (default 1; empty means unlimited during the promotion), `redeem_frequency` (`day` | `week`, optional), `schedule_days` (ISO weekdays 1 to 7, optional), `schedule_start` / `schedule_end` (optional daily window), `total_limit` (nullable), `featured` (bool, admin only), `created_by`, `admin_hold` (bool), `hold_reason`, `held_by`, `held_at`.
 - **Admin hold**: an admin unpublishes a coupon by setting `admin_hold` with an optional reason; the database fills in `held_by` and `held_at`. A held coupon is never live, so it is left out of `live_coupons` and every redemption check. The merchant sees it as "Removed by Coupersville" with the reason, cannot resume or republish it, and can still edit it, or delete it if it was never redeemed. Only an admin can release the hold, which returns the coupon to the merchant's own status.
 - **coupon_locations**: `coupon_id`, `location_id` (used when `all_locations` is false).
 - **favorites**: `user_id`, `coupon_id`, unique together.
 - **redemption_tokens**: `coupon_id`, `user_id`, `token` (random, for the QR), `short_code` (6 digits), `expires_at` (5 minutes), `used_at`.
 - **redemptions**: `coupon_id`, `user_id`, `business_id`, `location_id`, `token_id`, `method` (`qr` | `code`), `verified_by`, `redeemed_at`.
+- **Redemption rules**: per customer once, up to N times, or unlimited; optionally at most once per calendar day or week (weeks start Monday); optionally only on some weekdays and inside a time window (start included, end excluded). Days, weeks and times are in the business timezone. `coupon_rule_problem` enforces them inside `create_redemption_token`, `preview_redemption` and `verify_redemption` (results `outside_schedule`, `user_limit_reached`, `frequency_limit`, `total_limit_reached`). A coupon outside its schedule is still live and listed; the app shows the rules in words (`src/lib/rules.ts`) and greys out Redeem with when it is next available.
 - **staff_invites**: `business_id`, `email` (lowercase), `token` (random, for the join link), `invited_by`, `expires_at` (14 days), `accepted_at`, `accepted_by`. Owners create them; `accept_staff_invite` adds the member when the signed-in email matches.
+- **auth_code_requests**: `kind` (`send` | `verify`), `email_hash`, `ip_hash` (keyed hashes, never the address), `created_at`. Rate limits for shopper sign-in codes through `register_auth_code_request`: sending 3 per email per 10 minutes and 10 a day, 10 per IP per 10 minutes and 50 a day; checking 10 per email per 10 minutes and 30 a day, 30 per IP per 10 minutes and 200 a day. Server code only.
 - **subscriptions**: `business_id` (unique), `source` (`stripe` | `complimentary`), `stripe_customer_id`, `stripe_subscription_id`, `status` (`active` | `past_due` | `canceled` | `expired`), `current_period_end`, `cancel_at_period_end`, `past_due_since`.
 - **billing_customers**: `business_id` (primary key), `stripe_customer_id` (unique). One Stripe customer per business, reused for every Checkout and portal session. Server code writes it.
 - **stripe_events**: `id` (the Stripe event id), `type`, `received_at`. Webhook events already processed, so a repeated delivery is ignored. Server code only.
@@ -89,7 +91,7 @@ All tables have `id uuid` primary keys, `created_at`, and `updated_at` where it 
 ### Access rules (RLS)
 
 - Consumers: read live coupons, categories, active businesses and locations. Read and write only their own favorites, tokens, and redemption history.
-- Merchants: full access to their own business, locations, and coupons through `business_members`. Read redemptions for their business. No access to other businesses' drafts or data.
+- Merchants: full access to their own business, locations, and coupons through `business_members`. Read redemption counts for their business only through `business_redemption_stats`; they cannot read redemption rows, which carry the shopper's user id. Merchant and staff screens never show a shopper's email or name. No access to other businesses' drafts or data.
 - Admins: everything. Check the role with a `security definer` helper function (`is_admin()`), not by trusting the client.
 - `featured`, business `status`, and subscription rows are writable by admins and server code only.
 
@@ -97,7 +99,7 @@ All tables have `id uuid` primary keys, `created_at`, and `updated_at` where it 
 
 Two Postgres functions, both `security definer`:
 
-1. `create_redemption_token(coupon_id)`: called by the logged-in consumer. Confirms the coupon is live and the user is under `per_user_limit`, then returns a token and short code valid for 5 minutes.
+1. `create_redemption_token(coupon_id)`: called by the logged-in consumer. Confirms the coupon is live and passes its redemption rules for this shopper, then returns a token and short code valid for 5 minutes.
 2. `verify_redemption(token_or_code, location_id)`: called by a member of the coupon's business. In one transaction it locks the token row, checks it is unused and unexpired, rechecks the coupon is live, the location is eligible, and the per-user and total limits, then marks the token used and inserts the redemption. Returns a clear result code for each failure case (expired, already used, wrong business, limit reached).
 
 No redemption logic in frontend code. Minimum spend and quantity are shown to staff on the confirm screen for them to check by eye.
@@ -105,6 +107,12 @@ No redemption logic in frontend code. Minimum spend and quantity are shown to st
 ### Storage
 
 Buckets `logos` and `coupon-images`, public read, write restricted to members of the owning business. Accept JPG, PNG, WebP up to 5 MB. Use Next.js `Image` for resizing.
+
+### Shopper sign-in and data
+
+- "Save coupon" and "Redeem now" when signed out open a bottom sheet on the same page: email, then the code from the email (Supabase email OTP, `signInWithOtp` and `verifyOtp`). The action then carries on. New accounts made this way are shoppers; the name is optional and set in Account. Merchant and admin emails are refused and pointed to password sign-in.
+- Per shopper we store: the auth account (email, optional password hash, sign-in times), the profile (role, optional name, status), saved coupons, redemption codes and redemptions. Unused redemption codes are deleted a day after they expire by the hourly `purge_stale_codes` cron job; a code linked to a redemption is never deleted.
+- No third-party scripts or trackers on any page. Fonts are self-hosted at build time. Stripe Checkout and the portal are Stripe-hosted pages reached by redirect, so no Stripe script loads in the app.
 
 ## Routes
 

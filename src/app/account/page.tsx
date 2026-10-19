@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { requireUser } from "@/lib/auth";
 import { signOut } from "@/app/(auth)/actions";
 import { PageLoading } from "@/components/page-loading";
+import { AccountNameForm } from "@/components/account-name-form";
 
 export const metadata: Metadata = { title: "Account" };
 
@@ -23,11 +24,10 @@ async function AccountContent() {
   return (
     <div className="mx-auto max-w-md px-4 py-10">
       <h1 className="wordmark text-4xl text-ink">Your account</h1>
-      <dl className="panel mt-6 grid gap-3 p-5">
-        <div>
-          <dt className="text-sm font-medium">Name</dt>
-          <dd>{user.fullName ?? "Not set"}</dd>
-        </div>
+      <div className="panel mt-6 p-5">
+        <AccountNameForm name={user.fullName} />
+      </div>
+      <dl className="panel mt-4 grid gap-3 p-5">
         <div>
           <dt className="text-sm font-medium">Email</dt>
           <dd className="break-all">{user.email}</dd>

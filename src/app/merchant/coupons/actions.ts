@@ -8,7 +8,8 @@ import { couponView } from "@/lib/coupons";
 import { endOfDayInZone, startOfDayInZone } from "@/lib/dates";
 import { COUPON_IMAGE_BUCKET, IMAGE_ERROR, isBusinessImagePath } from "@/lib/storage";
 import { verifyStoredImage } from "@/lib/verify-image";
-import { couponIntentSchema, couponSchema } from "@/lib/validation/merchant";
+import { couponIntentSchema, couponRuleColumns, couponSchema } from "@/lib/validation/merchant";
+import { parseStats } from "@/lib/redemption-stats";
 import type { ActionResult } from "@/lib/validation/auth";
 import type { PostgrestError } from "@supabase/supabase-js";
 
@@ -105,7 +106,6 @@ export async function saveCoupon(couponId: unknown, input: unknown, intentInput:
     title: v.title,
     description: v.description,
     discount_type: v.discountType,
-    discount_value: v.discountValue,
     included_products: v.includedProducts,
     limits_text: v.limitsText,
     min_spend: v.minSpend ?? null,
@@ -116,8 +116,9 @@ export async function saveCoupon(couponId: unknown, input: unknown, intentInput:
     status,
     image_path: v.imagePath,
     all_locations: v.allLocations,
-    per_user_limit: v.perUserLimit,
     total_limit: v.totalLimit ?? null,
+    // Offer value, per-customer limit, frequency and schedule.
+    ...couponRuleColumns(v),
   };
 
   const savedId = existing?.id ?? crypto.randomUUID();
@@ -200,8 +201,10 @@ export async function deleteCoupon(couponId: unknown): Promise<ActionResult> {
     return { ok: false, error: "Only drafts can be deleted. Pause a published coupon instead." };
   }
   if (coupon.admin_hold) {
-    const { count } = await supabase.from("redemptions").select("id", { count: "exact", head: true }).eq("coupon_id", id.data);
-    if (count) {
+    // Merchants cannot read redemption rows; the stats function gives the count.
+    const { data: stats, error: statsError } = await supabase.rpc("business_redemption_stats", { p_business_id: business.id });
+    if (statsError) return { ok: false, error: "We could not check this coupon. Try again in a moment." };
+    if ((parseStats(stats).byCoupon[id.data] ?? 0) > 0) {
       return { ok: false, error: "This coupon has been redeemed, so it is kept for your records. Shoppers cannot see it." };
     }
   }

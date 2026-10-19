@@ -12,7 +12,7 @@ const blank = (v: unknown) => {
 export const searchParamsSchema = z.object({
   q: z.preprocess(blank, z.string().trim().max(100).optional()).catch(undefined),
   category: z.preprocess(blank, z.string().regex(/^[a-z0-9-]{1,60}$/).optional()).catch(undefined),
-  type: z.preprocess(blank, z.enum(["percent", "amount"]).optional()).catch(undefined),
+  type: z.preprocess(blank, z.enum(["percent", "amount", "fixed_price", "free"]).optional()).catch(undefined),
   ending: z.preprocess(first, z.literal("1").optional()).catch(undefined),
   sort: z.preprocess(blank, z.enum(SORTS).default("newest")).catch("newest"),
   lat: z.preprocess(blank, z.coerce.number().min(-90).max(90).optional()).catch(undefined),

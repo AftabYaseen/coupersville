@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      auth_code_requests: {
+        Row: {
+          created_at: string
+          email_hash: string
+          id: number
+          ip_hash: string | null
+          kind: string
+        }
+        Insert: {
+          created_at?: string
+          email_hash: string
+          id?: never
+          ip_hash?: string | null
+          kind: string
+        }
+        Update: {
+          created_at?: string
+          email_hash?: string
+          id?: never
+          ip_hash?: string | null
+          kind?: string
+        }
+        Relationships: []
+      }
       billing_customers: {
         Row: {
           business_id: string
@@ -237,7 +261,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           discount_type: Database["public"]["Enums"]["discount_type"]
-          discount_value: number
+          discount_value: number | null
           expires_at: string
           featured: boolean
           held_at: string | null
@@ -250,7 +274,11 @@ export type Database = {
           max_people: number | null
           min_qty: number | null
           min_spend: number | null
-          per_user_limit: number
+          per_user_limit: number | null
+          redeem_frequency: string | null
+          schedule_days: number[] | null
+          schedule_end: string | null
+          schedule_start: string | null
           starts_at: string
           status: Database["public"]["Enums"]["coupon_status"]
           title: string
@@ -266,7 +294,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           discount_type: Database["public"]["Enums"]["discount_type"]
-          discount_value: number
+          discount_value?: number | null
           expires_at: string
           featured?: boolean
           held_at?: string | null
@@ -279,7 +307,11 @@ export type Database = {
           max_people?: number | null
           min_qty?: number | null
           min_spend?: number | null
-          per_user_limit?: number
+          per_user_limit?: number | null
+          redeem_frequency?: string | null
+          schedule_days?: number[] | null
+          schedule_end?: string | null
+          schedule_start?: string | null
           starts_at?: string
           status?: Database["public"]["Enums"]["coupon_status"]
           title: string
@@ -295,7 +327,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           discount_type?: Database["public"]["Enums"]["discount_type"]
-          discount_value?: number
+          discount_value?: number | null
           expires_at?: string
           featured?: boolean
           held_at?: string | null
@@ -308,7 +340,11 @@ export type Database = {
           max_people?: number | null
           min_qty?: number | null
           min_spend?: number | null
-          per_user_limit?: number
+          per_user_limit?: number | null
+          redeem_frequency?: string | null
+          schedule_days?: number[] | null
+          schedule_end?: string | null
+          schedule_start?: string | null
           starts_at?: string
           status?: Database["public"]["Enums"]["coupon_status"]
           title?: string
@@ -333,6 +369,13 @@ export type Database = {
           {
             foreignKeyName: "coupons_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupons_held_by_fkey"
+            columns: ["held_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -487,7 +530,6 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
-          phone: string | null
           role: Database["public"]["Enums"]["user_role"]
           status: Database["public"]["Enums"]["account_status"]
           updated_at: string
@@ -496,7 +538,6 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
-          phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
@@ -505,7 +546,6 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
-          phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
@@ -811,6 +851,10 @@ export type Database = {
           min_qty: number | null
           min_spend: number | null
           per_user_limit: number | null
+          redeem_frequency: string | null
+          schedule_days: number[] | null
+          schedule_end: string | null
+          schedule_start: string | null
           starts_at: string | null
           status: Database["public"]["Enums"]["coupon_status"] | null
           title: string | null
@@ -840,6 +884,10 @@ export type Database = {
           min_qty?: number | null
           min_spend?: number | null
           per_user_limit?: number | null
+          redeem_frequency?: string | null
+          schedule_days?: number[] | null
+          schedule_end?: string | null
+          schedule_start?: string | null
           starts_at?: string | null
           status?: Database["public"]["Enums"]["coupon_status"] | null
           title?: string | null
@@ -869,6 +917,10 @@ export type Database = {
           min_qty?: number | null
           min_spend?: number | null
           per_user_limit?: number | null
+          redeem_frequency?: string | null
+          schedule_days?: number[] | null
+          schedule_end?: string | null
+          schedule_start?: string | null
           starts_at?: string | null
           status?: Database["public"]["Enums"]["coupon_status"] | null
           title?: string | null
@@ -902,6 +954,10 @@ export type Database = {
     }
     Functions: {
       accept_staff_invite: { Args: { p_token: string }; Returns: Json }
+      account_role_for_email: {
+        Args: { p_email: string }
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
       admin_list_businesses: {
         Args: {
           p_query?: string
@@ -956,6 +1012,13 @@ export type Database = {
           p_status: Database["public"]["Enums"]["coupon_status"]
         }
         Returns: boolean
+      }
+      coupon_rule_problem: {
+        Args: {
+          p_coupon: Database["public"]["Tables"]["coupons"]["Row"]
+          p_user_id: string
+        }
+        Returns: string
       }
       create_redemption_token: { Args: { p_coupon_id: string }; Returns: Json }
       has_business_role: {
@@ -1046,6 +1109,7 @@ export type Database = {
         Args: { p_location_id: string; p_token_or_code: string }
         Returns: Json
       }
+      my_token_offer: { Args: { p_token_id: string }; Returns: Json }
       plan_is_current: {
         Args: {
           p_past_due_since: string
@@ -1055,6 +1119,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      purge_stale_codes: { Args: never; Returns: undefined }
       redemption_offer: {
         Args: { p_coupon: Database["public"]["Tables"]["coupons"]["Row"] }
         Returns: Json
@@ -1065,6 +1130,10 @@ export type Database = {
           p_location: Database["public"]["Tables"]["locations"]["Row"]
           p_token: Database["public"]["Tables"]["redemption_tokens"]["Row"]
         }
+        Returns: string
+      }
+      register_auth_code_request: {
+        Args: { p_email_hash: string; p_ip_hash: string; p_kind: string }
         Returns: string
       }
       resolve_redemption_input: {
@@ -1133,7 +1202,7 @@ export type Database = {
       account_status: "active" | "suspended"
       business_status: "draft" | "active" | "suspended"
       coupon_status: "draft" | "published" | "paused"
-      discount_type: "percent" | "amount"
+      discount_type: "percent" | "amount" | "fixed_price" | "free"
       member_role: "owner" | "manager" | "staff"
       redemption_method: "qr" | "code"
       stock_tint: "mint" | "pink" | "sky" | "butter"
@@ -1270,7 +1339,7 @@ export const Constants = {
       account_status: ["active", "suspended"],
       business_status: ["draft", "active", "suspended"],
       coupon_status: ["draft", "published", "paused"],
-      discount_type: ["percent", "amount"],
+      discount_type: ["percent", "amount", "fixed_price", "free"],
       member_role: ["owner", "manager", "staff"],
       redemption_method: ["qr", "code"],
       stock_tint: ["mint", "pink", "sky", "butter"],

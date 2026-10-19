@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { describeLimits } from "@/lib/coupons";
+import { describeLimits, rulesOf } from "@/lib/coupons";
+import { formatWhen, isWithinSchedule, nextOpening } from "@/lib/rules";
 import { EXPIRING_SOON_MS } from "@/lib/dates";
 import type { Enums } from "@/lib/supabase/database.types";
 import { NEAR_ME_RADIUS_M, PAGE_SIZE, type SearchQuery } from "@/lib/validation/search";
@@ -63,8 +64,19 @@ export async function searchLiveCoupons(options: SearchOptions): Promise<{ coupo
   });
   if (error) throw new Error("Could not load coupons");
 
+  // The search result has no rule columns; read them for just these coupons from live_coupons.
+  const ids = (data ?? []).map((r) => r.id);
+  const { data: ruleRows } = ids.length
+    ? await supabase
+        .from("live_coupons")
+        .select("id, per_user_limit, redeem_frequency, schedule_days, schedule_start, schedule_end")
+        .in("id", ids)
+    : { data: [] };
+  const rulesById = new Map((ruleRows ?? []).map((r) => [r.id, r]));
+
   const now = Date.now();
   const coupons = (data ?? []).map((row): LiveCoupon => {
+    const rules = rulesById.get(row.id);
     const distance = row.distance_m as number | null;
     const storeCount = Number(row.store_count);
     return {
@@ -74,7 +86,7 @@ export async function searchLiveCoupons(options: SearchOptions): Promise<{ coupo
       discountType: row.discount_type,
       discountValue: Number(row.discount_value),
       includedProducts: row.included_products,
-      limits: describeLimits(row),
+      limits: describeLimits({ ...row, ...rules, per_user_limit: rules ? rules.per_user_limit : row.per_user_limit }),
       expiresAt: row.expires_at,
       expiringSoon: new Date(row.expires_at).getTime() - now <= EXPIRING_SOON_MS,
       businessName: row.business_name,
@@ -136,13 +148,26 @@ export async function getLiveCouponDetail(id: string) {
   }
   const { data: stores } = await storeQuery;
 
+  // Outside the schedule, Redeem is greyed out with when it opens next. The database still checks
+  // the schedule itself when a code is requested and when staff confirm.
+  const now = Date.now();
+  const tz = coupon.businesses.timezone;
+  const rules = rulesOf({ ...coupon, per_user_limit: coupon.per_user_limit ?? null });
+  const nextAvailable = isWithinSchedule(rules, tz, now) ? null : nextOpening(rules, tz, now);
+
   return {
     coupon,
     business: coupon.businesses,
     shop: coupon.categories,
     stores: stores ?? [],
-    expiringSoon: new Date(coupon.expires_at!).getTime() - Date.now() <= EXPIRING_SOON_MS,
-    limits: describeLimits(coupon),
+    expiringSoon: new Date(coupon.expires_at!).getTime() - now <= EXPIRING_SOON_MS,
+    limits: describeLimits({ ...coupon, per_user_limit: coupon.per_user_limit ?? null }),
+    // Null when it can be redeemed now. Opening after the coupon ends means it will not open again.
+    availability: isWithinSchedule(rules, tz, now)
+      ? null
+      : nextAvailable && nextAvailable.getTime() < new Date(coupon.expires_at!).getTime()
+        ? `Available ${formatWhen(nextAvailable, tz, now)}`
+        : "Not available again before this coupon ends",
   };
 }
 

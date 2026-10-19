@@ -21,10 +21,20 @@ export type TicketProps = {
   className?: string;
 };
 
-export function formatOffer(type: Enums<"discount_type">, value: number): string {
-  if (type === "percent") return `${Number(value)}% OFF`;
-  const amount = Number.isInteger(Number(value)) ? Number(value).toFixed(0) : Number(value).toFixed(2);
+// The big offer line on a ticket. Fixed price and free name the price or say FREE; the title says
+// what the item is ("Regular coffee").
+export function formatOffer(type: Enums<"discount_type">, value: number | null): string {
+  if (type === "free") return "FREE";
+  const n = Number(value ?? 0);
+  if (type === "percent") return `${n}% OFF`;
+  const amount = Number.isInteger(n) ? n.toFixed(0) : n.toFixed(2);
+  if (type === "fixed_price") return `ONLY $${amount}`;
   return `$${amount} OFF`;
+}
+
+// The same offer as a phrase for sentences and screen readers: "20% off", "$5 off", "only $1", "free".
+export function describeOffer(type: Enums<"discount_type">, value: number | null): string {
+  return formatOffer(type, value).toLowerCase();
 }
 
 export function Ticket({

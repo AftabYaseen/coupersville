@@ -6,6 +6,7 @@ import { requireManagedBusiness } from "@/lib/merchant";
 import { loadCouponBuilderData } from "@/lib/merchant-coupons";
 import { COUPON_VIEW_STATUS, REMOVED_LABEL, couponView } from "@/lib/coupons";
 import { dayInZone } from "@/lib/dates";
+import { couponRuleDefaults } from "@/lib/validation/merchant";
 import { PageLoading } from "@/components/page-loading";
 import { CouponForm } from "@/components/merchant/coupon-form";
 import { CouponStatusActions } from "@/components/merchant/coupon-status-actions";
@@ -81,7 +82,7 @@ async function EditCouponContent({ params }: { params: PageProps<"/merchant/coup
           description: coupon.description ?? "",
           categoryId: coupon.category_id,
           discountType: coupon.discount_type,
-          discountValue: Number(coupon.discount_value),
+          discountValue: coupon.discount_value === null ? "" : Number(coupon.discount_value),
           includedProducts: coupon.included_products ?? "",
           limitsText: coupon.limits_text ?? "",
           minSpend: coupon.min_spend === null ? "" : Number(coupon.min_spend),
@@ -92,8 +93,8 @@ async function EditCouponContent({ params }: { params: PageProps<"/merchant/coup
           imagePath: coupon.image_path,
           allLocations: coupon.all_locations,
           locationIds: (chosen ?? []).map((c) => c.location_id),
-          perUserLimit: coupon.per_user_limit,
           totalLimit: num(coupon.total_limit),
+          ...couponRuleDefaults(coupon),
         }}
       />
     </div>

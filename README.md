@@ -58,4 +58,10 @@ BASE_URL=https://coupersville.com node --env-file=.env.local scripts/test-billin
 
 Stripe billing in test mode (it refuses to run with a live key): forged and duplicate webhooks, a successful payment, declined and failing cards, 3D Secure held for authentication, cancelling, a stale event arriving late, and a failed renewal using a Stripe test clock. Against the live site Stripe delivers the webhooks; against a local build (`BASE_URL=http://localhost:3100`) the script signs and sends them itself and also checks the Checkout and portal actions. Card entry in Checkout itself needs a person.
 
+```
+BASE_URL=http://localhost:3100 node --env-file=.env.local scripts/test-signin-codes.mjs
+```
+
+Shopper sign-in with an email code, through the real server actions of a local build: merchants refused, a code signing in and a save carrying on, wrong codes, and the per-email and per-IP limits. The code comes from Supabase's admin `generateLink`, so no email is sent; receiving a real email needs a person with an inbox.
+
 The camera scanner, the stamp animation and the screen wake lock are not covered here. Test them on real phones.

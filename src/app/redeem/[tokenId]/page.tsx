@@ -8,6 +8,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { describeLimits } from "@/lib/coupons";
+import { offerSchema } from "@/lib/redemption";
 import { TicketSkeleton } from "@/components/consumer/ticket-skeleton";
 import { RedeemScreen } from "@/components/consumer/redeem-screen";
 
@@ -34,9 +35,14 @@ async function RedeemContent({ params }: { params: PageProps<"/redeem/[tokenId]"
   if (!z.uuid().safeParse(tokenId).success) notFound();
 
   const supabase = await createClient();
-  const { data } = await supabase.rpc("my_redemption_token", { p_token_id: tokenId });
+  const [{ data }, { data: offerData }] = await Promise.all([
+    supabase.rpc("my_redemption_token", { p_token_id: tokenId }),
+    supabase.rpc("my_token_offer", { p_token_id: tokenId }),
+  ]);
   const row = data?.[0];
   if (!row) notFound();
+  const offer = offerSchema.safeParse(offerData);
+  const rules = offer.success ? offer.data : null;
 
   const serverNow = serverClock();
   const waiting = !row.used_at && new Date(row.expires_at).getTime() > serverNow;
@@ -80,7 +86,7 @@ async function RedeemContent({ params }: { params: PageProps<"/redeem/[tokenId]"
           includedProducts: row.included_products,
           couponExpiresAt: row.coupon_expires_at,
           timeZone: row.business_timezone,
-          limits: describeLimits(row),
+          limits: describeLimits({ ...row, ...(rules ?? {}), per_user_limit: rules ? rules.per_user_limit : row.per_user_limit }),
           store: storeCount === 1 && row.only_store ? row.only_store : `${storeCount} stores`,
         }}
       />

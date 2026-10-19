@@ -84,3 +84,15 @@ export function dayOneYearOn(day: string): string {
   const dd = m === 2 && d === 29 ? 28 : d;
   return `${y + 1}-${String(m).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
 }
+
+// The UTC instant for a wall-clock time on a calendar day in the timezone.
+export function zonedTimeToUtc(day: string, hour: number, minute: number, tz: string): Date {
+  return zonedWallTimeToUtc(day, hour, minute, 0, safeTimeZone(tz));
+}
+
+// The calendar day (YYYY-MM-DD) that is `days` after the given one.
+export function addDays(day: string, days: number): string {
+  const [y, m, d] = day.split("-").map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + days));
+  return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, "0")}-${String(t.getUTCDate()).padStart(2, "0")}`;
+}

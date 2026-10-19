@@ -49,8 +49,14 @@ async function NewCouponContent() {
           imagePath: null,
           allLocations: true,
           locationIds: [],
-          perUserLimit: 1,
           totalLimit: "",
+          perUserMode: "once",
+          perUserLimit: "",
+          redeemFrequency: "none",
+          scheduleOn: false,
+          scheduleDays: [1, 2, 3, 4, 5, 6, 7],
+          scheduleStart: "",
+          scheduleEnd: "",
         }}
       />
     </div>

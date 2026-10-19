@@ -1,16 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Bookmark, BookmarkCheck } from "lucide-react";
 import { removeFavorite, saveFavorite } from "@/app/coupon/actions";
+import { SignInSheet } from "@/components/consumer/sign-in-sheet";
 
 type Props = {
   couponId: string;
   saved: boolean;
   signedIn: boolean;
-  // Set when the shopper tapped Save while signed out and has just come back from signing in.
+  // Set when the shopper tapped Save, signed in with a password, and has just come back.
   saveOnArrival: boolean;
 };
 
@@ -18,6 +18,7 @@ export function SaveButton({ couponId, saved, signedIn, saveOnArrival }: Props) 
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
+  const [sheetOpen, setSheetOpen] = useState(false);
   const arrivalHandled = useRef(false);
 
   useEffect(() => {
@@ -30,17 +31,20 @@ export function SaveButton({ couponId, saved, signedIn, saveOnArrival }: Props) 
     });
   }, [saveOnArrival, signedIn, saved, couponId, router]);
 
-  if (!signedIn) {
-    const next = encodeURIComponent(`/coupon/${couponId}?save=1`);
-    return (
-      <Link href={`/login?next=${next}`} className="btn btn-secondary w-full">
-        <Bookmark aria-hidden size={18} strokeWidth={1.5} />
-        Save coupon
-      </Link>
-    );
+  function save() {
+    setMessage("");
+    startTransition(async () => {
+      const result = await saveFavorite(couponId);
+      setMessage(result.ok ? (result.message ?? "") : result.error);
+      router.refresh();
+    });
   }
 
   function toggle() {
+    if (!signedIn) {
+      setSheetOpen(true);
+      return;
+    }
     setMessage("");
     startTransition(async () => {
       const result = saved ? await removeFavorite(couponId) : await saveFavorite(couponId);
@@ -50,7 +54,7 @@ export function SaveButton({ couponId, saved, signedIn, saveOnArrival }: Props) 
 
   return (
     <div className="grid gap-2">
-      <button type="button" className="btn btn-secondary w-full" aria-pressed={saved} disabled={pending} onClick={toggle}>
+      <button type="button" className="btn btn-secondary w-full" aria-pressed={signedIn ? saved : undefined} disabled={pending} onClick={toggle}>
         {saved ? (
           <BookmarkCheck aria-hidden size={18} strokeWidth={1.5} />
         ) : (
@@ -61,6 +65,16 @@ export function SaveButton({ couponId, saved, signedIn, saveOnArrival }: Props) 
       <p role="status" className="text-center text-sm">
         {message}
       </p>
+      <SignInSheet
+        open={sheetOpen}
+        title="Sign in to save this coupon"
+        returnPath={`/coupon/${couponId}?save=1`}
+        onClose={() => setSheetOpen(false)}
+        onSignedIn={() => {
+          setSheetOpen(false);
+          save();
+        }}
+      />
     </div>
   );
 }

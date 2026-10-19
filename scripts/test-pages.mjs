@@ -119,7 +119,7 @@ async function main() {
 
   console.log("\nCoupon detail");
   const detailAnon = await get(`/coupon/${coupon.id}`);
-  check("signed out: Sign in to redeem", detailAnon.body.includes("Sign in to redeem"));
+  check("signed out: Redeem now opens the sign-in sheet on the page", detailAnon.body.includes("Redeem now") && !detailAnon.body.includes("/login?next="));
   const detailShopper = await get(`/coupon/${coupon.id}`, shopper);
   check("shopper: Redeem now", detailShopper.body.includes("Redeem now"));
 
@@ -166,6 +166,52 @@ async function main() {
   check("dashboard shows redemption stats", dash.body.includes("Redemptions") && dash.body.includes("Page test pastry"));
   const list = await get("/merchant/coupons?view=live", owner);
   check("coupon list shows 1 of 50 redeemed", list.body.includes("1 of 50 redeemed"));
+
+  console.log("\nRules and offer kinds on the page");
+  const chicagoDay =
+    ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(
+      new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", weekday: "short" }).format(new Date()),
+    ) + 1;
+  const otherDay = (chicagoDay % 7) + 1;
+  const dayName = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][otherDay - 1];
+  const insertCoupon = (fields) =>
+    admin
+      .from("coupons")
+      .insert({
+        business_id: shop.id,
+        category_id: categoryId,
+        starts_at: new Date(Date.now() - 3_600_000).toISOString(),
+        expires_at: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+        status: "published",
+        ...fields,
+      })
+      .select()
+      .single()
+      .then((r) => must(r, "rule coupon"));
+  const scheduled = await insertCoupon({
+    title: "Lunch special",
+    discount_type: "percent",
+    discount_value: 20,
+    per_user_limit: null,
+    redeem_frequency: "day",
+    schedule_days: [otherDay],
+    schedule_start: "11:00",
+    schedule_end: "15:00",
+  });
+  const sched = await get(`/coupon/${scheduled.id}`, shopper);
+  check("the ticket states the schedule", sched.body.includes(`Available ${dayName}s, 11am to 3pm`), dayName);
+  check("the ticket states the per-customer rule", sched.body.includes("Once a day per customer"));
+  // The schedule day is tomorrow's weekday, so it opens tomorrow at 11am.
+  check(
+    "Redeem is greyed out with when it is next available",
+    /<button[^>]*disabled[^>]*>(?:(?!<\/button>).)*Redeem now/s.test(sched.body) && sched.body.includes("Available tomorrow at 11am"),
+  );
+  const free = await insertCoupon({ title: "Free cookie", discount_type: "free", discount_value: null });
+  const fixed = await insertCoupon({ title: "Regular coffee", discount_type: "fixed_price", discount_value: 1 });
+  check("a free offer reads FREE", (await get(`/coupon/${free.id}`)).body.includes(">FREE<"));
+  check("a fixed price offer reads ONLY $1", (await get(`/coupon/${fixed.id}`)).body.includes("ONLY $1"));
+  const signedOut = await get(`/coupon/${free.id}`);
+  check("signed out, Redeem now and Save coupon are buttons that open the sign-in sheet", signedOut.body.includes("Redeem now") && signedOut.body.includes("Save coupon") && !signedOut.body.includes("Sign in to redeem"));
 }
 
 async function cleanup() {

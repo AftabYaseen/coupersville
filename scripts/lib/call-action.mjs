@@ -22,7 +22,8 @@ function findAction(file, name) {
 
 // Returns { value } for a returned value, { redirect } when the action redirected, or
 // { redirect, blocked: true } when the middleware stopped the request first.
-export async function callAction(base, cookie, file, name, args) {
+// options.headers adds request headers, for example x-forwarded-for.
+export async function callAction(base, cookie, file, name, args, options = {}) {
   const { id, path } = findAction(file, name);
   const res = await fetch(`${base}${path.replace(/\[[^\]]+\]/g, "x")}`, {
     method: "POST",
@@ -33,12 +34,15 @@ export async function callAction(base, cookie, file, name, args) {
       Accept: "text/x-component",
       Origin: base,
       ...(cookie ? { cookie } : {}),
+      ...(options.headers ?? {}),
     },
     body: JSON.stringify(args),
   });
   const redirect = res.headers.get("x-action-redirect");
   const text = await res.text();
-  if (redirect) return { redirect: redirect.split(";")[0], status: res.status };
+  // Cookies the action set (a sign-in sets the session), as "name=value" pairs.
+  const setCookies = res.headers.getSetCookie().map((c) => c.split(";")[0]);
+  if (redirect) return { redirect: redirect.split(";")[0], status: res.status, setCookies };
   // The middleware turned the request away before the action ran.
   if (res.status >= 300 && res.status < 400) return { redirect: res.headers.get("location") ?? "", status: res.status, blocked: true };
   // The flight payload is one row per line, "<id>:<json>". Row 0 points at the returned value.
@@ -52,7 +56,7 @@ export async function callAction(base, cookie, file, name, args) {
   const parsed = JSON.parse(root);
   let value = parsed?.a ?? parsed;
   if (typeof value === "string" && value.startsWith("$@")) value = JSON.parse(rows.get(value.slice(2)) ?? "null");
-  return { value, status: res.status };
+  return { value, status: res.status, setCookies };
 }
 
 // Creates a confirmed user and returns cookies for the app plus a client for direct database checks.

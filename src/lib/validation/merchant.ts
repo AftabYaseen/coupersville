@@ -81,15 +81,20 @@ export type LocationInput = z.input<typeof locationSchema>;
 export const onboardingSchema = z.object({ business: businessSchema, location: locationSchema });
 export type OnboardingInput = z.input<typeof onboardingSchema>;
 
+export const DISCOUNT_TYPES = ["percent", "amount", "fixed_price", "free"] as const;
+export const PER_USER_MODES = ["once", "limited", "unlimited"] as const;
+export const FREQUENCIES = ["none", "day", "week"] as const;
+const TIME_OR_BLANK = /^$|^([01]\d|2[0-3]):[0-5]\d(:00)?$/;
+
 export const couponSchema = z
   .object({
     title: requiredText(120, "Give the coupon a short title."),
     description: optionalText(1000),
     categoryId: z.uuid({ error: "Choose a category." }),
-    discountType: z.enum(["percent", "amount"], { error: "Choose percent or amount." }),
-    discountValue: z.preprocess(
-      blankToUndefined,
-      z.number({ error: "Enter the discount." }).positive({ error: "The discount must be more than 0." }).max(100000),
+    discountType: z.enum(DISCOUNT_TYPES, { error: "Choose the kind of offer." }),
+    // Empty for a free offer; the price for a fixed price; otherwise the discount.
+    discountValue: optionalNumber(
+      z.number({ error: "Enter a number." }).positive({ error: "Use a number above 0." }).max(100000),
     ),
     includedProducts: optionalText(500),
     limitsText: optionalText(500),
@@ -101,19 +106,42 @@ export const couponSchema = z
     imagePath: z.string().nullable(),
     allLocations: z.boolean(),
     locationIds: z.array(z.uuid()),
-    perUserLimit: z.preprocess(
-      blankToUndefined,
-      z
-        .number({ error: "Enter how many times one person can use it." })
-        .int({ error: "Use a whole number." })
-        .min(1, { error: "Use 1 or more." })
-        .max(1000),
+    // Per customer: once, up to a number, or unlimited during the promotion.
+    perUserMode: z.enum(PER_USER_MODES, { error: "Choose how often one customer can use it." }),
+    perUserLimit: optionalNumber(
+      z.number().int({ error: "Use a whole number." }).min(2, { error: "Use 2 or more." }).max(1000, { error: "Use 1000 or fewer." }),
     ),
+    redeemFrequency: z.enum(FREQUENCIES, { error: "Choose how often." }),
+    // Schedule: some days of the week, an optional time window, or both.
+    scheduleOn: z.boolean(),
+    scheduleDays: z.array(z.number().int().min(1).max(7)),
+    scheduleStart: z.preprocess(nullToEmpty, z.string().regex(TIME_OR_BLANK, { error: "Choose a time." })),
+    scheduleEnd: z.preprocess(nullToEmpty, z.string().regex(TIME_OR_BLANK, { error: "Choose a time." })),
     totalLimit: optionalNumber(z.number().int({ error: "Use a whole number." }).min(1, { error: "Use 1 or more." })),
   })
   .superRefine((v, ctx) => {
-    if (v.discountType === "percent" && v.discountValue > 100) {
+    if (v.discountType !== "free" && v.discountValue === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["discountValue"],
+        message: v.discountType === "fixed_price" ? "Enter the price." : "Enter the discount.",
+      });
+    }
+    if (v.discountType === "percent" && v.discountValue !== undefined && v.discountValue > 100) {
       ctx.addIssue({ code: "custom", path: ["discountValue"], message: "A percent discount can be 100 at most." });
+    }
+    if (v.perUserMode === "limited" && v.perUserLimit === undefined) {
+      ctx.addIssue({ code: "custom", path: ["perUserLimit"], message: "Enter how many times one customer can use it." });
+    }
+    if (v.scheduleOn) {
+      if (v.scheduleDays.length === 0) {
+        ctx.addIssue({ code: "custom", path: ["scheduleDays"], message: "Choose at least one day." });
+      }
+      if (Boolean(v.scheduleStart) !== Boolean(v.scheduleEnd)) {
+        ctx.addIssue({ code: "custom", path: ["scheduleEnd"], message: "Set both a start and an end time, or neither." });
+      } else if (v.scheduleStart && v.scheduleEnd && v.scheduleStart >= v.scheduleEnd) {
+        ctx.addIssue({ code: "custom", path: ["scheduleEnd"], message: "The end time must be after the start time." });
+      }
     }
     if (v.expiresOn < v.startsOn) {
       ctx.addIssue({ code: "custom", path: ["expiresOn"], message: "The end date must be on or after the start date." });
@@ -127,3 +155,37 @@ export type CouponValues = z.output<typeof couponSchema>;
 
 export const couponIntentSchema = z.enum(["draft", "publish", "save"]);
 export type CouponIntent = z.infer<typeof couponIntentSchema>;
+
+// Coupon form values as the columns they are stored in.
+export function couponRuleColumns(v: CouponValues) {
+  const days = [...new Set(v.scheduleDays)].sort((a, b) => a - b);
+  const hasWindow = v.scheduleOn && Boolean(v.scheduleStart) && Boolean(v.scheduleEnd);
+  return {
+    discount_value: v.discountType === "free" ? null : (v.discountValue ?? null),
+    per_user_limit: v.perUserMode === "once" ? 1 : v.perUserMode === "limited" ? (v.perUserLimit ?? null) : null,
+    redeem_frequency: v.redeemFrequency === "none" ? null : v.redeemFrequency,
+    // Every day of the week is the same as no day rule.
+    schedule_days: v.scheduleOn && days.length > 0 && days.length < 7 ? days : null,
+    schedule_start: hasWindow ? v.scheduleStart.slice(0, 5) : null,
+    schedule_end: hasWindow ? v.scheduleEnd.slice(0, 5) : null,
+  };
+}
+
+// A stored coupon as form values.
+export function couponRuleDefaults(c: {
+  per_user_limit: number | null;
+  redeem_frequency: string | null;
+  schedule_days: number[] | null;
+  schedule_start: string | null;
+  schedule_end: string | null;
+}) {
+  return {
+    perUserMode: (c.per_user_limit === 1 ? "once" : c.per_user_limit === null ? "unlimited" : "limited") as (typeof PER_USER_MODES)[number],
+    perUserLimit: c.per_user_limit && c.per_user_limit > 1 ? c.per_user_limit : ("" as const),
+    redeemFrequency: (c.redeem_frequency === "day" || c.redeem_frequency === "week" ? c.redeem_frequency : "none") as (typeof FREQUENCIES)[number],
+    scheduleOn: Boolean(c.schedule_days?.length || c.schedule_start),
+    scheduleDays: c.schedule_days?.length ? c.schedule_days : [1, 2, 3, 4, 5, 6, 7],
+    scheduleStart: c.schedule_start?.slice(0, 5) ?? "",
+    scheduleEnd: c.schedule_end?.slice(0, 5) ?? "",
+  };
+}

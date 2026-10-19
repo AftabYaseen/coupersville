@@ -327,6 +327,92 @@ async function main() {
   const peek = must(await shopper1.client.from("redemptions").select("user_id"), "peek");
   check("shoppers only read their own redemption rows", peek.every((r) => r.user_id === shopper1.id), peek.length);
 
+  console.log("\nRace: once a day, two codes for one shopper verified together");
+  const daily = await makeCoupon(shop, { title: "Daily", per_user_limit: null, redeem_frequency: "day" });
+  const [d1, d2] = [await rawToken(shopper1.id, daily.id), await rawToken(shopper1.id, daily.id)];
+  const dailyRace = tally(await Promise.all([verify(staff, d1.token, storeA.id), verify(owner, d2.token, storeA.id)]));
+  check("one ok, one already used today", dailyRace.ok === 1 && dailyRace.frequency_limit === 1, dailyRace);
+  const dailyAgain = await token(shopper1, daily.id);
+  check("no new code for the rest of the day", dailyAgain.result === "frequency_limit", dailyAgain);
+  const dailyOther = await token(shopper2, daily.id);
+  check("another shopper is not affected", dailyOther.result === "ok", dailyOther);
+
+  console.log("\nRace: up to 2 per customer, three codes verified together");
+  const twice = await makeCoupon(shop, { title: "Up to two", per_user_limit: 2 });
+  const tri = [await rawToken(shopper2.id, twice.id), await rawToken(shopper2.id, twice.id), await rawToken(shopper2.id, twice.id)];
+  const twiceRace = tally(await Promise.all(tri.map((t, i) => verify(i % 2 ? owner : staff, t.token, storeA.id))));
+  check("two ok, one limit reached", twiceRace.ok === 2 && twiceRace.user_limit_reached === 1, twiceRace);
+  check("exactly two redemptions recorded", (await redemptionCount({ coupon_id: twice.id })) === 2);
+
+  console.log("\nUnlimited per customer, and once a week");
+  const unlimited = await makeCoupon(shop, { title: "Unlimited", per_user_limit: null });
+  let unlimitedOk = 0;
+  for (let i = 0; i < 3; i += 1) {
+    const t = await token(shopper3, unlimited.id);
+    if ((await verify(staff, t.token, storeA.id)).result === "ok") unlimitedOk += 1;
+  }
+  check("three uses in a row are all ok", unlimitedOk === 3, unlimitedOk);
+  const weekly = await makeCoupon(shop, { title: "Weekly", per_user_limit: null, redeem_frequency: "week" });
+  const w1 = await token(shopper3, weekly.id);
+  check("first use this week is ok", (await verify(staff, w1.token, storeA.id)).result === "ok");
+  const w2 = await token(shopper3, weekly.id);
+  check("a second code this week is refused", w2.result === "frequency_limit", w2);
+
+  console.log("\nSchedule (business timezone America/New_York)");
+  const nyParts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date());
+  const nyDay = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(nyParts.find((p) => p.type === "weekday").value) + 1;
+  const nyMinutes = Number(nyParts.find((p) => p.type === "hour").value) * 60 + Number(nyParts.find((p) => p.type === "minute").value);
+  const otherDay = (nyDay % 7) + 1;
+  const closedDay = await makeCoupon(shop, { title: "Other day only", schedule_days: [otherDay] });
+  const cd = await token(shopper1, closedDay.id);
+  check("a closed day refuses a new code", cd.result === "outside_schedule", cd);
+  const cdRaw = await rawToken(shopper1.id, closedDay.id);
+  const cdPreview = await preview(staff, cdRaw.token, storeA.id);
+  check("the confirm screen refuses it, with the schedule for staff", cdPreview.result === "outside_schedule" && cdPreview.offer?.schedule_days?.[0] === otherDay && cdPreview.offer?.timezone === "America/New_York", cdPreview);
+  check("verify refuses it too", (await verify(staff, cdRaw.token, storeA.id)).result === "outside_schedule");
+  const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  const [winStart, winEnd] = nyMinutes < 22 * 60 ? [nyMinutes + 60, nyMinutes + 90] : [0, 30];
+  const closedHours = await makeCoupon(shop, { title: "Other hours", schedule_start: hhmm(winStart), schedule_end: hhmm(winEnd) });
+  const ch = await token(shopper1, closedHours.id);
+  check("outside the time window refuses a new code", ch.result === "outside_schedule", ch);
+  const open = await makeCoupon(shop, { title: "Open today", schedule_days: [nyDay], schedule_start: "00:00", schedule_end: "23:59" });
+  const op = await token(shopper1, open.id);
+  check("inside the schedule works", op.result === "ok" && (await verify(staff, op.token, storeA.id)).result === "ok", op);
+  const badWindow = await admin.from("coupons").insert({ business_id: shop.id, category_id: categoryId, title: "Bad window", discount_type: "percent", discount_value: 5, starts_at: new Date().toISOString(), expires_at: new Date(Date.now() + 86_400_000).toISOString(), schedule_start: "15:00", schedule_end: "11:00" });
+  check("a window that ends before it starts is refused by the database", Boolean(badWindow.error));
+
+  console.log("\nFree and fixed price offers");
+  const free = await makeCoupon(shop, { title: "Free coffee", discount_type: "free", discount_value: null });
+  const fr = await token(shopper2, free.id);
+  const frPreview = await preview(staff, fr.token, storeA.id);
+  check("a free offer can be redeemed and shows as free", frPreview.result === "ok" && frPreview.offer.discount_type === "free" && frPreview.offer.discount_value === null, frPreview.offer);
+  const fixed = await makeCoupon(shop, { title: "Regular coffee", discount_type: "fixed_price", discount_value: 1 });
+  check("a fixed price offer is stored with its price", Number(fixed.discount_value) === 1 && fixed.discount_type === "fixed_price");
+  const freeWithValue = await admin.from("coupons").insert({ business_id: shop.id, category_id: categoryId, title: "Bad free", discount_type: "free", discount_value: 2, starts_at: new Date().toISOString(), expires_at: new Date(Date.now() + 86_400_000).toISOString() });
+  check("free with a value is refused", Boolean(freeWithValue.error));
+  const priceMissing = await admin.from("coupons").insert({ business_id: shop.id, category_id: categoryId, title: "Bad price", discount_type: "fixed_price", discount_value: null, starts_at: new Date().toISOString(), expires_at: new Date(Date.now() + 86_400_000).toISOString() });
+  check("a fixed price without a price is refused", Boolean(priceMissing.error));
+
+  console.log("\nPrivacy: merchants read counts, not redemption rows");
+  const ownerRows = must(await owner.client.from("redemptions").select("id, user_id"), "owner rows");
+  check("the owner can no longer read redemption rows", ownerRows.length === 0, ownerRows.length);
+  const staffRows = must(await staff.client.from("redemptions").select("id"), "staff rows");
+  check("staff cannot read them either", staffRows.length === 0);
+
+  console.log("\nCleanup job");
+  const stale = await rawToken(shopper2.id, plain.id, { expires_at: new Date(Date.now() - 2 * 86_400_000).toISOString() });
+  const recent = await rawToken(shopper2.id, plain.id, { expires_at: new Date(Date.now() - 3_600_000).toISOString() });
+  const linked = await rawToken(shopper3.id, plain.id);
+  check("a code to keep is redeemed first", (await verify(staff, linked.token, storeA.id)).result === "ok");
+  must(await admin.from("redemption_tokens").update({ expires_at: new Date(Date.now() - 2 * 86_400_000).toISOString() }).eq("id", linked.id), "age linked");
+  must(await admin.rpc("purge_stale_codes"), "purge");
+  must(await admin.rpc("purge_stale_codes"), "purge twice");
+  const left = must(await admin.from("redemption_tokens").select("id").in("id", [stale.id, recent.id, linked.id]), "left");
+  const ids = new Set(left.map((r) => r.id));
+  check("an unused code expired over a day ago is deleted", !ids.has(stale.id));
+  check("an unused code expired under a day ago is kept", ids.has(recent.id));
+  check("a code linked to a redemption is kept", ids.has(linked.id));
+
   console.log("\nStats");
   const stats = must(await owner.client.rpc("business_redemption_stats", { p_business_id: shop.id }), "stats");
   const actual = await redemptionCount({ business_id: shop.id });

@@ -9,11 +9,25 @@ import { saveCoupon } from "@/app/merchant/coupons/actions";
 import { couponSchema, type CouponInput, type CouponIntent } from "@/lib/validation/merchant";
 import { describeLimits } from "@/lib/coupons";
 import { DAY_PATTERN, endOfDayInZone } from "@/lib/dates";
+import { WEEKDAYS } from "@/lib/rules";
 import { COUPON_IMAGE_BUCKET, publicImageUrl } from "@/lib/storage";
 import type { Enums } from "@/lib/supabase/database.types";
 import { Field, FormMessage } from "@/components/field";
 import { Ticket, formatOffer } from "@/components/ticket";
 import { ImageUpload } from "@/components/merchant/image-upload";
+
+const OFFER_KINDS = [
+  { value: "percent", label: "Percent off" },
+  { value: "amount", label: "Amount off" },
+  { value: "fixed_price", label: "Fixed price" },
+  { value: "free", label: "Free" },
+] as const;
+
+const PER_USER_CHOICES = [
+  { value: "once", label: "Once" },
+  { value: "limited", label: "Up to" },
+  { value: "unlimited", label: "Any number of times during the promotion" },
+] as const;
 
 export type CouponCategoryOption = { id: string; name: string; tint: Enums<"stock_tint"> };
 export type CouponLocationOption = { id: string; label: string; active: boolean };
@@ -84,6 +98,15 @@ export function CouponForm(props: Props) {
   const previewExpires =
     values.expiresOn && DAY_PATTERN.test(values.expiresOn) ? endOfDayInZone(values.expiresOn, timeZone) : undefined;
 
+  function toggleDay(iso: number, checked: boolean) {
+    const current = values.scheduleDays ?? [];
+    const next = checked ? [...current, iso] : current.filter((d) => d !== iso);
+    setValue("scheduleDays", next.sort((a, b) => Number(a) - Number(b)) as number[], {
+      shouldValidate: form.formState.isSubmitted,
+      shouldDirty: true,
+    });
+  }
+
   function toggleLocation(id: string, checked: boolean) {
     const next = checked ? [...chosenIds, id] : chosenIds.filter((x) => x !== id);
     setValue("locationIds", next as string[], { shouldValidate: form.formState.isSubmitted, shouldDirty: true });
@@ -104,27 +127,33 @@ export function CouponForm(props: Props) {
             </Field>
 
             <fieldset>
-              <legend className="field-label">Discount</legend>
-              <div className="grid gap-3 sm:grid-cols-[auto_1fr] sm:items-start">
-                <div className="flex gap-2">
-                  {(["percent", "amount"] as const).map((type) => (
-                    <label
-                      key={type}
-                      className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-sm border-[1.5px] border-ink px-3 ${
-                        values.discountType === type ? "bg-stock-sky" : "bg-white"
-                      }`}
-                    >
-                      <input type="radio" value={type} className="size-4 accent-ink" {...register("discountType")} />
-                      {type === "percent" ? "Percent off" : "Amount off"}
-                    </label>
-                  ))}
-                </div>
-                <div>
-                  <label htmlFor="discountValue" className="sr-only">
-                    {values.discountType === "percent" ? "Percent off" : "Dollars off"}
+              <legend className="field-label">Kind of offer</legend>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {OFFER_KINDS.map((kind) => (
+                  <label
+                    key={kind.value}
+                    className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-sm border-[1.5px] border-ink px-3 ${
+                      values.discountType === kind.value ? "bg-stock-sky" : "bg-white"
+                    }`}
+                  >
+                    <input type="radio" value={kind.value} className="size-4 accent-ink" {...register("discountType")} />
+                    {kind.label}
+                  </label>
+                ))}
+              </div>
+              {values.discountType === "free" ? (
+                <p className="mt-2 text-sm">Say what is free in the title, for example Free coffee with any pastry.</p>
+              ) : (
+                <div className="mt-3">
+                  <label htmlFor="discountValue" className="field-label">
+                    {values.discountType === "percent"
+                      ? "Percent off"
+                      : values.discountType === "fixed_price"
+                        ? "Price"
+                        : "Dollars off"}
                   </label>
                   <div className="flex items-center gap-2">
-                    {values.discountType === "amount" && <span className="font-semibold">$</span>}
+                    {values.discountType !== "percent" && <span className="font-semibold">$</span>}
                     <input
                       id="discountValue"
                       inputMode="decimal"
@@ -134,9 +163,12 @@ export function CouponForm(props: Props) {
                     />
                     {values.discountType === "percent" && <span className="font-semibold">%</span>}
                   </div>
+                  {values.discountType === "fixed_price" && (
+                    <p className="mt-1.5 text-sm">What the customer pays. Name the item in the title, like Regular coffee.</p>
+                  )}
                   {err("discountValue") && <p className="field-error">{err("discountValue")}</p>}
                 </div>
-              </div>
+              )}
             </fieldset>
 
             <Field id="categoryId" label="Category" error={err("categoryId")}>
@@ -199,17 +231,99 @@ export function CouponForm(props: Props) {
                 <input id="maxPeople" inputMode="numeric" className="field-input tabular" {...register("maxPeople")} />
               </Field>
             </div>
-            <div className="grid gap-5 sm:grid-cols-2">
-              <Field id="perUserLimit" label="Uses per shopper" error={err("perUserLimit")}>
-                <input id="perUserLimit" inputMode="numeric" className="field-input tabular" {...register("perUserLimit")} />
-              </Field>
-              <Field id="totalLimit" label="Total uses" hint="Optional. Leave blank for no cap." error={err("totalLimit")}>
-                <input id="totalLimit" inputMode="numeric" className="field-input tabular" {...register("totalLimit")} />
-              </Field>
-            </div>
+            <Field id="totalLimit" label="Total uses" hint="Optional. Leave blank for no cap." error={err("totalLimit")}>
+              <input id="totalLimit" inputMode="numeric" className="field-input max-w-40 tabular" {...register("totalLimit")} />
+            </Field>
             <Field id="limitsText" label="Other fine print" hint="Optional. For example dine in only." error={err("limitsText")}>
               <input id="limitsText" className="field-input" {...register("limitsText")} />
             </Field>
+          </section>
+
+          <section className="panel grid gap-5 p-5 sm:p-6">
+            <h2 className="text-xl font-semibold">How often</h2>
+            <fieldset>
+              <legend className="field-label">Each customer can use it</legend>
+              <div className="grid gap-2">
+                {PER_USER_CHOICES.map((choice) => (
+                  <div key={choice.value} className="flex flex-wrap items-center gap-3">
+                    <label className="flex min-h-11 cursor-pointer items-center gap-3">
+                      <input type="radio" value={choice.value} className="size-5 accent-ink" {...register("perUserMode")} />
+                      <span>{choice.label}</span>
+                    </label>
+                    {choice.value === "limited" && values.perUserMode === "limited" && (
+                      <span className="flex items-center gap-2">
+                        <label htmlFor="perUserLimit" className="sr-only">
+                          Times per customer
+                        </label>
+                        <input
+                          id="perUserLimit"
+                          inputMode="numeric"
+                          className="field-input max-w-24 tabular"
+                          aria-invalid={Boolean(err("perUserLimit"))}
+                          {...register("perUserLimit")}
+                        />
+                        <span>times</span>
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {err("perUserLimit") && <p className="field-error">{err("perUserLimit")}</p>}
+            </fieldset>
+
+            {values.perUserMode !== "once" && (
+              <Field id="redeemFrequency" label="At most" error={err("redeemFrequency")}>
+                <select id="redeemFrequency" className="field-input max-w-64" {...register("redeemFrequency")}>
+                  <option value="none">No extra limit</option>
+                  <option value="day">Once a day per customer</option>
+                  <option value="week">Once a week per customer</option>
+                </select>
+              </Field>
+            )}
+
+            <label className="flex min-h-11 cursor-pointer items-center gap-3 font-medium">
+              <input type="checkbox" className="size-5 accent-ink" {...register("scheduleOn")} />
+              Only on certain days or times
+            </label>
+            {values.scheduleOn && (
+              <div className="grid gap-4">
+                <fieldset>
+                  <legend className="field-label">Days</legend>
+                  <div className="flex flex-wrap gap-2">
+                    {WEEKDAYS.map((d) => {
+                      const on = (values.scheduleDays ?? []).includes(d.iso);
+                      return (
+                        <label
+                          key={d.iso}
+                          className={`flex min-h-11 min-w-14 cursor-pointer items-center justify-center rounded-sm border-[1.5px] border-ink px-2 font-medium ${
+                            on ? "bg-ink text-white" : "bg-white text-ink"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            className="sr-only"
+                            checked={on}
+                            onChange={(e) => toggleDay(d.iso, e.target.checked)}
+                          />
+                          <span aria-hidden>{d.short}</span>
+                          <span className="sr-only">{d.long}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {errors.scheduleDays?.message && <p className="field-error">{errors.scheduleDays.message}</p>}
+                </fieldset>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field id="scheduleStart" label="From" hint="Optional." error={err("scheduleStart")}>
+                    <input id="scheduleStart" type="time" className="field-input tabular" {...register("scheduleStart")} />
+                  </Field>
+                  <Field id="scheduleEnd" label="Until" hint="Optional." error={err("scheduleEnd")}>
+                    <input id="scheduleEnd" type="time" className="field-input tabular" {...register("scheduleEnd")} />
+                  </Field>
+                </div>
+                <p className="text-sm">Times follow your business timezone, {timeZone.replace(/_/g, " ")}.</p>
+              </div>
+            )}
           </section>
 
           <section className="panel grid gap-4 p-5 sm:p-6">
@@ -302,7 +416,7 @@ export function CouponForm(props: Props) {
           <Ticket
             tint={category?.tint ?? "sky"}
             merchant={businessName}
-            offer={formatOffer(values.discountType ?? "percent", discountValue)}
+            offer={formatOffer(values.discountType ?? "percent", values.discountType === "free" ? null : discountValue)}
             title={values.title || "Your coupon title"}
             description={text(values.description) || undefined}
             expiresAt={previewExpires}
@@ -312,7 +426,15 @@ export function CouponForm(props: Props) {
                 min_spend: toNumber(values.minSpend),
                 min_qty: toNumber(values.minQty),
                 max_people: toNumber(values.maxPeople),
-                per_user_limit: toNumber(values.perUserLimit),
+                per_user_limit:
+                  values.perUserMode === "once" ? 1 : values.perUserMode === "limited" ? toNumber(values.perUserLimit) : null,
+                redeem_frequency: values.perUserMode === "once" || values.redeemFrequency === "none" ? null : values.redeemFrequency,
+                schedule_days:
+                  values.scheduleOn && values.scheduleDays && values.scheduleDays.length < 7
+                    ? (values.scheduleDays as number[])
+                    : null,
+                schedule_start: values.scheduleOn && values.scheduleStart && values.scheduleEnd ? text(values.scheduleStart) : null,
+                schedule_end: values.scheduleOn && values.scheduleStart && values.scheduleEnd ? text(values.scheduleEnd) : null,
                 limits_text: text(values.limitsText) || null,
               }) || undefined
             }

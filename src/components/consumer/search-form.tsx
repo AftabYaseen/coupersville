@@ -61,6 +61,8 @@ export function SearchForm({
               <option value="">Any discount</option>
               <option value="percent">Percent off</option>
               <option value="amount">Amount off</option>
+              <option value="fixed_price">Fixed price</option>
+              <option value="free">Free</option>
             </select>
           </div>
           <div>
