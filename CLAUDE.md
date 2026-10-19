@@ -175,8 +175,8 @@ One family: **Archivo** (variable, via `next/font/google`, with the width axis e
 ### Imagery and identity (client update, 2026-10-08)
 
 - Name stays "Coupersville". No logo or wordmark for now; the header uses plain text.
-- `public/Img-1.jpeg` (the welcome sign) appears only on the home page, as a postcard: natural size up to 800px wide, white surface, 1.5px ink outline, no text over it, via `next/image`. Not on sign-in or sign-up.
-- `public/Img-2.jpeg` (shop interior) is reference for the long-term look. Do not use it anywhere yet.
+- `public/town-sign.jpg` (the welcome sign, 1666px wide) appears only on the home page, as a postcard: shown up to 800px wide, white surface, 1.5px ink outline, no text over it, via `next/image`. Not on sign-in or sign-up. (Client update 2026-10-19: replaces the earlier `Img-1.jpeg`, which is deleted.)
+- `public/Img-2.jpeg` (shop interior) and `public/coffee-shop.jpg` are reference for the long-term look. Both are git-ignored. Do not use them anywhere yet.
 - Palette confirmed: keep the ink and marigold tokens above. No palette change.
 - Long-term vision, targeted around March 2027: the site feels like a small town, and opening a category feels like walking into that shop to see its coupons. Until then, build for function.
 

@@ -8,7 +8,7 @@ import { CouponGrid, EmptyState } from "@/components/consumer/coupon-ticket";
 import { NearMeButton } from "@/components/consumer/near-me-button";
 import { ShopCard } from "@/components/consumer/shop-card";
 import { TicketGridSkeleton } from "@/components/consumer/ticket-skeleton";
-import welcomeSign from "../../public/Img-1.jpeg";
+import welcomeSign from "../../public/town-sign.jpg";
 
 const ROW_SIZE = 6;
 
