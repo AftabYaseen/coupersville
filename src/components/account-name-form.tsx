@@ -22,7 +22,7 @@ export function AccountNameForm({ name }: { name: string | null }) {
         });
       }}
     >
-      <Field id="account-name" label="Name" hint="Optional.">
+      <Field id="account-name" label="Name" hint="Optional." error={message?.tone === "error" ? message.text : undefined}>
         <input
           id="account-name"
           autoComplete="name"
@@ -30,12 +30,13 @@ export function AccountNameForm({ name }: { name: string | null }) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           className="field-input"
+          aria-invalid={message?.tone === "error"}
         />
       </Field>
       <button type="submit" className="btn btn-secondary justify-self-start" disabled={pending}>
         {pending ? "Saving" : "Save name"}
       </button>
-      {message && <FormMessage tone={message.tone}>{message.text}</FormMessage>}
+      {message?.tone === "success" && <FormMessage tone="success">{message.text}</FormMessage>}
     </form>
   );
 }

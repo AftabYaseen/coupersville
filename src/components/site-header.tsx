@@ -21,13 +21,31 @@ export function SiteHeader() {
           Coupersville
         </Link>
         <div className="flex items-center gap-1">
+          <AboutLinks className="hidden lg:flex" />
           <NavLink href="/search" label="Search" Icon={Search} />
           <Suspense fallback={<div className="h-11 w-11" aria-hidden />}>
             <UserNav />
           </Suspense>
         </div>
       </div>
+      <div className="border-t-[1.5px] border-ink lg:hidden">
+        <AboutLinks className="mx-auto flex max-w-5xl px-2" />
+      </div>
     </header>
+  );
+}
+
+// The two pages that explain Coupersville. Their own row on small screens, inline on wide ones.
+function AboutLinks({ className }: { className: string }) {
+  return (
+    <nav aria-label="About Coupersville" className={`${className} items-center gap-1`}>
+      <Link href="/how-it-works" className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-ink">
+        How it works
+      </Link>
+      <Link href="/for-businesses" className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-ink">
+        For businesses
+      </Link>
+    </nav>
   );
 }
 

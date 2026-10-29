@@ -5,8 +5,10 @@ import { requireUser } from "@/lib/auth";
 import { signOut } from "@/app/(auth)/actions";
 import { PageLoading } from "@/components/page-loading";
 import { AccountNameForm } from "@/components/account-name-form";
+import { DeleteAccount } from "@/components/delete-account";
+import { ownedBusinesses } from "@/lib/account-deletion";
 
-export const metadata: Metadata = { title: "Account" };
+export const metadata: Metadata = { title: "Account", robots: { index: false } };
 
 const ROLE_LABELS = { consumer: "Shopper", merchant: "Business", admin: "Admin" } as const;
 
@@ -59,6 +61,30 @@ async function AccountContent() {
           </button>
         </form>
       </div>
+      {user.role !== "admin" && (
+        <section className="mt-10 border-t-[1.5px] border-ink pt-6" aria-labelledby="delete-heading">
+          <h2 id="delete-heading" className="text-xl font-semibold">
+            Delete account
+          </h2>
+          <p className="mt-1 mb-4">Remove your account and the details we keep about you.</p>
+          <DeleteAccount consequences={await deletionConsequences(user.id)} />
+        </section>
+      )}
     </div>
   );
+}
+
+async function deletionConsequences(userId: string): Promise<string[]> {
+  const owned = await ownedBusinesses(userId);
+  const lines = [
+    "Your sign-in, your name and your saved coupons are deleted.",
+    "Coupons you have redeemed stay in the shop's counts, with nothing that links them to you.",
+  ];
+  for (const business of owned) {
+    lines.push(`${business.name} is taken off Coupersville: its coupons are hidden and its staff can no longer use the scanner.`);
+    if (business.paidPlan) {
+      lines.push(`The ${business.name} plan is cancelled. It is not renewed, and you are not charged again.`);
+    }
+  }
+  return lines;
 }

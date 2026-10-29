@@ -116,7 +116,7 @@ export type Database = {
           id: string
           logo_path: string | null
           name: string
-          owner_id: string
+          owner_id: string | null
           primary_category_id: string | null
           status: Database["public"]["Enums"]["business_status"]
           timezone: string
@@ -132,7 +132,7 @@ export type Database = {
           id?: string
           logo_path?: string | null
           name: string
-          owner_id: string
+          owner_id?: string | null
           primary_category_id?: string | null
           status?: Database["public"]["Enums"]["business_status"]
           timezone?: string
@@ -148,7 +148,7 @@ export type Database = {
           id?: string
           logo_path?: string | null
           name?: string
-          owner_id?: string
+          owner_id?: string | null
           primary_category_id?: string | null
           status?: Database["public"]["Enums"]["business_status"]
           timezone?: string
@@ -381,6 +381,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      email_notices: {
+        Row: {
+          kind: string
+          ref: string
+          sent_at: string
+        }
+        Insert: {
+          kind: string
+          ref: string
+          sent_at?: string
+        }
+        Update: {
+          kind?: string
+          ref?: string
+          sent_at?: string
+        }
+        Relationships: []
       }
       favorites: {
         Row: {

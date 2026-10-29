@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { requireManagedBusiness } from "@/lib/merchant";
 import { planState } from "@/lib/billing";
-import { annualPriceLabel, stripeCustomerFor } from "@/lib/stripe";
+import { stripeCustomerFor } from "@/lib/stripe";
 import { PageLoading } from "@/components/page-loading";
 import { FormMessage } from "@/components/field";
 import { PlanPanel } from "@/components/merchant/plan-panel";
@@ -24,10 +24,9 @@ function clockNow() {
 async function BillingContent({ searchParams }: { searchParams: PageProps<"/merchant/billing">["searchParams"] }) {
   const { checkout } = await searchParams;
   const { business, supabase } = await requireManagedBusiness("/merchant/billing");
-  const [{ data: plan }, customer, priceLabel] = await Promise.all([
+  const [{ data: plan }, customer] = await Promise.all([
     supabase.from("subscriptions").select("*").eq("business_id", business.id).maybeSingle(),
     stripeCustomerFor(business.id),
-    annualPriceLabel(),
   ]);
 
   return (
@@ -37,7 +36,7 @@ async function BillingContent({ searchParams }: { searchParams: PageProps<"/merc
         <p className="mt-2">One annual plan keeps your coupons live on Main Street.</p>
       </div>
       {checkout === "canceled" && <FormMessage tone="error">Checkout was cancelled. You have not been charged.</FormMessage>}
-      <PlanPanel state={planState(plan, clockNow())} timeZone={business.timezone} hasBillingAccount={Boolean(customer)} priceLabel={priceLabel} />
+      <PlanPanel state={planState(plan, clockNow())} timeZone={business.timezone} hasBillingAccount={Boolean(customer)} />
       <p className="text-sm">
         Payments are handled by Stripe. Coupersville never sees or stores your card details.
       </p>

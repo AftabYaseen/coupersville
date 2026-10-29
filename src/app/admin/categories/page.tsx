@@ -50,6 +50,7 @@ async function CategoriesContent() {
         <h2 id="list-heading" className="text-xl font-semibold">
           Main Street order
         </h2>
+        {list.length === 0 && <p className="panel mt-3 p-5">No categories yet. Add the first one above and it appears on Main Street.</p>}
         <ol className="mt-3 grid gap-3">
           {list.map((c, i) => {
             const used = counts.get(c.id) ?? 0;

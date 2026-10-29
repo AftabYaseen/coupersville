@@ -107,7 +107,7 @@ async function SubscriptionsContent({ searchParams }: { searchParams: PageProps<
                   <p className={`mt-2 text-sm tabular ${endsSoon(b) || plan.kind === "past_due" ? "font-semibold text-signal" : ""}`}>
                     {planSummary(plan, b.timezone)}
                   </p>
-                  <p className="text-sm break-all">{b.owner_email}</p>
+                  <p className="text-sm break-all">{b.owner_email ?? "Owner deleted their account"}</p>
                 </div>
                 <PlanControls
                   compact

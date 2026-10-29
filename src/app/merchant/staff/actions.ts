@@ -3,6 +3,10 @@
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { requireManagedBusiness } from "@/lib/merchant";
+import { absoluteUrl } from "@/lib/site";
+import { safeTimeZone } from "@/lib/dates";
+import { sendEmail } from "@/lib/email/send";
+import { staffInviteEmail } from "@/lib/email/templates";
 import type { ActionResult } from "@/lib/validation/auth";
 
 const NOT_OWNER: ActionResult = { ok: false, error: "Only the business owner can manage staff." };
@@ -26,14 +30,34 @@ export async function inviteStaff(input: unknown): Promise<ActionResult> {
     return { ok: false, error: `${email} is already on your team.` };
   }
 
-  const { error } = await supabase.from("staff_invites").insert({ business_id: business.id, email, invited_by: user.id });
+  const { data: invite, error } = await supabase
+    .from("staff_invites")
+    .insert({ business_id: business.id, email, invited_by: user.id })
+    .select("token, expires_at")
+    .single();
   if (error) {
     if (error.code === "23505") return { ok: false, error: `${email} already has an invite waiting. Copy its link below.` };
     return { ok: false, error: "We could not create the invite. Try again in a moment." };
   }
 
+  const sent = await sendEmail({
+    to: email,
+    tag: "staff_invite",
+    ...staffInviteEmail({
+      businessName: business.name,
+      link: absoluteUrl(`/join/${invite.token}`),
+      expiresAt: invite.expires_at,
+      timeZone: safeTimeZone(business.timezone),
+    }),
+  });
+
   refresh();
-  return { ok: true, message: `Invite ready for ${email}. Copy the link below and send it to them.` };
+  return {
+    ok: true,
+    message: sent.ok
+      ? `Invite emailed to ${email}. You can also copy the link below and send it yourself.`
+      : `Invite ready for ${email}, but the email did not go out. Copy the link below and send it to them.`,
+  };
 }
 
 export async function cancelInvite(inviteId: unknown): Promise<ActionResult> {

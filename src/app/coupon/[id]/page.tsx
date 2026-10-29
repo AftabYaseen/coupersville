@@ -6,14 +6,24 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Globe, MapPin, Phone } from "lucide-react";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth";
-import { getLiveCouponDetail, isSaved } from "@/lib/consumer";
+import { getCouponMeta, getLiveCouponDetail, isSaved } from "@/lib/consumer";
 import { COUPON_IMAGE_BUCKET, LOGO_BUCKET, publicImageUrl } from "@/lib/storage";
 import { Ticket, formatOffer } from "@/components/ticket";
 import { TicketSkeleton } from "@/components/consumer/ticket-skeleton";
 import { SaveButton } from "@/components/consumer/save-button";
 import { RedeemButton } from "@/components/consumer/redeem-button";
 
-export const metadata: Metadata = { title: "Coupon" };
+export async function generateMetadata({ params }: PageProps<"/coupon/[id]">): Promise<Metadata> {
+  const { id } = await params;
+  const meta = z.uuid().safeParse(id).success ? await getCouponMeta(id) : null;
+  if (!meta) return { title: "Coupon not available" };
+  const offer = formatOffer(meta.discount_type!, meta.discount_value).toLowerCase();
+  const at = meta.businessName ? ` at ${meta.businessName}` : "";
+  return {
+    title: `${meta.title}, ${offer}${at}`,
+    description: meta.description?.slice(0, 200) || `${offer} ${meta.title}${at}. Save it on Coupersville and redeem it in store.`,
+  };
+}
 
 export default function CouponPage({ params, searchParams }: PageProps<"/coupon/[id]">) {
   return (

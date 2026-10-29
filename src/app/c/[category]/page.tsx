@@ -8,7 +8,15 @@ import { CouponGrid, EmptyState } from "@/components/consumer/coupon-ticket";
 import { TicketGridSkeleton } from "@/components/consumer/ticket-skeleton";
 import { TINT_BG } from "@/components/consumer/shop-card";
 
-export const metadata: Metadata = { title: "Shop" };
+export async function generateMetadata({ params }: PageProps<"/c/[category]">): Promise<Metadata> {
+  const { category } = await params;
+  const shop = /^[a-z0-9-]{1,60}$/.test(category) ? await getShop(category) : null;
+  if (!shop) return { title: "Shop not found" };
+  return {
+    title: `${shop.name} coupons`,
+    description: `Coupons from ${shop.name.toLowerCase()} on Main Street in Coupersville. Save them, then redeem them in store.`,
+  };
+}
 
 export default function ShopPage({ params }: PageProps<"/c/[category]">) {
   return (

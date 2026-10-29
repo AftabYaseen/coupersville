@@ -30,7 +30,7 @@ update public.profiles set role = 'admin' where id = (select id from auth.users 
 
 ## Tests
 
-Both scripts create throwaway users and a test business in the Supabase project, run their checks, then delete everything they made. They need `SUPABASE_SECRET_KEY` in `.env.local`.
+The scripts create throwaway users and a test business in the Supabase project, run their checks, then delete everything they made. They need `SUPABASE_SECRET_KEY` in `.env.local`.
 
 ```
 node --env-file=.env.local scripts/test-redemption.mjs
@@ -64,4 +64,33 @@ BASE_URL=http://localhost:3100 node --env-file=.env.local scripts/test-signin-co
 
 Shopper sign-in with an email code, through the real server actions of a local build: merchants refused, a code signing in and a save carrying on, wrong codes, and the per-email and per-IP limits. The code comes from Supabase's admin `generateLink`, so no email is sent; receiving a real email needs a person with an inbox.
 
+```
+BASE_URL=http://localhost:3100 node --env-file=.env.local scripts/test-finish.mjs
+```
+
+Phase 7: marketing and legal pages, titles, sitemap, robots, Open Graph image, PWA files and icons, the 404 page, every email (welcome, staff invite, plan started, plan ending, plan ended, coupon removed), the daily job run twice, and account deletion for a shopper and for an owner with a Stripe test plan. Accounts that should get a real email use Resend's test inbox (`delivered+...@resend.dev`), so those emails show in the Resend dashboard but reach no one. It needs `CRON_SECRET` in `.env.local` and stops before calling the daily job if a real plan ends within 7 days.
+
 The camera scanner, the stamp animation and the screen wake lock are not covered here. Test them on real phones.
+
+## Demo data
+
+```
+node --env-file=.env.local scripts/seed-demo.mjs            add six demo shops with coupons
+node --env-file=.env.local scripts/seed-demo.mjs --remove   remove them
+```
+
+Against the production project it refuses unless you add `--production`. Demo owners use `@demo.coupersville.test` addresses, which never receive email.
+
+## Daily job
+
+`vercel.json` runs `/api/cron/daily` at 15:00 UTC. Vercel sends `CRON_SECRET` with it; set the same variable on Vercel. To run it by hand:
+
+```
+curl -H "Authorization: Bearer $CRON_SECRET" https://coupersville.com/api/cron/daily
+```
+
+Running it twice in a day sends nothing new.
+
+## Open Graph image
+
+`src/app/opengraph-image.jpg` is made from `public/town-sign.jpg` by `node scripts/make-og-image.mjs`. Run it again if the sign changes.

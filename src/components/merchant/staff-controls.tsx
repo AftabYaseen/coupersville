@@ -49,7 +49,7 @@ export function InviteStaffForm() {
       </Field>
       <button type="submit" className="btn justify-self-start" disabled={pending}>
         <UserPlus aria-hidden size={18} strokeWidth={1.5} />
-        {pending ? "Creating invite" : "Create invite link"}
+        {pending ? "Sending invite" : "Send invite"}
       </button>
       {message && <FormMessage tone={message.tone}>{message.text}</FormMessage>}
     </form>

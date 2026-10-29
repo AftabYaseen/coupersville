@@ -7,7 +7,10 @@ import { CouponGrid, EmptyState } from "@/components/consumer/coupon-ticket";
 import { SearchForm } from "@/components/consumer/search-form";
 import { TicketGridSkeleton } from "@/components/consumer/ticket-skeleton";
 
-export const metadata: Metadata = { title: "Search coupons" };
+export const metadata: Metadata = {
+  title: "Search coupons",
+  description: "Search coupons from local shops by product, shop, category, city or ZIP, or find what is near you.",
+};
 
 export default function SearchPage({ searchParams }: PageProps<"/search">) {
   return (

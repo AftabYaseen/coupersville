@@ -111,7 +111,7 @@ async function BusinessContent({ params }: { params: PageProps<"/admin/merchants
         <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
           <div>
             <dt className="text-sm font-medium">Owner</dt>
-            <dd className="break-all">{owner ? `${owner.full_name ?? ""} ${owner.email}`.trim() : "Unknown"}</dd>
+            <dd className="break-all">{owner ? `${owner.full_name ?? ""} ${owner.email}`.trim() : "Owner deleted their account"}</dd>
           </div>
           <div>
             <dt className="text-sm font-medium">Category</dt>
@@ -213,6 +213,7 @@ async function BusinessContent({ params }: { params: PageProps<"/admin/merchants
         <h2 id="team-heading" className="text-xl font-semibold">
           Team
         </h2>
+        {!team?.length && <p className="panel mt-3 p-5">Nobody is on this team. The owner may have deleted their account.</p>}
         <ul className="mt-3 grid gap-2">
           {(team ?? []).map((m) => (
             <li key={m.member_id} className="panel flex flex-wrap justify-between gap-2 p-3">

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { absoluteUrl } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
+import { notifyWelcome } from "@/lib/email/notices";
 import { homePathFor, safeNextPath } from "@/lib/roles";
 import {
   loginSchema,
@@ -43,6 +44,7 @@ export async function signIn(input: unknown): Promise<ActionResult> {
     return { ok: false, error: "This account is suspended. Contact Coupersville support for help." };
   }
 
+  await notifyWelcome(data.user);
   redirect(safeNextPath(parsed.data.next) ?? homePathFor(profile.role));
 }
 
@@ -69,7 +71,10 @@ export async function signUp(input: unknown): Promise<ActionResult> {
     return { ok: false, error: "We could not create your account. Try again in a moment." };
   }
 
-  if (data.session) redirect(home);
+  if (data.session && data.user) {
+    await notifyWelcome(data.user);
+    redirect(home);
+  }
 
   return { ok: true, message: `We sent a confirmation link to ${email}. Open it to finish signing up.` };
 }

@@ -44,6 +44,8 @@ STRIPE_SECRET_KEY              # phase 6
 STRIPE_WEBHOOK_SECRET          # phase 6
 STRIPE_ANNUAL_PRICE_ID         # phase 6
 RESEND_API_KEY                 # phase 7
+EMAIL_FROM                     # sender on mail.coupersville.com, for example "Coupersville <hello@mail.coupersville.com>"
+CRON_SECRET                    # Vercel Cron sends it as a Bearer token to /api/cron/daily
 NEXT_PUBLIC_GOOGLE_MAPS_KEY    # optional, address autocomplete
 ```
 
@@ -68,7 +70,7 @@ All tables have `id uuid` primary keys, `created_at`, and `updated_at` where it 
 
 - **profiles**: `id` (matches `auth.users.id`), `role` (`consumer` | `merchant` | `admin`), `full_name` (optional), `status` (`active` | `suspended`). Created by a trigger on signup.
 - **categories**: `name`, `slug`, `shop_label` (how the category appears on Main Street, such as "The bakery"), `stock_tint` (`mint` | `pink` | `sky` | `butter`), `sort_order`, `active`. Seed: Restaurants, Grocery, Bakeries, Toys, Jewelry, Clothes, Shoes, Household Supplies, Pharmacy, Luggage/Bags/Wallets, Millinery, Beauty, Other. Rotate the four tints across them.
-- **businesses**: `owner_id`, `name`, `description`, `primary_category_id`, `logo_path`, `cover_path`, `contact_email`, `contact_phone`, `website_url`, `status` (`draft` | `active` | `suspended`), `timezone` (IANA name; coupon dates are calendar days in this zone). Onboarding creates the business as `draft`; server code sets it `active` once the profile and first store are saved.
+- **businesses**: `owner_id`, `name`, `description`, `primary_category_id`, `logo_path`, `cover_path`, `contact_email`, `contact_phone`, `website_url`, `status` (`draft` | `active` | `suspended`), `timezone` (IANA name; coupon dates are calendar days in this zone). Onboarding creates the business as `draft`; server code sets it `active` once the profile and first store are saved. `owner_id` is empty once the owner has deleted their account; the business is then suspended.
 - **business_members**: `business_id`, `user_id`, `role` (`owner` | `manager` | `staff`). Staff can only use the scanner.
 - **locations**: `business_id`, `store_name`, `store_number`, `address_line1`, `address_line2`, `city`, `state`, `postal_code`, `geo` (PostGIS `geography(Point)`), `phone`, `active`.
 - **coupons**: `business_id`, `category_id`, `title`, `description`, `discount_type` (`percent` | `amount` | `fixed_price` | `free`), `discount_value` (the percent, the amount off, or the price; empty for `free`), `included_products`, `limits_text`, `min_spend`, `min_qty`, `max_people`, `starts_at`, `expires_at`, `status` (`draft` | `published` | `paused`), `image_path`, `all_locations` (bool), `per_user_limit` (default 1; empty means unlimited during the promotion), `redeem_frequency` (`day` | `week`, optional), `schedule_days` (ISO weekdays 1 to 7, optional), `schedule_start` / `schedule_end` (optional daily window), `total_limit` (nullable), `featured` (bool, admin only), `created_by`, `admin_hold` (bool), `hold_reason`, `held_by`, `held_at`.
@@ -84,6 +86,7 @@ All tables have `id uuid` primary keys, `created_at`, and `updated_at` where it 
 - **billing_customers**: `business_id` (primary key), `stripe_customer_id` (unique). One Stripe customer per business, reused for every Checkout and portal session. Server code writes it.
 - **stripe_events**: `id` (the Stripe event id), `type`, `received_at`. Webhook events already processed, so a repeated delivery is ignored. Server code only.
 - **Billing rules**: the webhook at `/api/stripe/webhook` is the only writer of Stripe plan state. It verifies the signature, skips event ids it has already processed, and always re-reads the subscription from Stripe, so late or out-of-order events cannot roll a plan back. A plan is current (`plan_is_current`) when it is active and not past its end date (Stripe plans get one extra day for a late renewal webhook), or when a Stripe plan is past due for under 7 days. A paid plan that starts replaces a complimentary one. An admin can grant a complimentary plan only once a paid plan has lapsed. The Checkout success page only waits for the webhook; it never marks a plan paid.
+- **email_notices**: `kind`, `ref` (primary key together), `sent_at`. Emails that must go out once: server code claims the row before sending and releases it if the send fails. Server code only.
 - **platform_settings**: single row holding the decisions above. `/admin/settings` shows only the settings the app acts on (plan expiry and plans). The others stay in the table, out of the UI, until they are built.
 
 "Expired" is never stored on a coupon. A coupon is live when `status = 'published'`, it is not under an admin hold, now is between `starts_at` and `expires_at`, the business is active, and its subscription is active. Put this in a view or SQL function (`live_coupons`) and have every consumer query use it.
@@ -108,10 +111,31 @@ No redemption logic in frontend code. Minimum spend and quantity are shown to st
 
 Buckets `logos` and `coupon-images`, public read, write restricted to members of the owning business. Accept JPG, PNG, WebP up to 5 MB. Use Next.js `Image` for resizing.
 
+### Email
+
+Sent through Resend's HTTP API from `src/lib/email/` (brand templates in `templates.ts`, each with a plain text version). A failed send never undoes the action that caused it, and addresses on reserved domains (example.com, .test) are skipped, so tests send nothing. Sign-in codes, confirmation and reset links are Supabase Auth emails (Resend SMTP, templates in the Supabase dashboard).
+
+| Email | When | Sent once by |
+|---|---|---|
+| Welcome | First sign-in of an account made in the last 2 days | `email_notices` (user id) |
+| Staff invite | Owner invites staff; the copy-link stays as a fallback | the invite itself |
+| Plan started | Stripe plan becomes active (webhook), or an admin grants a new complimentary plan | `email_notices` |
+| Payment failed | `invoice.payment_failed` while the plan is past due | `email_notices` (invoice id) |
+| Plan ending in 7 days | Daily job: complimentary, or Stripe set to cancel, ending within 7 days | `email_notices` (plan + end date) |
+| Plan ended | Daily job: plan stopped being current in the last 7 days (not past due) | `email_notices` (plan + end date) |
+| Coupon removed by Coupersville | Admin puts a coupon on hold | `email_notices` (coupon + held at) |
+
+Business emails go to the owner's sign-in address.
+
+### Pricing
+
+No prices anywhere in the app until the client confirms pricing. `/for-businesses` has a marked pricing spot. Stripe Checkout, which is Stripe's own page, is the only place a price appears.
+
 ### Shopper sign-in and data
 
 - "Save coupon" and "Redeem now" when signed out open a bottom sheet on the same page: email, then the code from the email (Supabase email OTP, `signInWithOtp` and `verifyOtp`). The action then carries on. New accounts made this way are shoppers; the name is optional and set in Account. Merchant and admin emails are refused and pointed to password sign-in.
 - Per shopper we store: the auth account (email, optional password hash, sign-in times), the profile (role, optional name, status), saved coupons, redemption codes and redemptions. Unused redemption codes are deleted a day after they expire by the hourly `purge_stale_codes` cron job; a code linked to a redemption is never deleted.
+- Deleting an account (Account page, type "delete" to confirm) removes the sign-in, profile, saved coupons and redemption codes. Redemptions stay with `user_id` and `verified_by` emptied, so counts stay right. An owner's businesses are suspended, their staff and waiting invites removed, and a Stripe plan is set to cancel at period end; if Stripe cannot be reached nothing is deleted. Admin accounts cannot be deleted from the app.
 - No third-party scripts or trackers on any page. Fonts are self-hosted at build time. Stripe Checkout and the portal are Stripe-hosted pages reached by redirect, so no Stripe script loads in the app.
 
 ## Routes
@@ -122,8 +146,10 @@ Buckets `logos` and `coupon-images`, public read, write restricted to members of
 /search                 search and filters
 /coupon/[id]            coupon detail, save, redeem
 /redeem/[tokenId]       QR + short code with countdown
-/saved  /history  /account
+/saved  /history  /account  /account-deleted
 /login  /signup  /reset-password
+/how-it-works  /for-businesses   marketing pages, linked in header and footer
+/privacy  /terms        drafts for the client's lawyer, linked in footer, sign-in sheet, signup
 
 /merchant               dashboard and stats
 /merchant/onboarding    business profile, first location
@@ -135,6 +161,7 @@ Buckets `logos` and `coupon-images`, public read, write restricted to members of
 /merchant/billing/success  waits for the webhook after Checkout
 /join/[token]           staff accept an invite
 /api/stripe/webhook     Stripe events
+/api/cron/daily         Vercel Cron (vercel.json): plan ending in 7 days, plan ended
 
 /admin                  platform stats
 /admin/merchants  /admin/coupons  /admin/categories

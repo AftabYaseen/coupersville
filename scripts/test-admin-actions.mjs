@@ -487,7 +487,7 @@ async function main() {
   const tokenId = startOk.redirect?.split("/").pop();
   const { data: tok } = await admin.from("redemption_tokens").select("short_code, token").eq("id", tokenId).single();
   const inviteRes = await callAction(base, owner.cookie, A("merchant/staff/actions.ts"), "inviteStaff", [{ email: staff.email.toUpperCase() }]);
-  check("owner creates a staff invite", inviteRes.value?.ok === true, inviteRes);
+  check("owner creates a staff invite and it is emailed", inviteRes.value?.ok === true && /emailed/.test(inviteRes.value.message), inviteRes);
   const dupInvite = await callAction(base, owner.cookie, A("merchant/staff/actions.ts"), "inviteStaff", [{ email: staff.email }]);
   check("a second invite for the same email is refused", dupInvite.value?.ok === false, dupInvite);
   const { data: inv } = await admin.from("staff_invites").select("token").eq("business_id", shop.id).single();

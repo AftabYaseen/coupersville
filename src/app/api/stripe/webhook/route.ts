@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { subscriptionIdFrom, syncStripeSubscription } from "@/lib/billing-sync";
+import { notifyPaymentFailed, notifyPlanStarted } from "@/lib/email/notices";
 
 // Stripe calls this for checkout, subscription and invoice events. It is the only code that
 // writes Stripe plan state. Logs carry the event id, type and outcome only: never payloads,
@@ -52,10 +53,31 @@ export async function POST(request: Request) {
     if (error && error.code !== "23505") throw new Error(`could not record event: ${error.code}`);
 
     console.info(`stripe webhook ${event.id} ${event.type}: ${outcome}`);
+    if (subscriptionId) await sendPlanEmails(event, subscriptionId);
     return NextResponse.json({ received: true, outcome });
   } catch (error) {
     const reason = error instanceof Error ? error.message : "unknown error";
     console.error(`stripe webhook ${event.id} ${event.type}: failed (${reason})`);
     return NextResponse.json({ error: "Processing failed" }, { status: 500 });
+  }
+}
+
+// Emails follow the plan state just saved. Each is sent once (email_notices), whichever event gets
+// here first, and a failed email never fails the webhook.
+async function sendPlanEmails(event: Stripe.Event, subscriptionId: string) {
+  try {
+    if (event.type === "invoice.payment_failed") {
+      const invoiceId = (event.data.object as { id?: string }).id;
+      if (invoiceId) await notifyPaymentFailed(subscriptionId, invoiceId);
+      return;
+    }
+    const { data: plan } = await createAdminClient()
+      .from("subscriptions")
+      .select("business_id, status")
+      .eq("stripe_subscription_id", subscriptionId)
+      .maybeSingle();
+    if (plan?.status === "active") await notifyPlanStarted(plan.business_id, subscriptionId);
+  } catch (error) {
+    console.error(`stripe webhook ${event.id}: email failed (${error instanceof Error ? error.message : "unknown error"})`);
   }
 }

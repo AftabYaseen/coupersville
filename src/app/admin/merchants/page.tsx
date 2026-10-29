@@ -110,7 +110,7 @@ async function MerchantsContent({ searchParams }: { searchParams: PageProps<"/ad
                   </span>
                   <span className="block text-sm break-all">
                     {b.owner_name ? `${b.owner_name}, ` : ""}
-                    {b.owner_email}
+                    {b.owner_email ?? "Owner deleted their account"}
                   </span>
                   <span className="block text-sm tabular">
                     Joined {formatDay(b.created_at, b.timezone)}

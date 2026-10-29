@@ -2,6 +2,7 @@
 
 import { refresh } from "next/cache";
 import { z } from "zod";
+import { notifyCouponRemoved } from "@/lib/email/notices";
 import { NOT_ADMIN, requireAdminAction } from "@/lib/admin";
 import type { ActionResult } from "@/lib/validation/auth";
 
@@ -36,6 +37,7 @@ export async function holdCoupon(couponId: unknown, reasonInput: unknown): Promi
   if (error) return { ok: false, error: "We could not unpublish this coupon. Try again in a moment." };
   if (!data?.length) return { ok: false, error: "This coupon is already unpublished by Coupersville." };
 
+  await notifyCouponRemoved(id.data);
   refresh();
   return {
     ok: true,

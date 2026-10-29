@@ -111,6 +111,18 @@ export function SignupForm({
         />
       </Field>
 
+      <p className="text-sm">
+        By creating an account you agree to the{" "}
+        <Link href="/terms" className="font-medium text-ink underline underline-offset-4">
+          terms
+        </Link>
+        {accountType === "merchant" ? ", including the terms for businesses," : ""} and confirm you have read how we handle your{" "}
+        <Link href="/privacy" className="font-medium text-ink underline underline-offset-4">
+          privacy
+        </Link>
+        .
+      </p>
+
       <button type="submit" className="btn w-full" disabled={pending}>
         {pending ? "Creating account" : "Create account"}
       </button>

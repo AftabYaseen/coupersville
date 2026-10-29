@@ -27,22 +27,6 @@ export function stripeCustomerUrl(customerId: string): string {
   return `https://dashboard.stripe.com${test ? "/test" : ""}/customers/${encodeURIComponent(customerId)}`;
 }
 
-// "$99 a year", read from Stripe so the page never disagrees with Checkout. Null if Stripe is unreachable.
-export async function annualPriceLabel(): Promise<string | null> {
-  try {
-    const price = await getStripe().prices.retrieve(annualPriceId());
-    if (price.unit_amount === null || !price.recurring) return null;
-    const amount = new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: price.currency.toUpperCase(),
-      minimumFractionDigits: price.unit_amount % 100 === 0 ? 0 : 2,
-    }).format(price.unit_amount / 100);
-    return price.recurring.interval === "year" && price.recurring.interval_count === 1 ? `${amount} a year` : amount;
-  } catch {
-    return null;
-  }
-}
-
 // The business's one Stripe customer, created on first use. The idempotency key stops two quick
 // clicks from making two customers.
 export async function ensureStripeCustomer(business: { id: string; name: string; contact_email: string | null }, fallbackEmail: string | null) {

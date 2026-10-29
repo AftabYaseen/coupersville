@@ -2,6 +2,7 @@
 
 import { refresh } from "next/cache";
 import { z } from "zod";
+import { notifyPlanStarted } from "@/lib/email/notices";
 import { NOT_ADMIN, requireAdminAction } from "@/lib/admin";
 import { endOfDayInZone, formatDay } from "@/lib/dates";
 import { planEndSchema } from "@/lib/validation/admin";
@@ -58,6 +59,11 @@ export async function setComplimentaryPlan(businessId: unknown, endsOnInput: unk
     ? await ctx.supabase.from("subscriptions").update(row).eq("id", plan.id)
     : await ctx.supabase.from("subscriptions").insert(row);
   if (error) return FAILED;
+
+  // A new plan, not a change of end date to one that is already running.
+  if (!planIsCurrent(plan)) {
+    await notifyPlanStarted(business.id, `complimentary:${business.id}:${new Date().toISOString()}`);
+  }
 
   refresh();
   const until = endsAt ? `until ${formatDay(endsAt, business.timezone)}` : "with no end date";

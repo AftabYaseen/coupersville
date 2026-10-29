@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { notifyWelcome } from "@/lib/email/notices";
 import { registerCodeRequest, roleForEmail } from "@/lib/auth-codes";
 import { absoluteUrl } from "@/lib/site";
 
@@ -83,5 +84,6 @@ export async function verifySignInCode(input: unknown): Promise<CodeResult> {
     await supabase.auth.signOut();
     return USE_PASSWORD;
   }
+  await notifyWelcome(data.user);
   return { ok: true };
 }

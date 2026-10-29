@@ -62,7 +62,7 @@ async function StaffContent() {
           Invite staff
         </h2>
         <p className="mt-1 text-sm">
-          You get a link to send them. They sign in or create an account with this email, then open the link to join.
+          We email them a link to join. They sign in or create an account with that email, then open the link. You can also copy the link below and send it yourself.
         </p>
         <div className="mt-4">
           <InviteStaffForm />

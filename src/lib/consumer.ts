@@ -217,3 +217,15 @@ export async function getShop(slug: string) {
     .maybeSingle();
   return data;
 }
+
+// Title and description for a live coupon's page and link previews. Null when it is not live.
+export async function getCouponMeta(id: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("live_coupons")
+    .select("title, description, discount_type, discount_value, businesses(name)")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data?.title || !data.discount_type) return null;
+  return { ...data, businessName: data.businesses?.name ?? null };
+}

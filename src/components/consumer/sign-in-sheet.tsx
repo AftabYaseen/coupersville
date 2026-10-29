@@ -5,7 +5,6 @@ import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { Mail, X } from "lucide-react";
 import { requestSignInCode, verifySignInCode } from "@/app/(auth)/code-actions";
-import { FormMessage } from "@/components/field";
 
 type Props = {
   open: boolean;
@@ -119,9 +118,15 @@ export function SignInSheet({ open, title, returnPath, onClose, onSignedIn }: Pr
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="field-input"
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? `${headingId}-error` : undefined}
               />
+              {error && (
+                <p id={`${headingId}-error`} className="field-error" role="alert">
+                  {error}
+                </p>
+              )}
             </div>
-            {error && <FormMessage tone="error">{error}</FormMessage>}
             <button type="submit" className="btn w-full" disabled={pending || !email}>
               <Mail aria-hidden size={18} strokeWidth={1.5} />
               {pending ? "Sending code" : "Email me a code"}
@@ -152,9 +157,15 @@ export function SignInSheet({ open, title, returnPath, onClose, onSignedIn }: Pr
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 className="field-input offer-text text-center text-3xl tracking-widest tabular"
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? `${headingId}-error` : undefined}
               />
+              {error && (
+                <p id={`${headingId}-error`} className="field-error" role="alert">
+                  {error}
+                </p>
+              )}
             </div>
-            {error && <FormMessage tone="error">{error}</FormMessage>}
             <button type="submit" className="btn w-full" disabled={pending || !/^\d{6,10}$/.test(code.replace(/\s/g, ""))}>
               {pending ? "Checking" : "Continue"}
             </button>
@@ -181,6 +192,17 @@ export function SignInSheet({ open, title, returnPath, onClose, onSignedIn }: Pr
           <Link href={passwordHref} className="font-medium text-ink underline underline-offset-4">
             Sign in with your password
           </Link>
+        </p>
+        <p className="mt-3 text-sm">
+          New here? Signing in makes a free shopper account. See our{" "}
+          <Link href="/terms" target="_blank" className="font-medium text-ink underline underline-offset-4">
+            terms<span className="sr-only"> (opens in a new tab)</span>
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" target="_blank" className="font-medium text-ink underline underline-offset-4">
+            privacy notice<span className="sr-only"> (opens in a new tab)</span>
+          </Link>
+          .
         </p>
       </div>
     </div>,

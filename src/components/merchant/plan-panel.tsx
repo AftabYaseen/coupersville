@@ -7,20 +7,17 @@ type Props = {
   state: PlanState;
   timeZone: string;
   hasBillingAccount: boolean;
-  priceLabel: string | null;
 };
 
 const day = (iso: string | null, tz: string) => (iso ? formatDay(iso, tz) : null);
 
 // The plan in plain words, with the one or two buttons that make sense for it.
-export function PlanPanel({ state, timeZone: tz, hasBillingAccount, priceLabel }: Props) {
-  const price = priceLabel ? ` The annual plan is ${priceLabel}.` : "";
-
+export function PlanPanel({ state, timeZone: tz, hasBillingAccount }: Props) {
   switch (state.kind) {
     case "none":
       return (
         <Panel title="No plan yet" tone="warn">
-          <p>Your coupons cannot go live until you start a plan. You can build them and save drafts now.{price}</p>
+          <p>Your coupons cannot go live until you start a plan. You can build them and save drafts now.</p>
           <StartPlanButton />
         </Panel>
       );
@@ -29,7 +26,7 @@ export function PlanPanel({ state, timeZone: tz, hasBillingAccount, priceLabel }
         <Panel title="Complimentary plan">
           <p>
             Coupersville gave you a free plan, active {state.endsAt ? `until ${day(state.endsAt, tz)}` : "with no end date"}.
-            {" "}If you start a paid annual plan, it replaces the complimentary one.{price}
+            {" "}If you start a paid annual plan, it replaces the complimentary one.
           </p>
           <StartPlanButton variant="secondary" />
         </Panel>
@@ -68,7 +65,7 @@ export function PlanPanel({ state, timeZone: tz, hasBillingAccount, priceLabel }
             {state.paymentFailed
               ? `Your payment failed and the ${PAST_DUE_GRACE_DAYS}-day grace period ended${state.endedAt ? ` on ${day(state.endedAt, tz)}` : ""}. `
               : `Your plan ended${state.endedAt ? ` on ${day(state.endedAt, tz)}` : ""}. `}
-            Your coupons are hidden from shoppers until you start a plan again.{price}
+            Your coupons are hidden from shoppers until you start a plan again.
           </p>
           <div className="flex flex-wrap gap-3">
             {state.paymentFailed && hasBillingAccount ? (
