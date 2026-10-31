@@ -11,7 +11,7 @@
 
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
-import { callAction, makeUser } from "./lib/call-action.mjs";
+import { makeUser } from "./lib/call-action.mjs";
 
 const base = process.env.BASE_URL ?? "http://localhost:3100";
 const local = /localhost|127\.0\.0\.1/.test(base);
@@ -294,33 +294,24 @@ async function main() {
   check("database: past due, with the grace period started", Boolean(planPastDue), await plan(shopC.id));
   check("coupon stays live during the 7-day grace", await isLive(couponC.id));
   const dashDue = await pageAs("/merchant", ownerC);
-  check("dashboard banner: Payment failed, with Update card", dashDue.includes("Payment failed") && dashDue.includes("Update card"));
+  check("dashboard banner: Payment failed", dashDue.includes("Payment failed"));
   must(await admin.from("subscriptions").update({ past_due_since: new Date(Date.now() - 8 * 86_400_000).toISOString() }).eq("business_id", shopC.id), "age grace");
   check("after 7 days the coupon is hidden", !(await isLive(couponC.id)));
   const billingEnded = await pageAs("/merchant/billing", ownerC);
   check("billing page: plan ended after the failed payment", billingEnded.includes("Plan ended") && billingEnded.includes("grace period ended"));
 
   if (local) {
-    console.log("\nMerchant actions and pages (local build)");
-    const A = (f) => `src/app/${f}`;
-    // A fresh owner, so the actions act on this business and no other.
+    // Checkout and the portal are gone until a payment processor is chosen. Only the webhook remains.
+    console.log("\nMerchant pages (local build): no Checkout, portal or Stripe wording");
     const ownerD = await user("ownerd", "merchant");
-    const shopD = await business(ownerD, `Billing D ${run}`, null);
-    const go = await callAction(base, ownerD.cookie, A("merchant/billing/actions.ts"), "startCheckout", []);
-    check("Start annual plan opens Stripe Checkout", /^https:\/\/checkout\.stripe\.com\//.test(go.redirect ?? ""), go);
-    const firstCustomer = (await admin.from("billing_customers").select("stripe_customer_id").eq("business_id", shopD.id).single()).data?.stripe_customer_id;
-    if (firstCustomer) created.customers.push(firstCustomer);
-    const go2 = await callAction(base, ownerD.cookie, A("merchant/billing/actions.ts"), "startCheckout", []);
-    const secondCustomer = (await admin.from("billing_customers").select("stripe_customer_id").eq("business_id", shopD.id).single()).data?.stripe_customer_id;
-    check("a second checkout reuses the same Stripe customer", Boolean(go2.redirect) && firstCustomer && firstCustomer === secondCustomer);
-    const session = go.redirect && (await stripe.checkout.sessions.list({ customer: firstCustomer, limit: 1 })).data[0];
-    check("checkout carries the business id", session?.metadata?.business_id === shopD.id && session?.client_reference_id === shopD.id, session?.metadata);
-    const portal = await callAction(base, ownerD.cookie, A("merchant/billing/actions.ts"), "openBillingPortal", []);
-    check("Manage billing opens the Stripe portal", /^https:\/\/billing\.stripe\.com\//.test(portal.redirect ?? ""), portal);
+    await business(ownerD, `Billing D ${run}`, null);
     const page = async (path, who) => (await (await fetch(`${base}${path}`, { headers: { cookie: who.cookie } })).text()).replaceAll("<!-- -->", "");
-    check("billing page: no plan yet, with Start annual plan", (await page("/merchant/billing", ownerD)).includes("Start annual plan"));
-    check("success page waits for the webhook", (await page("/merchant/billing/success?session_id=cs_test", ownerD)).includes("Confirming your payment"));
-    check("dashboard prompts to start a plan", (await page("/merchant", ownerD)).includes("No plan yet"));
+    const billingD = await page("/merchant/billing", ownerD);
+    check("billing page: no plan yet", billingD.includes("No plan yet"));
+    check("billing page: no Stripe, Checkout or portal", !/stripe|start annual plan|manage billing/i.test(billingD));
+    check("success page is gone", (await fetch(`${base}/merchant/billing/success`, { headers: { cookie: ownerD.cookie }, redirect: "manual" })).status === 404);
+    const dashD = await page("/merchant", ownerD);
+    check("dashboard: No plan yet, linking to Billing, without Stripe", dashD.includes("No plan yet") && dashD.includes("See billing") && !/stripe/i.test(dashD));
   }
 }
 

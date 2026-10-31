@@ -97,7 +97,7 @@ async function pages() {
     check(`${path} loads, marked as a draft for the lawyer`, page.status === 200 && page.body.includes("Draft for legal review"));
   }
   const privacy = await get("/privacy");
-  check("privacy covers the facts the client listed", ["Your email address", "add one in Account", "coupons you save", "Your redemptions", "never your name or email", "no advertising, analytics or tracking", "Stripe", "IP address and browser details", "delete your account"].every((t) => privacy.body.includes(t)));
+  check("privacy covers the facts the client listed", ["Your email address", "add one in Account", "coupons you save", "Your redemptions", "never your name or email", "no advertising, analytics or tracking", "payment processor", "IP address and browser details", "delete your account"].every((t) => privacy.body.includes(t)));
   const signup = await get("/signup?type=merchant");
   check("signup links terms and privacy", signup.body.includes('href="/terms"') && signup.body.includes('href="/privacy"'));
   const emDash = [how, biz, privacy, await get("/terms")].some((p) => p.body.replace(/<script[\s\S]*?<\/script>/g, "").includes("—"));

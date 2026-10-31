@@ -82,6 +82,8 @@ const isLive = async (couponId) => {
 async function main() {
   originalOrder = must(await admin.from("categories").select("id, sort_order"), "order");
   originalSettings = must(await admin.from("platform_settings").select("*").eq("singleton", true).single(), "settings");
+  // Merchant publishing below needs publishing open. Cleanup puts the real date back.
+  must(await admin.from("platform_settings").update({ publishing_opens_at: new Date(Date.now() - 86_400_000).toISOString() }).eq("singleton", true), "open publishing");
   const categoryId = must(await admin.from("categories").select("id").eq("active", true).order("sort_order").limit(1).single(), "cat").id;
 
   const boss = await user("admin", "admin");
@@ -178,9 +180,9 @@ async function main() {
   const regrant = await act(boss, "admin/subscriptions/actions.ts", "setComplimentaryPlan", noPlan.id, day(30));
   check("grant again after revoking", regrant.ok === true, regrant);
   const stripe = await act(boss, "admin/subscriptions/actions.ts", "setComplimentaryPlan", paid.id, day(30));
-  check("Stripe plans are left alone", stripe.ok === false && /Stripe/.test(stripe.error), stripe);
+  check("paid plans are left alone", stripe.ok === false && /paid plan/.test(stripe.error), stripe);
   const stripeRevoke = await act(boss, "admin/subscriptions/actions.ts", "revokeComplimentaryPlan", paid.id);
-  check("Stripe plans cannot be revoked here", stripeRevoke.ok === false && /Stripe/.test(stripeRevoke.error), stripeRevoke);
+  check("paid plans cannot be revoked here", stripeRevoke.ok === false && /paid plan/.test(stripeRevoke.error), stripeRevoke);
   const ownerGrant = await callAction(base, owner.cookie, A("admin/subscriptions/actions.ts"), "setComplimentaryPlan", [noPlan.id, ""]);
   check("merchant cannot grant themselves a plan", ownerGrant.blocked === true, ownerGrant);
 
@@ -441,13 +443,19 @@ async function main() {
   check("merchant cannot add categories", ownerCat.blocked === true, ownerCat);
 
   console.log("\nSettings");
-  const settings = { subscription_expiry: "hide_coupons", plans: "single_annual" };
+  const settings = {
+    subscription_expiry: "hide_coupons",
+    founders_rule: originalSettings.founders_rule,
+    founders_full: originalSettings.founders_full_early_access ? "early_access" : "wait",
+    publishing_opens_on: "2026-10-01",
+  };
   const save = await act(boss, "admin/settings/actions.ts", "updateSettings", settings);
   check("save settings", save.ok === true, save);
   const sneaky = await act(boss, "admin/settings/actions.ts", "updateSettings", { ...settings, consumer_login: "login_required" });
   const stored = must(await admin.from("platform_settings").select("*").eq("singleton", true).single(), "settings");
   check("settings not shown in the UI cannot be changed through the action", sneaky.ok === true && stored.consumer_login === originalSettings.consumer_login, stored);
-  const invalid = await act(boss, "admin/settings/actions.ts", "updateSettings", { ...settings, plans: "monthly" });
+  check("the publishing date is saved as midnight Pacific", new Date(stored.publishing_opens_at).toISOString() === "2026-10-01T07:00:00.000Z", stored.publishing_opens_at);
+  const invalid = await act(boss, "admin/settings/actions.ts", "updateSettings", { ...settings, founders_rule: "anyone" });
   check("an unknown value is refused", invalid.ok === false, invalid);
   const ownerSettings = await callAction(base, owner.cookie, A("admin/settings/actions.ts"), "updateSettings", [settings]);
   check("merchant cannot change settings", ownerSettings.blocked === true, ownerSettings);
@@ -472,12 +480,14 @@ async function main() {
     ["/admin/subscriptions", `No plan shop ${run}`],
     ["/admin/categories", "Main Street order"],
     ["/admin/settings", "When a plan ends"],
+    ["/admin/offers", "Founding Merchant"],
   ]) {
     const r = await page(path, boss);
     check(`admin ${path}`, r.status === 200 && r.body.includes(text), `${r.status} ${r.location}`);
   }
   const settingsPage = await page("/admin/settings", boss);
-  check("settings page leaves out the settings not built yet", !/Redemption method|Coupon moderation|Shopper sign-in|Region restriction/.test(settingsPage.body));
+  check("settings page leaves out the settings not built yet", !/Redemption method|Coupon moderation|Shopper sign-in|Region restriction|One annual plan/.test(settingsPage.body));
+  check("settings page has the Founders settings and the publishing date", /Founding Merchant qualifies/.test(settingsPage.body) && /Publishing opens on/.test(settingsPage.body));
   const merchantAdmin = await page("/admin/merchants", owner);
   check("merchant is sent away from /admin", merchantAdmin.status === 307 && merchantAdmin.location.includes("/merchant"), merchantAdmin.location);
 
@@ -519,10 +529,11 @@ async function cleanup() {
   for (const id of created.categories) await admin.from("categories").delete().eq("id", id);
   for (const c of originalOrder) await admin.from("categories").update({ sort_order: c.sort_order }).eq("id", c.id);
   if (originalSettings) {
-    const { redemption_method, coupon_moderation, subscription_expiry, consumer_login, plans, region_restriction } = originalSettings;
+    const { redemption_method, coupon_moderation, subscription_expiry, consumer_login, plans, region_restriction, publishing_opens_at, founders_rule, founders_full_early_access } =
+      originalSettings;
     await admin
       .from("platform_settings")
-      .update({ redemption_method, coupon_moderation, subscription_expiry, consumer_login, plans, region_restriction })
+      .update({ redemption_method, coupon_moderation, subscription_expiry, consumer_login, plans, region_restriction, publishing_opens_at, founders_rule, founders_full_early_access })
       .eq("singleton", true);
   }
   for (const id of created.users) await admin.auth.admin.deleteUser(id);

@@ -34,7 +34,7 @@ export async function updateName(input: unknown): Promise<ActionResult> {
 
 const DELETE_FAILED: Record<"admin" | "billing" | "failed", string> = {
   admin: "Admin accounts cannot be deleted here. Ask another admin to change your role first.",
-  billing: "We could not cancel your plan with Stripe, so nothing was deleted. Try again in a few minutes.",
+  billing: "We could not cancel your plan with our payment processor, so nothing was deleted. Try again in a few minutes.",
   failed: "We could not delete your account. Nothing you can see has changed. Try again in a moment.",
 };
 

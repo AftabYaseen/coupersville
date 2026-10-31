@@ -10,7 +10,8 @@ import { Field, FormMessage } from "@/components/field";
 
 const FIELDS: { key: keyof typeof SETTING_OPTIONS; label: string }[] = [
   { key: "subscription_expiry", label: "When a plan ends" },
-  { key: "plans", label: "Plans" },
+  { key: "founders_rule", label: "A Founding Merchant qualifies for a free seat when" },
+  { key: "founders_full", label: "If Founding seats fill before the window ends" },
 ];
 
 export function SettingsForm({ defaults }: { defaults: SettingsInput }) {
@@ -47,6 +48,13 @@ export function SettingsForm({ defaults }: { defaults: SettingsInput }) {
           </select>
         </Field>
       ))}
+      <Field
+        id="setting-publishing-opens"
+        label="Publishing opens on"
+        hint="From midnight Pacific time. Before then, merchants can save drafts but not publish."
+      >
+        <input id="setting-publishing-opens" type="date" className="field-input tabular" {...register("publishing_opens_on")} />
+      </Field>
       <button type="submit" className="btn justify-self-start" disabled={pending}>
         {pending ? "Saving" : "Save settings"}
       </button>

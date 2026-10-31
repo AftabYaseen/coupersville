@@ -7,7 +7,7 @@ import { z } from "zod";
 import { requireAdminPage } from "@/lib/admin";
 import { subscriptionIsActive } from "@/lib/merchant";
 import { planState, planSummary } from "@/lib/billing";
-import { stripeCustomerUrl } from "@/lib/stripe";
+import { FOUNDING_OFFER } from "@/lib/offers";
 import { COUPON_VIEW_STATUS, couponView } from "@/lib/coupons";
 import { dayInZone, dayOneYearOn, formatDay } from "@/lib/dates";
 import { formatOffer } from "@/components/ticket";
@@ -147,7 +147,7 @@ async function BusinessContent({ params }: { params: PageProps<"/admin/merchants
         <p>
           {!plan
             ? "No plan. Coupons cannot go live until the business has one."
-            : `${planSummary(planState(plan, now), tz)}.${planActive ? "" : " Coupons are hidden from shoppers."}`}
+            : `${plan.offer_code === FOUNDING_OFFER && plan.source === "complimentary" ? "Founding Merchant, free seat. " : ""}${planSummary(planState(plan, now), tz)}.${planActive ? "" : " Coupons are hidden from shoppers."}`}
         </p>
         <PlanControls
           businessId={business.id}
@@ -156,9 +156,7 @@ async function BusinessContent({ params }: { params: PageProps<"/admin/merchants
           active={planActive}
           hasEndDate={Boolean(plan?.current_period_end)}
           today={today}
-          suggestedEnd={planActive ? (currentEnd ?? "") : dayOneYearOn(today)}
-          stripeUrl={plan?.stripe_customer_id ? stripeCustomerUrl(plan.stripe_customer_id) : null}
-        />
+          suggestedEnd={planActive ? (currentEnd ?? "") : dayOneYearOn(today)}        />
       </section>
 
       <section aria-labelledby="coupons-heading">

@@ -39,7 +39,7 @@ export default function TermsPage() {
           misleads shoppers. A removed coupon can be edited but not republished by you.
         </li>
         <li>
-          Publishing needs an active plan. Paid plans renew each year until cancelled and are billed by Stripe. If a plan ends,
+          Publishing needs an active plan. Paid plans are billed by our payment processor. If a plan ends,
           your coupons are hidden until you start a plan again. [Pricing, refunds and cancellation terms to follow once pricing
           is confirmed.]
         </li>

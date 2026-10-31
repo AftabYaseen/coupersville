@@ -5,7 +5,10 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireManagedBusiness, subscriptionIsActive } from "@/lib/merchant";
 import { couponView } from "@/lib/coupons";
-import { endOfDayInZone, startOfDayInZone } from "@/lib/dates";
+import { endOfDayInZone, formatDay, startOfDayInZone } from "@/lib/dates";
+import { canClaimFreeSeat, loadBillingContext } from "@/lib/founding";
+import { OFFER_TIME_ZONE, parseClaim } from "@/lib/offers";
+import { notifyPlanStarted } from "@/lib/email/notices";
 import { COUPON_IMAGE_BUCKET, IMAGE_ERROR, isBusinessImagePath } from "@/lib/storage";
 import { verifyStoredImage } from "@/lib/verify-image";
 import { couponIntentSchema, couponRuleColumns, couponSchema } from "@/lib/validation/merchant";
@@ -17,8 +20,16 @@ const INVALID: ActionResult = { ok: false, error: "Some details are missing or i
 const FAILED: ActionResult = { ok: false, error: "We could not save this coupon. Try again in a moment." };
 const PLAN_REQUIRED: ActionResult = {
   ok: false,
-  error: "You need an active plan to publish. Save this as a draft, then start your annual plan on the Billing page.",
+  error: "You need an active plan to publish. Save this as a draft for now. The Billing page shows your plan and the current offer.",
 };
+const NOT_OPEN: ActionResult = {
+  ok: false,
+  error: "Publishing has not opened yet. Save this as a draft for now. The Billing page shows when it opens.",
+};
+
+function notOpenYet(opensAt: string): ActionResult {
+  return { ok: false, error: `Publishing opens on ${formatDay(opensAt, OFFER_TIME_ZONE)}. Save this as a draft for now.` };
+}
 
 const HELD: ActionResult = {
   ok: false,
@@ -27,6 +38,7 @@ const HELD: ActionResult = {
 
 function writeError(error: PostgrestError): ActionResult {
   if (error.hint === "admin_hold") return HELD;
+  if (error.hint === "publishing_not_open") return NOT_OPEN;
   return error.hint === "subscription_required" ? PLAN_REQUIRED : FAILED;
 }
 
@@ -94,11 +106,22 @@ export async function saveCoupon(couponId: unknown, input: unknown, intentInput:
   const expiresAt = endOfDayInZone(v.expiresOn, tz);
   const now = Date.now();
 
+  // A merchant without a plan can still publish a first coupon during the Founders window: the coupon
+  // is saved as a draft, then claim_founding_seat publishes it together with a free 12-month plan.
+  let claimSeat = false;
   if (status === "published") {
     if (expiresAt.getTime() <= now) {
       return { ok: false, error: "The end date has already passed. Choose a later end date to publish." };
     }
-    if (existing?.status !== "published" && !(await planIsActive(supabase, business.id))) return PLAN_REQUIRED;
+    if (existing?.status !== "published") {
+      const billing = await loadBillingContext(supabase, business.id, now);
+      if (!billing.publishingOpen) return notOpenYet(billing.publishingOpensAt);
+      if (!billing.planCurrent) {
+        if (!canClaimFreeSeat(billing, business.status, now)) return PLAN_REQUIRED;
+        claimSeat = true;
+        status = existing?.status ?? "draft";
+      }
+    }
   }
 
   const row = {
@@ -141,6 +164,17 @@ export async function saveCoupon(couponId: unknown, input: unknown, intentInput:
 
   if (existing?.image_path && existing.image_path !== v.imagePath) {
     await supabase.storage.from(COUPON_IMAGE_BUCKET).remove([existing.image_path]);
+  }
+
+  if (claimSeat) {
+    const { data, error } = await supabase.rpc("claim_founding_seat", { p_business_id: business.id, p_coupon_id: savedId });
+    const result = error ? "failed" : parseClaim(data);
+    if (result !== "claimed") {
+      // The coupon is saved as a draft. Billing explains why it could not go live.
+      redirect(`/merchant/billing?claim=${result}`);
+    }
+    await notifyPlanStarted(business.id, `founding:${business.id}`);
+    redirect("/merchant/billing?claim=claimed");
   }
 
   const view = couponView({ status, starts_at: row.starts_at, expires_at: row.expires_at, admin_hold: existing?.admin_hold }, now);

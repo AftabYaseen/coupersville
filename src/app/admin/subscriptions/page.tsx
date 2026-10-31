@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { requireAdminPage } from "@/lib/admin";
 import { dayInZone, dayOneYearOn } from "@/lib/dates";
 import { planState, planSummary } from "@/lib/billing";
-import { stripeCustomerUrl } from "@/lib/stripe";
+import { FOUNDING_OFFER } from "@/lib/offers";
 import { PageLoading } from "@/components/page-loading";
 import { PlanBadge, StatusBadge } from "@/components/admin/badges";
 import { PlanControls } from "@/components/admin/plan-controls";
@@ -44,7 +44,7 @@ async function SubscriptionsContent({ searchParams }: { searchParams: PageProps<
     supabase.rpc("admin_list_businesses", {}),
     supabase
       .from("subscriptions")
-      .select("business_id, source, status, current_period_end, cancel_at_period_end, past_due_since, stripe_customer_id"),
+      .select("business_id, source, status, current_period_end, cancel_at_period_end, past_due_since, offer_code"),
   ]);
   const planBy = new Map((plans ?? []).map((p) => [p.business_id, p]));
   const now = clockNow();
@@ -63,7 +63,8 @@ async function SubscriptionsContent({ searchParams }: { searchParams: PageProps<
     <div className="mx-auto max-w-5xl px-4 py-10">
       <h1 className="wordmark text-4xl text-ink">Subscriptions</h1>
       <p className="mt-2">
-        Grant, extend or revoke complimentary plans. Paid plans are read-only here and managed in Stripe. Businesses still setting up are not listed.
+        Grant, extend or revoke complimentary plans. Paid plans are read-only here. Businesses still setting up are not listed.
+        Founding Merchant seats are on the <Link href="/admin/offers" className="font-medium text-ink underline underline-offset-4">Offers</Link> page.
       </p>
 
       <nav aria-label="Plan filter" className="mt-6 overflow-x-auto">
@@ -93,7 +94,7 @@ async function SubscriptionsContent({ searchParams }: { searchParams: PageProps<
             const currentEnd = b.plan_ends_at ? dayInZone(b.plan_ends_at, b.timezone) : null;
             const row = planBy.get(b.id) ?? null;
             const plan = planState(row, now);
-            const customer = row?.stripe_customer_id ?? null;
+            const foundingSeat = row?.offer_code === FOUNDING_OFFER && row.source === "complimentary";
             return (
               <li key={b.id} className="panel grid gap-4 p-4 md:grid-cols-[1fr_minmax(0,22rem)]">
                 <div className="min-w-0">
@@ -105,6 +106,7 @@ async function SubscriptionsContent({ searchParams }: { searchParams: PageProps<
                     <PlanBadge source={b.plan_source} active={b.plan_active} />
                   </p>
                   <p className={`mt-2 text-sm tabular ${endsSoon(b) || plan.kind === "past_due" ? "font-semibold text-signal" : ""}`}>
+                    {foundingSeat ? "Founding Merchant, free seat. " : ""}
                     {planSummary(plan, b.timezone)}
                   </p>
                   <p className="text-sm break-all">{b.owner_email ?? "Owner deleted their account"}</p>
@@ -118,7 +120,7 @@ async function SubscriptionsContent({ searchParams }: { searchParams: PageProps<
                   hasEndDate={Boolean(b.plan_ends_at)}
                   today={today}
                   suggestedEnd={b.plan_active ? (currentEnd ?? "") : dayOneYearOn(today)}
-                  stripeUrl={customer ? stripeCustomerUrl(customer) : null}
+
                 />
               </li>
             );

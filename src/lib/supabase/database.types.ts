@@ -504,13 +504,150 @@ export type Database = {
           },
         ]
       }
+      offer_seat_claims: {
+        Row: {
+          business_id: string
+          claimed_at: string
+          claimed_by: string | null
+          coupon_id: string | null
+          free: boolean
+          id: string
+          offer_code: string
+          seat_number: number
+        }
+        Insert: {
+          business_id: string
+          claimed_at?: string
+          claimed_by?: string | null
+          coupon_id?: string | null
+          free: boolean
+          id?: string
+          offer_code: string
+          seat_number: number
+        }
+        Update: {
+          business_id?: string
+          claimed_at?: string
+          claimed_by?: string | null
+          coupon_id?: string | null
+          free?: boolean
+          id?: string
+          offer_code?: string
+          seat_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_seat_claims_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_seat_claims_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_seat_claims_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_seat_claims_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "live_coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_seat_claims_offer_code_fkey"
+            columns: ["offer_code"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      offers: {
+        Row: {
+          active: boolean
+          annual_price_cents: number
+          code: string
+          created_at: string
+          free_seats: number
+          max_live_coupons: number | null
+          max_locations: number | null
+          monthly_price_cents: number | null
+          name: string
+          renews_into: string | null
+          seat_cap: number | null
+          sort_order: number
+          term_months: number | null
+          updated_at: string
+          window_ends_at: string | null
+          window_starts_at: string | null
+        }
+        Insert: {
+          active?: boolean
+          annual_price_cents: number
+          code: string
+          created_at?: string
+          free_seats?: number
+          max_live_coupons?: number | null
+          max_locations?: number | null
+          monthly_price_cents?: number | null
+          name: string
+          renews_into?: string | null
+          seat_cap?: number | null
+          sort_order?: number
+          term_months?: number | null
+          updated_at?: string
+          window_ends_at?: string | null
+          window_starts_at?: string | null
+        }
+        Update: {
+          active?: boolean
+          annual_price_cents?: number
+          code?: string
+          created_at?: string
+          free_seats?: number
+          max_live_coupons?: number | null
+          max_locations?: number | null
+          monthly_price_cents?: number | null
+          name?: string
+          renews_into?: string | null
+          seat_cap?: number | null
+          sort_order?: number
+          term_months?: number | null
+          updated_at?: string
+          window_ends_at?: string | null
+          window_starts_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_renews_into_fkey"
+            columns: ["renews_into"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       platform_settings: {
         Row: {
           consumer_login: string
           coupon_moderation: string
           created_at: string
+          founders_full_early_access: boolean
+          founders_rule: string
           id: string
           plans: string
+          publishing_opens_at: string
           redemption_method: string
           region_restriction: string | null
           singleton: boolean
@@ -521,8 +658,11 @@ export type Database = {
           consumer_login?: string
           coupon_moderation?: string
           created_at?: string
+          founders_full_early_access?: boolean
+          founders_rule?: string
           id?: string
           plans?: string
+          publishing_opens_at?: string
           redemption_method?: string
           region_restriction?: string | null
           singleton?: boolean
@@ -533,8 +673,11 @@ export type Database = {
           consumer_login?: string
           coupon_moderation?: string
           created_at?: string
+          founders_full_early_access?: boolean
+          founders_rule?: string
           id?: string
           plans?: string
+          publishing_opens_at?: string
           redemption_method?: string
           region_restriction?: string | null
           singleton?: boolean
@@ -800,6 +943,7 @@ export type Database = {
           created_at: string
           current_period_end: string | null
           id: string
+          offer_code: string | null
           past_due_since: string | null
           source: Database["public"]["Enums"]["subscription_source"]
           status: Database["public"]["Enums"]["subscription_status"]
@@ -813,6 +957,7 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           id?: string
+          offer_code?: string | null
           past_due_since?: string | null
           source: Database["public"]["Enums"]["subscription_source"]
           status?: Database["public"]["Enums"]["subscription_status"]
@@ -826,6 +971,7 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           id?: string
+          offer_code?: string | null
           past_due_since?: string | null
           source?: Database["public"]["Enums"]["subscription_source"]
           status?: Database["public"]["Enums"]["subscription_status"]
@@ -840,6 +986,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "businesses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_offer_code_fkey"
+            columns: ["offer_code"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -967,6 +1120,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "coupons_held_by_fkey"
+            columns: ["held_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -1022,15 +1182,30 @@ export type Database = {
       }
       can_manage_business: { Args: { p_business_id: string }; Returns: boolean }
       can_manage_business_path: { Args: { p_name: string }; Returns: boolean }
-      coupon_is_live: {
-        Args: {
-          p_business_id: string
-          p_expires_at: string
-          p_starts_at: string
-          p_status: Database["public"]["Enums"]["coupon_status"]
-        }
-        Returns: boolean
+      claim_founding_seat: {
+        Args: { p_business_id: string; p_coupon_id?: string }
+        Returns: Json
       }
+      coupon_is_live:
+        | {
+            Args: {
+              p_business_id: string
+              p_expires_at: string
+              p_starts_at: string
+              p_status: Database["public"]["Enums"]["coupon_status"]
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              p_admin_hold: boolean
+              p_business_id: string
+              p_expires_at: string
+              p_starts_at: string
+              p_status: Database["public"]["Enums"]["coupon_status"]
+            }
+            Returns: boolean
+          }
       coupon_rule_problem: {
         Args: {
           p_coupon: Database["public"]["Tables"]["coupons"]["Row"]
@@ -1123,11 +1298,28 @@ export type Database = {
           title: string
         }[]
       }
-      preview_redemption: {
-        Args: { p_location_id: string; p_token_or_code: string }
-        Returns: Json
-      }
       my_token_offer: { Args: { p_token_id: string }; Returns: Json }
+      offer_overview: {
+        Args: never
+        Returns: {
+          active: boolean
+          annual_price_cents: number
+          code: string
+          free_seats: number
+          free_seats_used: number
+          max_live_coupons: number
+          max_locations: number
+          monthly_price_cents: number
+          name: string
+          renews_into: string
+          seat_cap: number
+          seats_used: number
+          sort_order: number
+          term_months: number
+          window_ends_at: string
+          window_starts_at: string
+        }[]
+      }
       plan_is_current: {
         Args: {
           p_past_due_since: string
@@ -1136,6 +1328,10 @@ export type Database = {
           p_status: Database["public"]["Enums"]["subscription_status"]
         }
         Returns: boolean
+      }
+      preview_redemption: {
+        Args: { p_location_id: string; p_token_or_code: string }
+        Returns: Json
       }
       purge_stale_codes: { Args: never; Returns: undefined }
       redemption_offer: {

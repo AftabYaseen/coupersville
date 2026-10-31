@@ -10,9 +10,9 @@ import { planIsCurrent } from "@/lib/billing";
 import type { ActionResult } from "@/lib/validation/auth";
 
 const NOT_FOUND: ActionResult = { ok: false, error: "That business could not be found." };
-const STRIPE: ActionResult = {
+const PAID: ActionResult = {
   ok: false,
-  error: "This business pays through Stripe, so its plan is managed there. A complimentary plan can be granted once the paid plan lapses.",
+  error: "This business has a paid plan, so it is read-only here. A complimentary plan can be granted once the paid plan lapses.",
 };
 const FAILED: ActionResult = { ok: false, error: "We could not change this plan. Try again in a moment." };
 
@@ -37,8 +37,8 @@ export async function setComplimentaryPlan(businessId: unknown, endsOnInput: unk
   if (!ctx) return NOT_ADMIN;
   const { business, plan } = await load(ctx, id.data);
   if (!business) return NOT_FOUND;
-  // A current paid plan belongs to Stripe. Once it has lapsed, a complimentary plan may replace it.
-  if (plan?.source === "stripe" && planIsCurrent(plan)) return STRIPE;
+  // A current paid plan is read-only here. Once it has lapsed, a complimentary plan may replace it.
+  if (plan?.source === "stripe" && planIsCurrent(plan)) return PAID;
 
   const endsAt = endsOn.data ? endOfDayInZone(endsOn.data, business.timezone) : null;
   if (endsAt && endsAt.getTime() <= Date.now()) {
@@ -54,6 +54,8 @@ export async function setComplimentaryPlan(businessId: unknown, endsOnInput: unk
     // Drop the lapsed Stripe subscription, so a late webhook about it cannot touch this plan.
     stripe_subscription_id: null,
     past_due_since: null,
+    // A new grant is not a Founding seat. Changing the end date of a running plan keeps its offer.
+    ...(planIsCurrent(plan) ? {} : { offer_code: null }),
   };
   const { error } = plan
     ? await ctx.supabase.from("subscriptions").update(row).eq("id", plan.id)
@@ -80,7 +82,7 @@ export async function extendComplimentaryPlan(businessId: unknown): Promise<Acti
   const { business, plan } = await load(ctx, id.data);
   if (!business) return NOT_FOUND;
   if (!plan) return { ok: false, error: "This business has no plan to extend. Grant one first." };
-  if (plan.source === "stripe") return STRIPE;
+  if (plan.source === "stripe") return PAID;
   if (plan.status === "active" && !plan.current_period_end) {
     return { ok: false, error: "This plan has no end date, so there is nothing to extend." };
   }
@@ -109,7 +111,7 @@ export async function revokeComplimentaryPlan(businessId: unknown): Promise<Acti
   const { business, plan } = await load(ctx, id.data);
   if (!business) return NOT_FOUND;
   if (!plan || plan.status !== "active") return { ok: false, error: "This business has no active plan to revoke." };
-  if (plan.source === "stripe") return STRIPE;
+  if (plan.source === "stripe") return PAID;
 
   const { error } = await ctx.supabase
     .from("subscriptions")

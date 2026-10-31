@@ -16,6 +16,7 @@ export const ADMIN_LINKS: NavLink[] = [
   { href: "/admin/merchants", label: "Merchants" },
   { href: "/admin/coupons", label: "Coupons" },
   { href: "/admin/subscriptions", label: "Subscriptions" },
+  { href: "/admin/offers", label: "Offers" },
   { href: "/admin/categories", label: "Categories" },
   { href: "/admin/settings", label: "Settings" },
 ];

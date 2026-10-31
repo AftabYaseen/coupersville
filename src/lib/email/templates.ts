@@ -128,25 +128,25 @@ export function planStartedEmail({
   source,
   endsAt,
   timeZone,
+  foundingSeat = false,
 }: {
   businessName: string;
   source: "stripe" | "complimentary";
   endsAt: string | null;
   timeZone: string;
+  foundingSeat?: boolean;
 }): RenderedEmail {
   const rows: [string, string][] = [["Business", businessName]];
+  if (foundingSeat) rows.push(["Plan", "Founding Merchant, free seat"]);
   if (endsAt) rows.push([source === "stripe" ? "Renews on" : "Active until", day(endsAt, timeZone)]);
+  let text = "Coupersville gave your business a complimentary plan. Your published coupons are live for shoppers.";
+  if (source === "stripe") text = "Thanks for starting your annual plan. Your published coupons are live for shoppers.";
+  if (foundingSeat) text = "Welcome, Founding Merchant. You have one of the free Founding seats: your first 12 months are on us, and your coupon is live for shoppers.";
   return layout({
-    subject: "Your Coupersville plan is active",
-    heading: "Your plan is active",
+    subject: foundingSeat ? "Your Founding Merchant seat is confirmed" : "Your Coupersville plan is active",
+    heading: foundingSeat ? "Welcome, Founding Merchant" : "Your plan is active",
     blocks: [
-      {
-        kind: "p",
-        text:
-          source === "stripe"
-            ? "Thanks for starting your annual plan. Your published coupons are live for shoppers."
-            : "Coupersville gave your business a complimentary plan. Your published coupons are live for shoppers.",
-      },
+      { kind: "p", text },
       { kind: "stub", rows },
       { kind: "button", label: "Open your dashboard", href: absoluteUrl("/merchant") },
     ],
@@ -162,7 +162,7 @@ export function paymentFailedEmail({ businessName, graceEndsAt, timeZone }: { bu
       { kind: "p", text: `We could not charge your card for the ${businessName} plan. Your coupons stay live for ${PAST_DUE_GRACE_DAYS} days while you update your card.` },
       { kind: "stub", rows: [["Coupons stay live until", day(graceEndsAt, timeZone)]] },
       { kind: "button", label: "Update card", href: absoluteUrl("/merchant/billing") },
-      { kind: "note", text: "Stripe will try the card again on its own. If it goes through, you do not need to do anything." },
+      { kind: "note", text: "Our payment processor will try the card again on its own. If it goes through, you do not need to do anything." },
     ],
   });
 }

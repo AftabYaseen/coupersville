@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { safeTimeZone } from "@/lib/dates";
 import { PAST_DUE_GRACE_DAYS, planIsCurrent } from "@/lib/billing";
 import { sendEmail } from "@/lib/email/send";
+import { FOUNDING_OFFER } from "@/lib/offers";
 import {
   couponRemovedEmail,
   paymentFailedEmail,
@@ -60,7 +61,7 @@ export async function notifyWelcome(user: { id: string; email?: string | null; c
   return sendOnce("welcome", user.id, user.email ?? null, welcomeEmail({ role: profile.role, name: profile.full_name }));
 }
 
-// Once per plan: a Stripe subscription id, or a complimentary grant's row id and end date.
+// Once per plan: a Stripe subscription id, a complimentary grant, or a Founding seat (one per business).
 export async function notifyPlanStarted(businessId: string, ref: string): Promise<NoticeOutcome> {
   const admin = createAdminClient();
   const [{ data: plan }, contact] = await Promise.all([
@@ -72,7 +73,13 @@ export async function notifyPlanStarted(businessId: string, ref: string): Promis
     "plan_started",
     ref,
     contact.email,
-    planStartedEmail({ businessName: contact.name, source: plan.source, endsAt: plan.current_period_end, timeZone: contact.timeZone }),
+    planStartedEmail({
+      businessName: contact.name,
+      source: plan.source,
+      endsAt: plan.current_period_end,
+      timeZone: contact.timeZone,
+      foundingSeat: plan.offer_code === FOUNDING_OFFER,
+    }),
   );
 }
 

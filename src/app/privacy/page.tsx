@@ -36,7 +36,7 @@ export default function PrivacyPage() {
       <ul>
         <li>The account owner&apos;s name, email and password hash, and the emails of staff they invite.</li>
         <li>Business details, store addresses, coupons, logos and images. Most of this is shown publicly to shoppers.</li>
-        <li>Plan details: whether a plan is active, when it renews or ends, and Stripe&apos;s reference numbers for it.</li>
+        <li>Plan details: whether a plan is active, when it renews or ends, and our payment processor&apos;s reference numbers for it.</li>
       </ul>
 
       <h2>What businesses can see about shoppers</h2>
@@ -60,8 +60,8 @@ export default function PrivacyPage() {
         <li>Vercel hosts the website and keeps short-lived request logs.</li>
         <li>Resend sends our emails.</li>
         <li>
-          Stripe takes card payments from businesses. Card details go straight to Stripe&apos;s own pages and never reach
-          Coupersville.
+          A payment processor will take card payments from businesses. Card details will go straight to the processor and
+          never reach Coupersville. [Processor name to follow.]
         </li>
       </ul>
       <p>
@@ -74,7 +74,7 @@ export default function PrivacyPage() {
         You can delete your account at any time from <Link href="/account">Account</Link>, or ask us at [privacy contact email].
         Deleting removes your sign-in, name, saved coupons and unused codes. Redemptions are kept for the business&apos;s counts,
         with nothing that links them to you. Deleting a business account takes the business off Coupersville and cancels its
-        plan at the end of the period already paid for. Stripe keeps its own billing records as the law requires.
+        plan at the end of the period already paid for. Our payment processor keeps its own billing records as the law requires.
       </p>
 
       <h2>Your rights</h2>

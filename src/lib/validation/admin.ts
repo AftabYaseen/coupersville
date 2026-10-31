@@ -49,10 +49,18 @@ export const planEndSchema = z.preprocess(
 );
 
 // Only the settings the app acts on today. The other platform_settings columns (redemption method,
-// moderation, shopper sign-in, region) stay in the database and come back here when they are built.
+// moderation, shopper sign-in, region, and the retired plans column) stay in the database and come
+// back here when they are built. Plans themselves are rows on the Offers page.
 export const SETTING_OPTIONS = {
   subscription_expiry: [{ value: "hide_coupons", label: "Coupons are hidden until the merchant renews" }],
-  plans: [{ value: "single_annual", label: "One annual plan" }],
+  founders_rule: [
+    { value: "profile_and_first_coupon", label: "Profile complete and first coupon published" },
+    { value: "profile_complete", label: "Profile complete" },
+  ],
+  founders_full: [
+    { value: "early_access", label: "Early Access applies straight away" },
+    { value: "wait", label: "No offer until the Early Access window opens" },
+  ],
 } as const;
 
 const values = <K extends keyof typeof SETTING_OPTIONS>(key: K) =>
@@ -60,6 +68,53 @@ const values = <K extends keyof typeof SETTING_OPTIONS>(key: K) =>
 
 export const settingsSchema = z.object({
   subscription_expiry: z.enum(values("subscription_expiry")),
-  plans: z.enum(values("plans")),
+  founders_rule: z.enum(values("founders_rule")),
+  founders_full: z.enum(values("founders_full")),
+  // The day publishing opens, from midnight Pacific time.
+  publishing_opens_on: z.string().trim().regex(DAY_PATTERN, { error: "Choose a valid date." }),
 });
 export type SettingsInput = z.input<typeof settingsSchema>;
+
+// Offer edits. Prices are entered in dollars and stored in cents; blank limits mean unlimited.
+const optionalWhole = (max: number) =>
+  z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? null : Number(v)),
+    z.number({ error: "Enter a whole number." }).int({ error: "Enter a whole number." }).min(1, { error: "Use 1 or more." }).max(max).nullable(),
+  );
+const dollars = z.preprocess(
+  (v) => (v === "" || v === null || v === undefined ? null : Number(v)),
+  z
+    .number({ error: "Enter a price." })
+    .min(0, { error: "Use 0 or more." })
+    .max(100000)
+    .refine((n) => Math.abs(n * 100 - Math.round(n * 100)) < 1e-6, { error: "Use dollars and cents." })
+    .nullable(),
+);
+const optionalDay = z.preprocess(
+  nullToEmpty,
+  z
+    .string()
+    .trim()
+    .refine((v) => v === "" || DAY_PATTERN.test(v), { error: "Choose a valid date." })
+    .transform((v) => (v === "" ? null : v)),
+);
+
+export const offerSchema = z
+  .object({
+    name: z.string().trim().min(1, { error: "Enter a name." }).max(80, { error: "Use 80 characters or fewer." }),
+    startsOn: optionalDay,
+    // The last day of the window, included.
+    endsOn: optionalDay,
+    seatCap: optionalWhole(100000),
+    freeSeats: z.preprocess((v) => (v === "" || v === null || v === undefined ? 0 : Number(v)), z.number().int({ error: "Enter a whole number." }).min(0).max(100000)),
+    term: z.enum(["12", "ongoing"]),
+    annualPrice: dollars.refine((v) => v !== null, { error: "Enter the annual price." }),
+    monthlyPrice: dollars,
+    renewsInto: z.preprocess(nullToEmpty, z.string().trim().max(60)),
+    active: z.boolean(),
+    maxLocations: optionalWhole(10000),
+    maxLiveCoupons: optionalWhole(10000),
+  })
+  .refine((v) => !v.startsOn || !v.endsOn || v.endsOn >= v.startsOn, { error: "The last day must be on or after the first day.", path: ["endsOn"] })
+  .refine((v) => v.seatCap === null || v.freeSeats <= v.seatCap, { error: "Free seats cannot be more than the seat cap.", path: ["freeSeats"] });
+export type OfferInput = z.input<typeof offerSchema>;

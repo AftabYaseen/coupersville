@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { requireAdminPage } from "@/lib/admin";
+import { dayInZone } from "@/lib/dates";
+import { OFFER_TIME_ZONE } from "@/lib/offers";
 import { PageLoading } from "@/components/page-loading";
 import { SettingsForm } from "@/components/admin/settings-form";
 
@@ -27,7 +29,12 @@ async function SettingsContent() {
       ) : (
         <div className="panel p-5">
           <SettingsForm
-            defaults={{ subscription_expiry: data.subscription_expiry, plans: data.plans }}
+            defaults={{
+              subscription_expiry: data.subscription_expiry,
+              founders_rule: data.founders_rule,
+              founders_full: data.founders_full_early_access ? "early_access" : "wait",
+              publishing_opens_on: dayInZone(data.publishing_opens_at, OFFER_TIME_ZONE),
+            }}
           />
         </div>
       )}
