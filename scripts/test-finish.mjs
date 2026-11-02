@@ -10,6 +10,7 @@
 // Test accounts that should get a real email use Resend's test inbox (delivered+...@resend.dev),
 // so each email really goes through Resend and shows in its dashboard, but reaches no person.
 
+import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { callAction, makeUser } from "./lib/call-action.mjs";
@@ -92,12 +93,31 @@ async function pages() {
   check("footer links privacy and terms", home.body.includes('href="/privacy"') && home.body.includes('href="/terms"'));
   check("home is still shopper-first: welcome and search come first", home.body.indexOf("Welcome to Coupersville") < home.body.indexOf("Main Street"));
   check("a skip link jumps to the content", home.body.includes('href="#main"') && home.body.includes('id="main"'));
-  for (const path of ["/privacy", "/terms"]) {
+  // The client's privacy notice and terms, word for word, with the Phase 1 Launch Notice under the date.
+  const visible = (html) =>
+    html
+      .replace(/<script[\s\S]*?<\/script>/g, "")
+      .replace(/<br\s*\/?>/g, "\n")
+      .replace(/<[^>]+>/g, "")
+      .replace(/&quot;/g, '"')
+      .replace(/&#x27;|&#39;/g, "'")
+      .replace(/&amp;/g, "&");
+  const legalDoc = (file) => {
+    const src = readFileSync(new URL(`../src/lib/legal/${file}`, import.meta.url), "utf8");
+    return JSON.parse(src.slice(src.indexOf("= {") + 2).trim().replace(/;$/, ""));
+  };
+  for (const [path, file] of [["/privacy", "privacy-text.ts"], ["/terms", "terms-text.ts"]]) {
     const page = await get(path);
-    check(`${path} loads, marked as a draft for the lawyer`, page.status === 200 && page.body.includes("Draft for legal review"));
+    const text = visible(page.body);
+    const doc = legalDoc(file);
+    const lines = [doc.title, `Last updated: ${doc.updated}`, `Phase 1 Launch Notice: ${doc.notice}`, ...doc.blocks.flatMap((b) => b.items ?? b.lines ?? [b.text])];
+    const missing = lines.filter((l) => !text.includes(l));
+    check(`${path} shows the client's text, every line`, page.status === 200 && missing.length === 0, missing.slice(0, 3));
+    check(`${path}: the launch notice sits right under Last updated`, text.indexOf("Phase 1 Launch Notice") > text.indexOf("Last updated:") && text.indexOf("Phase 1 Launch Notice") < text.indexOf(doc.blocks[0].text ?? ""));
+    check(`${path}: no draft banner or [placeholders] left`, !/Draft for legal review|\[[^\]]*\]/.test(text.slice(text.indexOf(doc.title))));
   }
   const privacy = await get("/privacy");
-  check("privacy covers the facts the client listed", ["Your email address", "add one in Account", "coupons you save", "Your redemptions", "never your name or email", "no advertising, analytics or tracking", "payment processor", "IP address and browser details", "delete your account"].every((t) => privacy.body.includes(t)));
+  check("privacy contact email is a mail link", privacy.body.includes('href="mailto:admin@opalqsm.com"'));
   const signup = await get("/signup?type=merchant");
   check("signup links terms and privacy", signup.body.includes('href="/terms"') && signup.body.includes('href="/privacy"'));
   const emDash = [how, biz, privacy, await get("/terms")].some((p) => p.body.replace(/<script[\s\S]*?<\/script>/g, "").includes("—"));
