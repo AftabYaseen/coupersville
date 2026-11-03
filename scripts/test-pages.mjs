@@ -6,6 +6,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
+import { callAction } from "./lib/call-action.mjs";
 
 const base = process.env.BASE_URL ?? "http://localhost:3100";
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -212,6 +213,22 @@ async function main() {
   check("a fixed price offer reads ONLY $1", (await get(`/coupon/${fixed.id}`)).body.includes("ONLY $1"));
   const signedOut = await get(`/coupon/${free.id}`);
   check("signed out, Redeem now and Save coupon are buttons that open the sign-in sheet", signedOut.body.includes("Redeem now") && signedOut.body.includes("Save coupon") && !signedOut.body.includes("Sign in to redeem"));
+
+  console.log("\nNear me: location in a short-lived cookie, never in the address");
+  const near = await callAction(base, null, "src/app/search/actions.ts", "setNearMe", [{ lat: 47.60621, lng: -122.33207 }]);
+  const nearCookie = (near.rawCookies ?? []).find((c) => c.startsWith("cpv_near=")) ?? "";
+  check("Near me saves the rounded location (3 decimal places) in the cpv_near cookie", near.value?.ok === true && /^cpv_near=47\.606(%2C|,)-122\.332;/.test(nearCookie), nearCookie);
+  check("the cookie is HttpOnly, SameSite=Lax, site-wide, and lasts 30 minutes", /HttpOnly/i.test(nearCookie) && /SameSite=lax/i.test(nearCookie) && /Path=\//.test(nearCookie) && /Max-Age=1800/.test(nearCookie), nearCookie);
+  const bad = await callAction(base, null, "src/app/search/actions.ts", "setNearMe", [{ lat: 200, lng: 0 }]);
+  check("an impossible location is refused and sets no cookie", bad.value?.ok === false && !(bad.rawCookies ?? []).some((c) => c.startsWith("cpv_near=")), bad);
+  const nearPage = await fetch(`${base}/search?near=1&sort=nearest`, { headers: { cookie: near.setCookies.find((c) => c.startsWith("cpv_near=")) ?? "" } });
+  const nearBody = (await nearPage.text()).replaceAll("<!-- -->", "");
+  check("search uses it: within 25 miles, sorted nearest", nearBody.includes("Showing coupons within 25 miles of you."));
+  check("and no coordinates appear in the page or its links", !/[?&;](lat|lng)=/.test(nearBody) && !nearBody.includes("47.606") && !nearBody.includes("-122.332"));
+  const expired = await get("/search?near=1&sort=nearest");
+  check("without the cookie (after 30 minutes), search asks to tap Near me again", expired.body.includes("Your location has expired") && !expired.body.includes("within 25 miles"));
+  const oldLink = await get("/search?lat=47.606&lng=-122.332&sort=nearest");
+  check("coordinates in an old-style address are ignored", !oldLink.body.includes("within 25 miles"));
 }
 
 async function cleanup() {

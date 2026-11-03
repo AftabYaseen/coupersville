@@ -16,6 +16,8 @@ import { ActionButton } from "@/components/admin/action-button";
 import { PlanBadge, StatusBadge } from "@/components/admin/badges";
 import { PlanControls } from "@/components/admin/plan-controls";
 import { setBusinessStatus } from "@/app/admin/merchants/actions";
+import { DeleteBusiness } from "@/components/admin/delete-business";
+import { businessDeletionPlan } from "@/lib/business-deletion";
 
 export const metadata: Metadata = { title: "Business" };
 
@@ -63,6 +65,18 @@ async function BusinessContent({ params }: { params: PageProps<"/admin/merchants
   const today = dayInZone(now, tz);
   const currentEnd = plan?.current_period_end ? dayInZone(plan.current_period_end, tz) : null;
   const owner = (team ?? []).find((m) => m.role === "owner");
+  const deletion = await businessDeletionPlan(business.id).catch(() => null);
+  const deletionLines =
+    deletion?.mode === "delete"
+      ? [
+          "Everything is deleted: the business, its stores, coupons, team, staff invites, plan and images.",
+          "It has no payments, redemptions or Founding seat, so there is nothing to keep.",
+        ]
+      : [
+          `It has ${deletion?.reasons.join(", ") ?? "records we may need"}, so the business name, store addresses, plan and payment records, any Founding seat, and the coupons that were redeemed are kept, so redemption counts stay right.`,
+          "Removed: the description, contact email, phone and website, store phone numbers, images, coupons nobody redeemed, the team and staff invites.",
+          "It stays suspended with no owner, hidden from shoppers, and its plan does not renew.",
+        ];
 
   return (
     <div className="mx-auto grid max-w-4xl gap-6 px-4 py-10">
@@ -223,6 +237,14 @@ async function BusinessContent({ params }: { params: PageProps<"/admin/merchants
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="grid gap-3" aria-labelledby="delete-heading">
+        <h2 id="delete-heading" className="text-xl font-semibold">
+          Delete business
+        </h2>
+        <p>For a deletion request from the business. Suspending is enough to hide it from shoppers.</p>
+        <DeleteBusiness businessId={business.id} name={business.name} consequences={deletionLines} />
       </section>
     </div>
   );

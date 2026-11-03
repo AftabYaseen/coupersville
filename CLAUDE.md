@@ -46,7 +46,6 @@ STRIPE_ANNUAL_PRICE_ID         # phase 6
 RESEND_API_KEY                 # phase 7
 EMAIL_FROM                     # sender on mail.coupersville.com, for example "Coupersville <hello@mail.coupersville.com>"
 CRON_SECRET                    # Vercel Cron sends it as a Bearer token to /api/cron/daily
-NEXT_PUBLIC_GOOGLE_MAPS_KEY    # optional, address autocomplete
 ```
 
 Never print, log, or commit secret values. If a key is missing, stop and ask the developer to add it.
@@ -141,7 +140,9 @@ Prices appear only on signed-in merchant and admin screens (`/merchant/billing`,
 
 - "Save coupon" and "Redeem now" when signed out open a bottom sheet on the same page: email, then the code from the email (Supabase email OTP, `signInWithOtp` and `verifyOtp`). The action then carries on. New accounts made this way are shoppers; the name is optional and set in Account. Merchant and admin emails are refused and pointed to password sign-in.
 - Per shopper we store: the auth account (email, optional password hash, sign-in times), the profile (role, optional name, status), saved coupons, redemption codes and redemptions. Unused redemption codes are deleted a day after they expire by the hourly `purge_stale_codes` cron job; a code linked to a redemption is never deleted.
-- Deleting an account (Account page, type "delete" to confirm) removes the sign-in, profile, saved coupons and redemption codes. Redemptions stay with `user_id` and `verified_by` emptied, so counts stay right. An owner's businesses are suspended, their staff and waiting invites removed, and a Stripe plan is set to cancel at period end; if Stripe cannot be reached nothing is deleted. Admin accounts cannot be deleted from the app.
+- Deleting an account (Account page, type "delete" to confirm) removes the sign-in, profile, saved coupons and redemption codes. Redemptions stay with `user_id` and `verified_by` emptied, so counts stay right. An owner's businesses are suspended, their contact email, phone and website cleared, their staff and every staff invite (accepted or waiting) removed, and a Stripe plan is set to cancel at period end; if Stripe cannot be reached nothing is deleted. Admin accounts cannot be deleted from the app.
+- Near me rounds the location to 3 decimal places (about 110 m) and keeps it in a 30-minute HttpOnly `cpv_near` cookie (`src/lib/near-me.ts`). The search address carries only `near=1`, so coordinates never appear in URLs or request logs, and they are never stored.
+- An admin can delete a business from `/admin/merchants/[id]` after typing its name (`src/lib/business-deletion.ts`). With no payments, redemptions or Founding seat it is deleted completely, with its images. Otherwise only the business name, store addresses, plan and payment records, the Founding seat and the redeemed coupons (for redemption counts) are kept; contact details, store phones, images, unredeemed coupons, the team and invites are removed, and the plan stops renewing.
 - No third-party scripts or trackers on any page. Fonts are self-hosted at build time.
 
 ## Routes

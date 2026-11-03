@@ -522,6 +522,103 @@ async function main() {
   const { data: ownerRow } = await admin.from("business_members").select("id").eq("business_id", shop.id).eq("user_id", owner.id).single();
   const removeOwner = await callAction(base, owner.cookie, A("merchant/staff/actions.ts"), "removeStaff", [ownerRow.id]);
   check("the owner row cannot be removed", removeOwner.value?.ok === false, removeOwner);
+
+  await deleteBusinessChecks(boss, categoryId);
+}
+
+// A 1x1 PNG, for images the deletion must remove.
+const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+
+async function uploaded(businessId) {
+  let n = 0;
+  for (const bucket of ["logos", "coupon-images"]) n += ((await admin.storage.from(bucket).list(businessId)).data ?? []).length;
+  return n;
+}
+
+// A business with details, a store with a phone, two coupons with images, a staff invite and a logo.
+async function shopWithEverything(label, categoryId) {
+  const owner = await user(label, "merchant");
+  const b = await business(owner, `Delete ${label} ${run}`, null);
+  must(
+    await admin
+      .from("businesses")
+      .update({ description: "About us", contact_email: `cpv-test-${run}-${label}-contact@example.com`, contact_phone: "555-0101", website_url: "https://example.com", logo_path: `${b.id}/logo.png` })
+      .eq("id", b.id),
+    "details",
+  );
+  const store = must(await admin.from("locations").insert({ business_id: b.id, store_name: "Main", address_line1: "1 Main St", city: "Coupersville", phone: "555-0102" }).select().single(), "store");
+  const coupon = (title) =>
+    admin
+      .from("coupons")
+      .insert({
+        business_id: b.id,
+        category_id: categoryId,
+        title: `${title} ${run}`,
+        discount_type: "percent",
+        discount_value: 10,
+        starts_at: new Date(Date.now() - 86_400_000).toISOString(),
+        expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString(),
+        status: "published",
+        image_path: `${b.id}/coupon.png`,
+      })
+      .select()
+      .single();
+  const redeemed = must(await coupon("Redeemed"), "coupon a");
+  const unredeemed = must(await coupon("Unredeemed"), "coupon b");
+  must(await admin.from("staff_invites").insert({ business_id: b.id, email: `cpv-test-${run}-${label}-staff@example.com`, invited_by: owner.id }), "invite");
+  must(await admin.storage.from("logos").upload(`${b.id}/logo.png`, PNG, { contentType: "image/png" }), "logo");
+  must(await admin.storage.from("coupon-images").upload(`${b.id}/coupon.png`, PNG, { contentType: "image/png" }), "coupon image");
+  return { owner, b, store, redeemed, unredeemed };
+}
+
+async function deleteBusinessChecks(boss, categoryId) {
+  console.log("\nAdmin deletes a business");
+  const clean = await shopWithEverything("clean", categoryId);
+  const page = await fetch(`${base}/admin/merchants/${clean.b.id}`, { headers: { cookie: boss.cookie } }).then((r) => r.text());
+  check("the business page offers Delete business and says everything goes", page.includes("Delete business") && page.includes("Everything is deleted"));
+  const notAdmin = await act(clean.owner, "admin/merchants/actions.ts", "deleteBusinessAction", clean.b.id, clean.b.name);
+  check("only an admin can delete a business", notAdmin?.ok === false || notAdmin?.blocked === true, notAdmin);
+  const wrongName = await act(boss, "admin/merchants/actions.ts", "deleteBusinessAction", clean.b.id, "delete");
+  check("the business name must be typed to confirm", wrongName?.ok === false && /Type the business name/.test(wrongName.error), wrongName);
+  check("nothing is removed before that", Boolean((await admin.from("businesses").select("id").eq("id", clean.b.id).maybeSingle()).data) && (await uploaded(clean.b.id)) === 2);
+  const full = await act(boss, "admin/merchants/actions.ts", "deleteBusinessAction", clean.b.id, clean.b.name);
+  check("no payments, redemptions or seat: deleted completely", full?.redirect === "/admin/merchants?deleted=1" && !(await admin.from("businesses").select("id").eq("id", clean.b.id).maybeSingle()).data, full);
+  check(
+    "with its stores, coupons and invites",
+    (await admin.from("locations").select("id").eq("business_id", clean.b.id)).data.length === 0 &&
+      (await admin.from("coupons").select("id").eq("business_id", clean.b.id)).data.length === 0 &&
+      (await admin.from("staff_invites").select("id").eq("business_id", clean.b.id)).data.length === 0,
+  );
+  check("and its images", (await uploaded(clean.b.id)) === 0);
+
+  const used = await shopWithEverything("used", categoryId);
+  const shopper = await user("delshopper", "consumer");
+  must(await admin.from("redemptions").insert({ coupon_id: used.redeemed.id, user_id: shopper.id, business_id: used.b.id, location_id: used.store.id, method: "code" }), "redemption");
+  must(await admin.from("subscriptions").insert({ business_id: used.b.id, source: "complimentary", status: "active", current_period_end: new Date(Date.now() + 30 * 86_400_000).toISOString() }), "plan");
+  const usedPage = await fetch(`${base}/admin/merchants/${used.b.id}`, { headers: { cookie: boss.cookie } }).then((r) => r.text());
+  check("with a redemption, the page says which records are kept", usedPage.includes("It has 1 redemption") && usedPage.includes("are kept"));
+  const kept = await act(boss, "admin/merchants/actions.ts", "deleteBusinessAction", used.b.id, used.b.name);
+  check("deleting it keeps only the records", kept?.ok === true && /are kept/.test(kept.message), kept);
+  const bAfter = must(await admin.from("businesses").select("*").eq("id", used.b.id).single(), "kept business");
+  check("kept: the name, suspended, with no owner", bAfter.name === used.b.name && bAfter.status === "suspended" && bAfter.owner_id === null, bAfter);
+  check("removed: description, contact email, phone, website and logo", [bAfter.description, bAfter.contact_email, bAfter.contact_phone, bAfter.website_url, bAfter.logo_path].every((v) => v === null), bAfter);
+  const storeAfter = must(await admin.from("locations").select("*").eq("id", used.store.id).single(), "kept store");
+  check("kept: the store address; removed: its phone", storeAfter.address_line1 === "1 Main St" && storeAfter.phone === null && storeAfter.active === false, storeAfter);
+  const couponsAfter = must(await admin.from("coupons").select("id, status, image_path").eq("business_id", used.b.id), "kept coupons");
+  check(
+    "kept: the redeemed coupon (paused, no image); removed: the one nobody redeemed",
+    couponsAfter.length === 1 && couponsAfter[0].id === used.redeemed.id && couponsAfter[0].status === "paused" && couponsAfter[0].image_path === null,
+    couponsAfter,
+  );
+  check("the redemption count is unchanged", (await admin.from("redemptions").select("id").eq("business_id", used.b.id)).data.length === 1);
+  check(
+    "removed: the team, staff invites and images",
+    (await admin.from("business_members").select("id").eq("business_id", used.b.id)).data.length === 0 &&
+      (await admin.from("staff_invites").select("id").eq("business_id", used.b.id)).data.length === 0 &&
+      (await uploaded(used.b.id)) === 0,
+  );
+  const planAfter = must(await admin.from("subscriptions").select("cancel_at_period_end").eq("business_id", used.b.id).single(), "kept plan");
+  check("kept: the plan record, which no longer renews", planAfter.cancel_at_period_end === true, planAfter);
 }
 
 async function cleanup() {

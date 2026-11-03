@@ -20,7 +20,7 @@ if (!url || !publishable || !secret) {
 
 const admin = createClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
 const run = Date.now().toString(36);
-const created = { users: [] };
+const created = { users: [], businesses: [] };
 const A = "src/app/(auth)/code-actions.ts";
 
 let passed = 0;
@@ -57,7 +57,21 @@ async function newUser(label, role) {
 }
 
 async function main() {
-  const coupon = must(await admin.from("live_coupons").select("id").limit(1).single(), "a live coupon");
+  // A live coupon of its own (a business with a plan and a published coupon), so the test does not
+  // depend on what is in the database.
+  const categoryId = must(await admin.from("categories").select("id").eq("active", true).order("sort_order").limit(1).single(), "category").id;
+  const shopOwner = await newUser("shopowner", "merchant");
+  const shop = must(await admin.from("businesses").insert({ owner_id: shopOwner.id, name: `Sign-in code shop ${run}`, status: "active", timezone: "America/Los_Angeles" }).select().single(), "business");
+  created.businesses.push(shop.id);
+  must(await admin.from("subscriptions").insert({ business_id: shop.id, source: "complimentary", status: "active", current_period_end: new Date(Date.now() + 30 * 86_400_000).toISOString() }), "plan");
+  const coupon = must(
+    await admin
+      .from("coupons")
+      .insert({ business_id: shop.id, category_id: categoryId, title: `Sign-in code coupon ${run}`, discount_type: "percent", discount_value: 10, starts_at: new Date(Date.now() - 86_400_000).toISOString(), expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString(), status: "published" })
+      .select("id")
+      .single(),
+    "a live coupon",
+  );
 
   console.log("\nMerchants and admins keep their password");
   const merchant = await makeUser({ url, publishable, admin, email: `cpv-test-${run}-merchant@example.com`, password: `Pw-${run}-x9Z!`, role: "merchant", fullName: "Merchant" });
@@ -120,6 +134,7 @@ async function cleanup() {
   const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
   for (const u of data?.users ?? []) if (u.email?.startsWith(`cpv-test-${run}-`)) created.users.push(u.id);
   for (const id of new Set(created.users)) await admin.auth.admin.deleteUser(id);
+  for (const id of created.businesses) await admin.from("businesses").delete().eq("id", id);
 }
 
 try {

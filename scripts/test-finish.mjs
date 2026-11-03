@@ -292,6 +292,8 @@ async function deletion() {
   const staff = await user("delstaff", "consumer");
   must(await admin.from("business_members").insert({ business_id: paidShop.id, user_id: staff.id, role: "staff" }), "staff member");
   must(await admin.from("staff_invites").insert({ business_id: paidShop.id, email: fakeInbox("pending"), invited_by: paidOwner.id }), "invite");
+  must(await admin.from("staff_invites").insert({ business_id: paidShop.id, email: fakeInbox("accepted"), invited_by: paidOwner.id, accepted_at: new Date().toISOString(), accepted_by: staff.id }), "accepted invite");
+  must(await admin.from("businesses").update({ contact_email: fakeInbox("contact"), contact_phone: "555-0100", website_url: "https://example.com" }).eq("id", paidShop.id), "contact details");
   must(await admin.from("locations").insert({ business_id: paidShop.id, store_name: "Main", address_line1: "2 Main St", city: "Coupersville" }), "store");
 
   let sub = null;
@@ -323,10 +325,11 @@ async function deletion() {
     const after = await stripe.subscriptions.retrieve(sub.id);
     check("the Stripe plan is set to cancel at the end of the period, not now", after.cancel_at_period_end === true && after.status === "active", { status: after.status, cancel: after.cancel_at_period_end });
   }
-  const shopAfter = must(await admin.from("businesses").select("status, owner_id").eq("id", paidShop.id).single(), "business after");
+  const shopAfter = must(await admin.from("businesses").select("status, owner_id, contact_email, contact_phone, website_url").eq("id", paidShop.id).single(), "business after");
   check("the business is suspended and has no owner", shopAfter.status === "suspended" && shopAfter.owner_id === null, shopAfter);
   check("staff lose access", (await admin.from("business_members").select("id").eq("business_id", paidShop.id)).data.length === 0);
-  check("waiting invites are cancelled", (await admin.from("staff_invites").select("id").eq("business_id", paidShop.id)).data.length === 0);
+  check("the business contact email, phone and website are cleared", shopAfter.contact_email === null && shopAfter.contact_phone === null && shopAfter.website_url === null, shopAfter);
+  check("every staff invite is deleted, accepted or waiting", (await admin.from("staff_invites").select("id").eq("business_id", paidShop.id)).data.length === 0);
   check("the staff member's own account is untouched", Boolean((await admin.auth.admin.getUserById(staff.id)).data.user));
   const listed = must(await boss.client.rpc("admin_list_businesses", { p_query: `Paid deletion shop ${run}` }), "admin list");
   check("admin still sees the business, owner marked as deleted", listed.length === 1 && listed[0].owner_email === null, listed);

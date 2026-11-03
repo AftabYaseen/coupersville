@@ -41,7 +41,8 @@ export async function callAction(base, cookie, file, name, args, options = {}) {
   const redirect = res.headers.get("x-action-redirect");
   const text = await res.text();
   // Cookies the action set (a sign-in sets the session), as "name=value" pairs.
-  const setCookies = res.headers.getSetCookie().map((c) => c.split(";")[0]);
+  const rawCookies = res.headers.getSetCookie();
+  const setCookies = rawCookies.map((c) => c.split(";")[0]);
   if (redirect) return { redirect: redirect.split(";")[0], status: res.status, setCookies };
   // The middleware turned the request away before the action ran.
   if (res.status >= 300 && res.status < 400) return { redirect: res.headers.get("location") ?? "", status: res.status, blocked: true };
@@ -56,7 +57,7 @@ export async function callAction(base, cookie, file, name, args, options = {}) {
   const parsed = JSON.parse(root);
   let value = parsed?.a ?? parsed;
   if (typeof value === "string" && value.startsWith("$@")) value = JSON.parse(rows.get(value.slice(2)) ?? "null");
-  return { value, status: res.status, setCookies };
+  return { value, status: res.status, setCookies, rawCookies };
 }
 
 // Creates a confirmed user and returns cookies for the app plus a client for direct database checks.

@@ -5,6 +5,7 @@ import { formatWhen, isWithinSchedule, nextOpening } from "@/lib/rules";
 import { EXPIRING_SOON_MS } from "@/lib/dates";
 import type { Enums } from "@/lib/supabase/database.types";
 import { NEAR_ME_RADIUS_M, PAGE_SIZE, type SearchQuery } from "@/lib/validation/search";
+import type { NearLocation } from "@/lib/near-me";
 
 export type LiveCoupon = {
   id: string;
@@ -106,8 +107,9 @@ export async function searchLiveCoupons(options: SearchOptions): Promise<{ coupo
 }
 
 // A city or ZIP takes precedence over device location, so the two never fight.
-export function searchOptionsFrom(q: SearchQuery): SearchOptions & { usingLocation: boolean } {
-  const usingLocation = !q.place && q.lat !== undefined && q.lng !== undefined;
+// near is the Near me location from its cookie, used only when the address asks for it (near=1).
+export function searchOptionsFrom(q: SearchQuery, near: NearLocation | null): SearchOptions & { usingLocation: boolean } {
+  const usingLocation = !q.place && q.near === "1" && near !== null;
   const sort = q.sort === "nearest" && !usingLocation ? "newest" : q.sort;
   return {
     query: q.q,
@@ -115,8 +117,8 @@ export function searchOptionsFrom(q: SearchQuery): SearchOptions & { usingLocati
     discountType: q.type,
     endingWithinDays: q.ending ? 7 : undefined,
     sort,
-    lat: usingLocation ? q.lat : undefined,
-    lng: usingLocation ? q.lng : undefined,
+    lat: usingLocation ? near?.lat : undefined,
+    lng: usingLocation ? near?.lng : undefined,
     radiusM: usingLocation ? NEAR_ME_RADIUS_M : undefined,
     place: q.place,
     limit: PAGE_SIZE,

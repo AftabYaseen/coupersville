@@ -4,8 +4,9 @@ import { getStripe } from "@/lib/stripe";
 
 // Deleting an account removes the sign-in, the profile, saved coupons and unused redemption codes.
 // Redemptions stay, with the shopper (and the staff member who checked them) removed, so a
-// business's counts stay right. A business owned by the account is suspended, its staff lose
-// access, and a paid plan is set to cancel at the end of the period it has already paid for.
+// business's counts stay right. A business owned by the account is suspended, its contact email,
+// phone and website are cleared, its staff lose access, every staff invite (accepted or not) is
+// deleted, and a paid plan is set to cancel at the end of the period it has already paid for.
 
 export type OwnedBusiness = { id: string; name: string; paidPlan: boolean };
 
@@ -57,9 +58,12 @@ export async function deleteAccount(userId: string): Promise<DeletionResult> {
 
   for (const business of owned) {
     const ids = { business_id: business.id };
-    const suspended = await admin.from("businesses").update({ status: "suspended" }).eq("id", business.id);
+    const suspended = await admin
+      .from("businesses")
+      .update({ status: "suspended", contact_email: null, contact_phone: null, website_url: null })
+      .eq("id", business.id);
     const members = await admin.from("business_members").delete().match(ids).neq("user_id", userId);
-    const invites = await admin.from("staff_invites").delete().match(ids).is("accepted_at", null);
+    const invites = await admin.from("staff_invites").delete().match(ids);
     if (suspended.error || members.error || invites.error) return { ok: false, reason: "failed" };
   }
 

@@ -81,7 +81,7 @@ async function deletionConsequences(userId: string): Promise<string[]> {
     "Coupons you have redeemed stay in the shop's counts, with nothing that links them to you.",
   ];
   for (const business of owned) {
-    lines.push(`${business.name} is taken off Coupersville: its coupons are hidden and its staff can no longer use the scanner.`);
+    lines.push(`${business.name} is taken off Coupersville: its coupons are hidden, its staff can no longer use the scanner, and its contact email, phone, website and staff invitations are removed.`);
     if (business.paidPlan) {
       lines.push(`The ${business.name} plan is cancelled. It is not renewed, and you are not charged again.`);
     }

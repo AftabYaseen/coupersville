@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { cookies } from "next/headers";
+import { NEAR_COOKIE, parseNearCookie } from "@/lib/near-me";
 import { listShops, searchLiveCoupons, searchOptionsFrom } from "@/lib/consumer";
 import { PAGE_SIZE, searchParamsSchema, type SearchQuery } from "@/lib/validation/search";
 import { CouponGrid, EmptyState } from "@/components/consumer/coupon-ticket";
@@ -42,13 +44,15 @@ function pageHref(query: SearchQuery, page: number) {
 
 async function SearchContent({ searchParams }: { searchParams: PageProps<"/search">["searchParams"] }) {
   const query = searchParamsSchema.parse(await searchParams);
-  const options = searchOptionsFrom(query);
+  const near = parseNearCookie((await cookies()).get(NEAR_COOKIE)?.value);
+  const options = searchOptionsFrom(query, near);
   const [shops, { coupons, total }] = await Promise.all([listShops(), searchLiveCoupons(options)]);
   const shown = (query.page - 1) * PAGE_SIZE + coupons.length;
 
   const notes: string[] = [];
   if (options.usingLocation) notes.push("Showing coupons within 25 miles of you.");
   if (query.place) notes.push(`Showing coupons at stores in ${query.place}.`);
+  if (query.near === "1" && !query.place && !near) notes.push("Your location has expired. Tap Near me again to see what is close by.");
   if (query.sort === "nearest" && !options.usingLocation) {
     notes.push("Sorting by nearest needs your location. Tap Near me, or these are sorted newest first.");
   }

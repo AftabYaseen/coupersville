@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LocateFixed } from "lucide-react";
+import { setNearMe } from "@/app/search/actions";
 
 // Declining location is a normal choice, not an error: point people to the city or ZIP field.
 export function NearMeButton({ placeInputId, keepParams = false }: { placeInputId: string; keepParams?: boolean }) {
@@ -21,12 +22,16 @@ export function NearMeButton({ placeInputId, keepParams = false }: { placeInputI
     }
     setState("locating");
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
+        // The rounded location goes into a short-lived cookie, never into the address.
+        const saved = await setNearMe({ lat: pos.coords.latitude, lng: pos.coords.longitude }).catch(() => ({ ok: false }));
+        if (!saved.ok) {
+          fallBackToPlace();
+          return;
+        }
         const params = new URLSearchParams(keepParams ? window.location.search : "");
-        params.delete("place");
-        params.delete("page");
-        params.set("lat", pos.coords.latitude.toFixed(3));
-        params.set("lng", pos.coords.longitude.toFixed(3));
+        for (const key of ["place", "page", "lat", "lng"]) params.delete(key);
+        params.set("near", "1");
         params.set("sort", "nearest");
         router.push(`/search?${params.toString()}`);
       },

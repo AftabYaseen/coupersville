@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireAdminPage } from "@/lib/admin";
 import { formatDay } from "@/lib/dates";
 import { PageLoading } from "@/components/page-loading";
+import { FormMessage } from "@/components/field";
 import { PlanBadge, StatusBadge } from "@/components/admin/badges";
 
 export const metadata: Metadata = { title: "Merchants" };
@@ -51,6 +52,7 @@ async function MerchantsContent({ searchParams }: { searchParams: PageProps<"/ad
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
       <h1 className="wordmark text-4xl text-ink">Merchants</h1>
+      {raw.deleted === "1" && <FormMessage tone="success">The business and everything in it is deleted.</FormMessage>}
 
       <form action="/admin/merchants" className="mt-6 flex gap-2" role="search">
         {status && <input type="hidden" name="status" value={status} />}

@@ -82,12 +82,7 @@ export function SearchForm({
           Only coupons ending in the next 7 days
         </label>
 
-        {usingLocation && (
-          <>
-            <input type="hidden" name="lat" value={query.lat} />
-            <input type="hidden" name="lng" value={query.lng} />
-          </>
-        )}
+        {usingLocation && <input type="hidden" name="near" value="1" />}
 
         <button type="submit" className="btn w-full sm:w-auto sm:justify-self-start">
           <Search aria-hidden size={18} strokeWidth={1.5} />

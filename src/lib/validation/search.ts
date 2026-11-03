@@ -15,8 +15,8 @@ export const searchParamsSchema = z.object({
   type: z.preprocess(blank, z.enum(["percent", "amount", "fixed_price", "free"]).optional()).catch(undefined),
   ending: z.preprocess(first, z.literal("1").optional()).catch(undefined),
   sort: z.preprocess(blank, z.enum(SORTS).default("newest")).catch("newest"),
-  lat: z.preprocess(blank, z.coerce.number().min(-90).max(90).optional()).catch(undefined),
-  lng: z.preprocess(blank, z.coerce.number().min(-180).max(180).optional()).catch(undefined),
+  // Near me: the location itself is in the cpv_near cookie, never in the address.
+  near: z.preprocess(first, z.literal("1").optional()).catch(undefined),
   place: z.preprocess(blank, z.string().trim().max(60).optional()).catch(undefined),
   page: z.preprocess(blank, z.coerce.number().int().min(1).max(50).default(1)).catch(1),
 });
