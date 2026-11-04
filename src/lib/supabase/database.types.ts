@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      anet_events: {
+        Row: {
+          event_type: string
+          id: string
+          received_at: string
+        }
+        Insert: {
+          event_type: string
+          id: string
+          received_at?: string
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          received_at?: string
+        }
+        Relationships: []
+      }
       auth_code_requests: {
         Row: {
           created_at: string
@@ -207,6 +225,85 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      checkouts: {
+        Row: {
+          amount_cents: number
+          anet_trans_id: string | null
+          billing_cycle: string
+          business_id: string
+          created_at: string
+          created_by: string | null
+          hold_expires_at: string | null
+          holds_seat: boolean
+          id: string
+          invoice_number: string
+          offer_code: string
+          outcome: string | null
+          resolved_at: string | null
+          resolving_until: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          anet_trans_id?: string | null
+          billing_cycle: string
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          hold_expires_at?: string | null
+          holds_seat?: boolean
+          id?: string
+          invoice_number: string
+          offer_code: string
+          outcome?: string | null
+          resolved_at?: string | null
+          resolving_until?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          anet_trans_id?: string | null
+          billing_cycle?: string
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          hold_expires_at?: string | null
+          holds_seat?: boolean
+          id?: string
+          invoice_number?: string
+          offer_code?: string
+          outcome?: string | null
+          resolved_at?: string | null
+          resolving_until?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkouts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkouts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkouts_offer_code_fkey"
+            columns: ["offer_code"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       coupon_locations: {
         Row: {
@@ -576,6 +673,7 @@ export type Database = {
       offers: {
         Row: {
           active: boolean
+          admin_only: boolean
           annual_price_cents: number
           code: string
           created_at: string
@@ -594,6 +692,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          admin_only?: boolean
           annual_price_cents: number
           code: string
           created_at?: string
@@ -612,6 +711,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          admin_only?: boolean
           annual_price_cents?: number
           code?: string
           created_at?: string
@@ -638,6 +738,86 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount_cents: number
+          anet_trans_id: string | null
+          billing_cycle: string | null
+          business_id: string
+          card_last4: string | null
+          checkout_id: string | null
+          created_at: string
+          id: string
+          kind: string
+          offer_code: string | null
+          period_end: string | null
+          period_start: string | null
+          renewal_attempt_id: string | null
+          status: string
+        }
+        Insert: {
+          amount_cents: number
+          anet_trans_id?: string | null
+          billing_cycle?: string | null
+          business_id: string
+          card_last4?: string | null
+          checkout_id?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          offer_code?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          renewal_attempt_id?: string | null
+          status: string
+        }
+        Update: {
+          amount_cents?: number
+          anet_trans_id?: string | null
+          billing_cycle?: string | null
+          business_id?: string
+          card_last4?: string | null
+          checkout_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          offer_code?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          renewal_attempt_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_checkout_id_fkey"
+            columns: ["checkout_id"]
+            isOneToOne: false
+            referencedRelation: "checkouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_offer_code_fkey"
+            columns: ["offer_code"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "payments_renewal_attempt_id_fkey"
+            columns: ["renewal_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "renewal_attempts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_settings: {
         Row: {
           consumer_login: string
@@ -646,10 +826,12 @@ export type Database = {
           founders_full_early_access: boolean
           founders_rule: string
           id: string
+          payments_open: boolean
           plans: string
           publishing_opens_at: string
           redemption_method: string
           region_restriction: string | null
+          renewals_enabled: boolean
           singleton: boolean
           subscription_expiry: string
           updated_at: string
@@ -661,10 +843,12 @@ export type Database = {
           founders_full_early_access?: boolean
           founders_rule?: string
           id?: string
+          payments_open?: boolean
           plans?: string
           publishing_opens_at?: string
           redemption_method?: string
           region_restriction?: string | null
+          renewals_enabled?: boolean
           singleton?: boolean
           subscription_expiry?: string
           updated_at?: string
@@ -676,10 +860,12 @@ export type Database = {
           founders_full_early_access?: boolean
           founders_rule?: string
           id?: string
+          payments_open?: boolean
           plans?: string
           publishing_opens_at?: string
           redemption_method?: string
           region_restriction?: string | null
+          renewals_enabled?: boolean
           singleton?: boolean
           subscription_expiry?: string
           updated_at?: string
@@ -857,6 +1043,137 @@ export type Database = {
           },
         ]
       }
+      renewal_attempts: {
+        Row: {
+          amount_cents: number
+          anet_trans_id: string | null
+          attempt_day: number
+          billing_cycle: string
+          business_id: string
+          created_at: string
+          id: string
+          invoice_number: string
+          offer_code: string
+          period_end: string
+          resolved_at: string | null
+          response_text: string | null
+          status: string
+        }
+        Insert: {
+          amount_cents: number
+          anet_trans_id?: string | null
+          attempt_day: number
+          billing_cycle: string
+          business_id: string
+          created_at?: string
+          id?: string
+          invoice_number: string
+          offer_code: string
+          period_end: string
+          resolved_at?: string | null
+          response_text?: string | null
+          status?: string
+        }
+        Update: {
+          amount_cents?: number
+          anet_trans_id?: string | null
+          attempt_day?: number
+          billing_cycle?: string
+          business_id?: string
+          created_at?: string
+          id?: string
+          invoice_number?: string
+          offer_code?: string
+          period_end?: string
+          resolved_at?: string | null
+          response_text?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "renewal_attempts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewal_attempts_offer_code_fkey"
+            columns: ["offer_code"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      renewal_consents: {
+        Row: {
+          agreed_at: string
+          billing_cycle: string
+          business_id: string
+          checkout_id: string | null
+          context: string
+          created_at: string
+          id: string
+          offer_code: string
+          user_id: string | null
+          wording: string
+        }
+        Insert: {
+          agreed_at?: string
+          billing_cycle: string
+          business_id: string
+          checkout_id?: string | null
+          context: string
+          created_at?: string
+          id?: string
+          offer_code: string
+          user_id?: string | null
+          wording: string
+        }
+        Update: {
+          agreed_at?: string
+          billing_cycle?: string
+          business_id?: string
+          checkout_id?: string | null
+          context?: string
+          created_at?: string
+          id?: string
+          offer_code?: string
+          user_id?: string | null
+          wording?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "renewal_consents_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewal_consents_checkout_id_fkey"
+            columns: ["checkout_id"]
+            isOneToOne: false
+            referencedRelation: "checkouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewal_consents_offer_code_fkey"
+            columns: ["offer_code"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "renewal_consents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_invites: {
         Row: {
           accepted_at: string | null
@@ -938,8 +1255,13 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          anet_customer_profile_id: string | null
+          anet_payment_profile_id: string | null
+          billing_cycle: string | null
           business_id: string
           cancel_at_period_end: boolean
+          card_last4: string | null
+          card_updated_at: string | null
           created_at: string
           current_period_end: string | null
           id: string
@@ -949,11 +1271,17 @@ export type Database = {
           status: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          term_ends_at: string | null
           updated_at: string
         }
         Insert: {
+          anet_customer_profile_id?: string | null
+          anet_payment_profile_id?: string | null
+          billing_cycle?: string | null
           business_id: string
           cancel_at_period_end?: boolean
+          card_last4?: string | null
+          card_updated_at?: string | null
           created_at?: string
           current_period_end?: string | null
           id?: string
@@ -963,11 +1291,17 @@ export type Database = {
           status?: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          term_ends_at?: string | null
           updated_at?: string
         }
         Update: {
+          anet_customer_profile_id?: string | null
+          anet_payment_profile_id?: string | null
+          billing_cycle?: string | null
           business_id?: string
           cancel_at_period_end?: boolean
+          card_last4?: string | null
+          card_updated_at?: string | null
           created_at?: string
           current_period_end?: string | null
           id?: string
@@ -977,6 +1311,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          term_ends_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1161,6 +1496,22 @@ export type Database = {
         }[]
       }
       admin_platform_stats: { Args: never; Returns: Json }
+      apply_renewal: {
+        Args: { p_attempt_id: string; p_last4?: string; p_trans_id: string }
+        Returns: Json
+      }
+      begin_paid_checkout: {
+        Args: {
+          p_amount_cents: number
+          p_business_id: string
+          p_created_by: string
+          p_cycle: string
+          p_hold_minutes?: number
+          p_invoice: string
+          p_offer_code: string
+        }
+        Returns: Json
+      }
       business_is_publishable: {
         Args: { p_business_id: string }
         Returns: boolean
@@ -1182,6 +1533,21 @@ export type Database = {
       }
       can_manage_business: { Args: { p_business_id: string }; Returns: boolean }
       can_manage_business_path: { Args: { p_name: string }; Returns: boolean }
+      checkout_finish: {
+        Args: {
+          p_checkout_id: string
+          p_customer_profile?: string
+          p_last4?: string
+          p_note?: string
+          p_outcome: string
+          p_payment_profile?: string
+        }
+        Returns: Json
+      }
+      checkout_start_resolving: {
+        Args: { p_checkout_id: string; p_trans_id: string }
+        Returns: Json
+      }
       claim_founding_seat: {
         Args: { p_business_id: string; p_coupon_id?: string }
         Returns: Json
@@ -1320,6 +1686,10 @@ export type Database = {
           window_starts_at: string
         }[]
       }
+      offer_seats_in_use: {
+        Args: { p_except_checkout?: string; p_offer_code: string }
+        Returns: number
+      }
       plan_is_current: {
         Args: {
           p_past_due_since: string
@@ -1420,7 +1790,7 @@ export type Database = {
       member_role: "owner" | "manager" | "staff"
       redemption_method: "qr" | "code"
       stock_tint: "mint" | "pink" | "sky" | "butter"
-      subscription_source: "stripe" | "complimentary"
+      subscription_source: "stripe" | "complimentary" | "authorize_net"
       subscription_status: "active" | "past_due" | "canceled" | "expired"
       user_role: "consumer" | "merchant" | "admin"
     }
@@ -1557,7 +1927,7 @@ export const Constants = {
       member_role: ["owner", "manager", "staff"],
       redemption_method: ["qr", "code"],
       stock_tint: ["mint", "pink", "sky", "butter"],
-      subscription_source: ["stripe", "complimentary"],
+      subscription_source: ["stripe", "complimentary", "authorize_net"],
       subscription_status: ["active", "past_due", "canceled", "expired"],
       user_role: ["consumer", "merchant", "admin"],
     },

@@ -6,7 +6,8 @@ import { formatDay } from "@/lib/dates";
 
 export const PAST_DUE_GRACE_DAYS = 7;
 const DAY_MS = 86_400_000;
-const STRIPE_RENEWAL_LEEWAY_MS = DAY_MS;
+// Paid plans get a day's leeway, so a renewal recorded a little late never hides coupons.
+const PAID_RENEWAL_LEEWAY_MS = DAY_MS;
 
 export type PlanRow = Pick<
   Tables<"subscriptions">,
@@ -17,10 +18,10 @@ export function planIsCurrent(plan: PlanRow | null, now = Date.now()): boolean {
   if (!plan) return false;
   if (plan.status === "active") {
     if (!plan.current_period_end) return true;
-    const leeway = plan.source === "stripe" ? STRIPE_RENEWAL_LEEWAY_MS : 0;
+    const leeway = plan.source !== "complimentary" ? PAID_RENEWAL_LEEWAY_MS : 0;
     return new Date(plan.current_period_end).getTime() > now - leeway;
   }
-  if (plan.status === "past_due" && plan.source === "stripe" && plan.past_due_since) {
+  if (plan.status === "past_due" && plan.source !== "complimentary" && plan.past_due_since) {
     return new Date(plan.past_due_since).getTime() > now - PAST_DUE_GRACE_DAYS * DAY_MS;
   }
   return false;
@@ -32,7 +33,7 @@ export type PlanState =
   | { kind: "active"; renewsAt: string | null }
   | { kind: "cancelling"; endsAt: string | null }
   | { kind: "past_due"; graceEndsAt: string }
-  | { kind: "expired"; source: "stripe" | "complimentary"; endedAt: string | null; paymentFailed: boolean };
+  | { kind: "expired"; source: "paid" | "complimentary"; endedAt: string | null; paymentFailed: boolean };
 
 // What the merchant sees on the billing page and dashboard.
 export function planState(plan: PlanRow | null, now = Date.now()): PlanState {
@@ -52,7 +53,7 @@ export function planState(plan: PlanRow | null, now = Date.now()): PlanState {
     const graceEnd = plan.past_due_since
       ? new Date(new Date(plan.past_due_since).getTime() + PAST_DUE_GRACE_DAYS * DAY_MS).toISOString()
       : null;
-    return { kind: "expired", source: "stripe", endedAt: graceEnd, paymentFailed: true };
+    return { kind: "expired", source: "paid", endedAt: graceEnd, paymentFailed: true };
   }
 
   if (current) {
@@ -60,7 +61,7 @@ export function planState(plan: PlanRow | null, now = Date.now()): PlanState {
       ? { kind: "cancelling", endsAt: plan.current_period_end }
       : { kind: "active", renewsAt: plan.current_period_end };
   }
-  return { kind: "expired", source: "stripe", endedAt: plan.current_period_end, paymentFailed: plan.status === "expired" };
+  return { kind: "expired", source: "paid", endedAt: plan.current_period_end, paymentFailed: plan.status === "expired" };
 }
 
 // One line for admin lists, for example "Paid plan, renews Oct 12, 2027".

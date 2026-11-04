@@ -61,6 +61,14 @@ export const SETTING_OPTIONS = {
     { value: "early_access", label: "Early Access applies straight away" },
     { value: "wait", label: "No offer until the Early Access window opens" },
   ],
+  payments_open: [
+    { value: "closed", label: "Closed: merchants see no payment buttons; admins can test checkout" },
+    { value: "open", label: "Open: merchants can buy plans" },
+  ],
+  renewals_enabled: [
+    { value: "off", label: "Off: no renewals, retries or renewal reminders" },
+    { value: "on", label: "On: saved cards are charged when plans renew" },
+  ],
 } as const;
 
 const values = <K extends keyof typeof SETTING_OPTIONS>(key: K) =>
@@ -70,6 +78,8 @@ export const settingsSchema = z.object({
   subscription_expiry: z.enum(values("subscription_expiry")),
   founders_rule: z.enum(values("founders_rule")),
   founders_full: z.enum(values("founders_full")),
+  payments_open: z.enum(values("payments_open")),
+  renewals_enabled: z.enum(values("renewals_enabled")),
   // The day publishing opens, from midnight Pacific time.
   publishing_opens_on: z.string().trim().regex(DAY_PATTERN, { error: "Choose a valid date." }),
 });

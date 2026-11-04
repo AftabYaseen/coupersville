@@ -46,18 +46,41 @@ export async function callAction(base, cookie, file, name, args, options = {}) {
   if (redirect) return { redirect: redirect.split(";")[0], status: res.status, setCookies };
   // The middleware turned the request away before the action ran.
   if (res.status >= 300 && res.status < 400) return { redirect: res.headers.get("location") ?? "", status: res.status, blocked: true };
-  // The flight payload is one row per line, "<id>:<json>". Row 0 points at the returned value.
+  // The flight payload is rows of "<id>:<json>\n". A long string is a text row, "<id>:T<hex bytes>,<text>"
+  // with no newline after it. Row 0 points at the returned value.
   const rows = new Map();
-  for (const line of text.split("\n")) {
-    const m = line.match(/^([0-9a-f]+):(.*)$/);
-    if (m) rows.set(m[1], m[2]);
+  const texts = new Map();
+  const buf = Buffer.from(text, "utf8");
+  let i = 0;
+  while (i < buf.length) {
+    const colon = buf.indexOf(":", i);
+    if (colon < 0) break;
+    const id = buf.subarray(i, colon).toString().trim();
+    if (buf[colon + 1] === 0x54 /* T */) {
+      const comma = buf.indexOf(",", colon);
+      const len = parseInt(buf.subarray(colon + 2, comma).toString(), 16);
+      texts.set(id, buf.subarray(comma + 1, comma + 1 + len).toString());
+      i = comma + 1 + len;
+    } else {
+      const nl = buf.indexOf("\n", colon);
+      const end = nl < 0 ? buf.length : nl;
+      rows.set(id, buf.subarray(colon + 1, end).toString());
+      i = end + 1;
+    }
   }
   const root = rows.get("0");
   if (!root) return { error: `Unexpected response ${res.status}: ${text.slice(0, 200)}` };
+  // Text rows are referenced as "$<id>".
+  const resolve = (v) => {
+    if (typeof v === "string" && /^\$[0-9a-f]+$/.test(v) && texts.has(v.slice(1))) return texts.get(v.slice(1));
+    if (Array.isArray(v)) return v.map(resolve);
+    if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, resolve(x)]));
+    return v;
+  };
   const parsed = JSON.parse(root);
   let value = parsed?.a ?? parsed;
   if (typeof value === "string" && value.startsWith("$@")) value = JSON.parse(rows.get(value.slice(2)) ?? "null");
-  return { value, status: res.status, setCookies, rawCookies };
+  return { value: resolve(value), status: res.status, setCookies, rawCookies };
 }
 
 // Creates a confirmed user and returns cookies for the app plus a client for direct database checks.

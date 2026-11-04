@@ -2,9 +2,12 @@
 // Creates throwaway users, businesses, coupons and a category, then deletes them and restores
 // anything shared (category order, platform settings).
 //
-//   npm run build && npx next start -p 3100
-//   BASE_URL=http://localhost:3100 node --env-file=.env.local scripts/test-admin-actions.mjs
+//   npm run staging:build && npm run staging:start
+//   BASE_URL=http://localhost:3100 node --env-file=.env.staging.local scripts/test-admin-actions.mjs
 
+// Exits unless this run targets staging, or production with ALLOW_PRODUCTION_TESTS=1. In production
+// mode it skips everything that writes shared data: the publishing date, settings and categories.
+import { PRODUCTION_MODE } from "./lib/staging-guard.mjs";
 import { createClient } from "@supabase/supabase-js";
 import { callAction, makeUser } from "./lib/call-action.mjs";
 
@@ -43,7 +46,12 @@ function must({ data, error }, what) {
 }
 
 const A = (file) => `src/app/${file}`;
+// Every id this run passes to an action (businesses, coupons), so clean-up can remove the email
+// records that name them, even for a coupon deleted part-way through.
+const actedOn = new Set();
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const act = async (who, file, name, ...args) => {
+  for (const a of args) if (typeof a === "string" && UUID.test(a)) actedOn.add(a);
   const r = await callAction(base, who?.cookie, A(file), name, args);
   return r.value ?? r;
 };
@@ -83,7 +91,9 @@ async function main() {
   originalOrder = must(await admin.from("categories").select("id, sort_order"), "order");
   originalSettings = must(await admin.from("platform_settings").select("*").eq("singleton", true).single(), "settings");
   // Merchant publishing below needs publishing open. Cleanup puts the real date back.
-  must(await admin.from("platform_settings").update({ publishing_opens_at: new Date(Date.now() - 86_400_000).toISOString() }).eq("singleton", true), "open publishing");
+  if (PRODUCTION_MODE) {
+    if (new Date(originalSettings.publishing_opens_at).getTime() > Date.now()) throw new Error("publishing is not open yet in production");
+  } else must(await admin.from("platform_settings").update({ publishing_opens_at: new Date(Date.now() - 86_400_000).toISOString() }).eq("singleton", true), "open publishing");
   const categoryId = must(await admin.from("categories").select("id").eq("active", true).order("sort_order").limit(1).single(), "cat").id;
 
   const boss = await user("admin", "admin");
@@ -369,6 +379,15 @@ async function main() {
   check("a live coupon still cannot be deleted", deleteLive.ok === false, deleteLive);
 
   console.log("\nCategories");
+  if (PRODUCTION_MODE) {
+    console.log("  skip  adding, renaming, reordering, deactivating and deleting a category (shoppers would see it)");
+    const dupeP = await act(boss, "admin/categories/actions.ts", "createCategory", { name: "Bakeries again", slug: "bakeries", shopLabel: "x", tint: "mint" });
+    check("a taken web address name is refused", dupeP.ok === false && /already uses/.test(dupeP.error), dupeP);
+    const badSlugP = await act(boss, "admin/categories/actions.ts", "createCategory", { name: "Bad", slug: "Not OK!", shopLabel: "x", tint: "mint" });
+    check("an invalid web address name is refused", badSlugP.ok === false, badSlugP);
+    const ownerCatP = await callAction(base, owner.cookie, A("admin/categories/actions.ts"), "createCategory", [{ name: "Sneaky", slug: "", shopLabel: "x", tint: "mint" }]);
+    check("merchant cannot add categories", ownerCatP.blocked === true, ownerCatP);
+  } else {
   const before = must(await admin.from("categories").select("id"), "count").length;
   const create = await act(boss, "admin/categories/actions.ts", "createCategory", {
     name: `Test Market ${run}`,
@@ -441,6 +460,7 @@ async function main() {
     { name: "Sneaky", slug: "", shopLabel: "x", tint: "mint" },
   ]);
   check("merchant cannot add categories", ownerCat.blocked === true, ownerCat);
+  }
 
   console.log("\nSettings");
   const settings = {
@@ -448,13 +468,18 @@ async function main() {
     founders_rule: originalSettings.founders_rule,
     founders_full: originalSettings.founders_full_early_access ? "early_access" : "wait",
     publishing_opens_on: "2026-10-01",
+    payments_open: originalSettings.payments_open ? "open" : "closed",
+    renewals_enabled: originalSettings.renewals_enabled ? "on" : "off",
   };
+  if (PRODUCTION_MODE) console.log("  skip  saving settings (production settings are not changed)");
+  else {
   const save = await act(boss, "admin/settings/actions.ts", "updateSettings", settings);
   check("save settings", save.ok === true, save);
   const sneaky = await act(boss, "admin/settings/actions.ts", "updateSettings", { ...settings, consumer_login: "login_required" });
   const stored = must(await admin.from("platform_settings").select("*").eq("singleton", true).single(), "settings");
   check("settings not shown in the UI cannot be changed through the action", sneaky.ok === true && stored.consumer_login === originalSettings.consumer_login, stored);
   check("the publishing date is saved as midnight Pacific", new Date(stored.publishing_opens_at).toISOString() === "2026-10-01T07:00:00.000Z", stored.publishing_opens_at);
+  }
   const invalid = await act(boss, "admin/settings/actions.ts", "updateSettings", { ...settings, founders_rule: "anyone" });
   check("an unknown value is refused", invalid.ok === false, invalid);
   const ownerSettings = await callAction(base, owner.cookie, A("admin/settings/actions.ts"), "updateSettings", [settings]);
@@ -622,8 +647,21 @@ async function deleteBusinessChecks(boss, categoryId) {
 }
 
 async function cleanup() {
+  // Email records name a business or a coupon (plan started, coupon removed): collect this run's
+  // ids before those rows are deleted.
+  const refIds = [...new Set([...created.businesses, ...actedOn])];
+  if (created.businesses.length) {
+    const { data: coupons } = await admin.from("coupons").select("id").in("business_id", created.businesses);
+    refIds.push(...(coupons ?? []).map((c) => c.id));
+  }
   for (const id of created.businesses) await admin.from("businesses").delete().eq("id", id);
+  for (const id of refIds) await admin.from("email_notices").delete().like("ref", `%${id}%`);
   for (const id of created.categories) await admin.from("categories").delete().eq("id", id);
+  // Production mode changed nothing shared, so it restores nothing (writing back would be a change).
+  if (PRODUCTION_MODE) {
+    for (const id of created.users) await admin.auth.admin.deleteUser(id);
+    return;
+  }
   for (const c of originalOrder) await admin.from("categories").update({ sort_order: c.sort_order }).eq("id", c.id);
   if (originalSettings) {
     const { redemption_method, coupon_moderation, subscription_expiry, consumer_login, plans, region_restriction, publishing_opens_at, founders_rule, founders_full_early_access } =

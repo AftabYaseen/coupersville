@@ -41,7 +41,10 @@ yarn-error.log*
 next-env.d.ts
 
 !.env.example
+!.env.staging.example
 
 # reference images, not used in the app
 public/Img-2.jpeg
 public/coffee-shop.jpg
+
+.vercel

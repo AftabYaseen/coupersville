@@ -1,10 +1,12 @@
 // Redemption checks against the real Supabase project, through the same RPCs the app calls.
 // Creates throwaway users, a business, stores and coupons, runs every check, then deletes it all.
 //
-//   node --env-file=.env.local scripts/test-redemption.mjs
+//   node --env-file=.env.staging.local scripts/test-redemption.mjs
 //
 // Needs NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY and SUPABASE_SECRET_KEY.
 
+// Exits unless this run targets the staging project (never production).
+import "./lib/staging-guard.mjs";
 import { createClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

@@ -30,36 +30,36 @@ update public.profiles set role = 'admin' where id = (select id from auth.users 
 
 ## Tests
 
-The scripts create throwaway users and a test business in the Supabase project, run their checks, then delete everything they made. They need `SUPABASE_SECRET_KEY` in `.env.local`.
+Tests run only against the staging Supabase project, never production. Copy `.env.staging.example` to `.env.staging.local` and fill in the staging values. Every test script starts with `scripts/lib/staging-guard.mjs`, which exits unless the env names the staging project (not production), the secret key opens it, `BASE_URL` is a local build, and that build was made for staging. Build and start the app for staging with `npm run staging:build` and `npm run staging:start` (port 3100). The scripts create throwaway users and a test business, run their checks, then delete everything they made.
 
 ```
-node --env-file=.env.local scripts/test-redemption.mjs
+node --env-file=.env.staging.local scripts/test-redemption.mjs
 ```
 
 Checks the redemption functions directly, including concurrent verify races, limits, expiry, wrong business, paused coupons, staff invites and Realtime.
 
 ```
-npm run build
-npx next start -p 3100
-BASE_URL=http://localhost:3100 node --env-file=.env.local scripts/test-pages.mjs
+npm run staging:build
+npm run staging:start
+BASE_URL=http://localhost:3100 node --env-file=.env.staging.local scripts/test-pages.mjs
 ```
 
 Fetches pages as a shopper, a staff member, an owner and a signed-out visitor, and checks access and content.
 
 ```
-BASE_URL=http://localhost:3100 node --env-file=.env.local scripts/test-admin-actions.mjs
+BASE_URL=http://localhost:3100 node --env-file=.env.staging.local scripts/test-admin-actions.mjs
 ```
 
 Calls the admin server actions, and the redeem, scanner and staff actions, over HTTP the way the browser does, as an admin, a merchant, a shopper and a signed-out visitor. Needs the same running build. It restores the category order and platform settings afterwards.
 
 ```
-BASE_URL=http://localhost:3100 node --env-file=.env.local scripts/test-signin-codes.mjs
+BASE_URL=http://localhost:3100 node --env-file=.env.staging.local scripts/test-signin-codes.mjs
 ```
 
 Shopper sign-in with an email code, through the real server actions of a local build: merchants refused, a code signing in and a save carrying on, wrong codes, and the per-email and per-IP limits. The code comes from Supabase's admin `generateLink`, so no email is sent; receiving a real email needs a person with an inbox.
 
 ```
-BASE_URL=http://localhost:3100 node --env-file=.env.local scripts/test-finish.mjs
+BASE_URL=http://localhost:3100 node --env-file=.env.staging.local scripts/test-finish.mjs
 ```
 
 Phase 7: marketing and legal pages, titles, sitemap, robots, Open Graph image, PWA files and icons, the 404 page, every email (welcome, staff invite, plan started, plan ending, plan ended, coupon removed), the daily job run twice, and account deletion for a shopper and for an owner with a Stripe test plan. Accounts that should get a real email use Resend's test inbox (`delivered+...@resend.dev`), so those emails show in the Resend dashboard but reach no one. It needs `CRON_SECRET` in `.env.local` and stops before calling the daily job if a real plan ends within 7 days.

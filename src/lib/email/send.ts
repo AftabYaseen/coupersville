@@ -19,6 +19,9 @@ export type SendResult = { ok: true; skipped?: boolean } | { ok: false; reason: 
 // exercise every path without sending real email.
 const UNDELIVERABLE = /@(?:[^@]+\.)?(?:example\.(?:com|net|org)|[^@]+\.(?:test|invalid|example|localhost))$/i;
 
+// Addresses on reserved test domains: nothing is ever sent to them.
+export const isTestAddress = (address: string) => UNDELIVERABLE.test(address);
+
 export async function sendEmail(email: Email): Promise<SendResult> {
   if (UNDELIVERABLE.test(email.to)) return { ok: true, skipped: true };
 

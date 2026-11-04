@@ -1,11 +1,13 @@
 // Email-code sign-in for shoppers, through the real server actions of a local build.
 //
-//   npm run build && npx next start -p 3100
-//   BASE_URL=http://localhost:3100 node --env-file=.env.local scripts/test-signin-codes.mjs
+//   npm run staging:build && npm run staging:start
+//   BASE_URL=http://localhost:3100 node --env-file=.env.staging.local scripts/test-signin-codes.mjs
 //
 // The 6-digit code is taken from Supabase's admin generateLink, which returns the same code the email
 // would carry, without sending an email. Sending real emails is left to a person with an inbox.
 
+// Exits unless this run targets the staging project (never production).
+import "./lib/staging-guard.mjs";
 import { createClient } from "@supabase/supabase-js";
 import { callAction, makeUser } from "./lib/call-action.mjs";
 

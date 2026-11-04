@@ -12,6 +12,8 @@ const FIELDS: { key: keyof typeof SETTING_OPTIONS; label: string }[] = [
   { key: "subscription_expiry", label: "When a plan ends" },
   { key: "founders_rule", label: "A Founding Merchant qualifies for a free seat when" },
   { key: "founders_full", label: "If Founding seats fill before the window ends" },
+  { key: "payments_open", label: "Payments" },
+  { key: "renewals_enabled", label: "Renewals" },
 ];
 
 export function SettingsForm({ defaults }: { defaults: SettingsInput }) {

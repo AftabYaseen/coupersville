@@ -38,7 +38,7 @@ export async function setComplimentaryPlan(businessId: unknown, endsOnInput: unk
   const { business, plan } = await load(ctx, id.data);
   if (!business) return NOT_FOUND;
   // A current paid plan is read-only here. Once it has lapsed, a complimentary plan may replace it.
-  if (plan?.source === "stripe" && planIsCurrent(plan)) return PAID;
+  if (plan && plan.source !== "complimentary" && planIsCurrent(plan)) return PAID;
 
   const endsAt = endsOn.data ? endOfDayInZone(endsOn.data, business.timezone) : null;
   if (endsAt && endsAt.getTime() <= Date.now()) {
@@ -82,7 +82,7 @@ export async function extendComplimentaryPlan(businessId: unknown): Promise<Acti
   const { business, plan } = await load(ctx, id.data);
   if (!business) return NOT_FOUND;
   if (!plan) return { ok: false, error: "This business has no plan to extend. Grant one first." };
-  if (plan.source === "stripe") return PAID;
+  if (plan.source !== "complimentary") return PAID;
   if (plan.status === "active" && !plan.current_period_end) {
     return { ok: false, error: "This plan has no end date, so there is nothing to extend." };
   }
@@ -111,7 +111,7 @@ export async function revokeComplimentaryPlan(businessId: unknown): Promise<Acti
   const { business, plan } = await load(ctx, id.data);
   if (!business) return NOT_FOUND;
   if (!plan || plan.status !== "active") return { ok: false, error: "This business has no active plan to revoke." };
-  if (plan.source === "stripe") return PAID;
+  if (plan.source !== "complimentary") return PAID;
 
   const { error } = await ctx.supabase
     .from("subscriptions")

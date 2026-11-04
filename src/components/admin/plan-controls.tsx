@@ -8,7 +8,7 @@ import type { ActionResult } from "@/lib/validation/auth";
 type Props = {
   businessId: string;
   businessName: string;
-  source: "stripe" | "complimentary" | null;
+  source: "stripe" | "complimentary" | "authorize_net" | null;
   active: boolean;
   hasEndDate: boolean;
   // Defaults for the date field, as YYYY-MM-DD in the business timezone.
@@ -25,7 +25,7 @@ export function PlanControls({ businessId, businessName, source, active, hasEndD
   const fieldId = `plan-end-${businessId}`;
 
   // Paid plans are read-only here: the payment webhook owns them.
-  if (source === "stripe" && active) {
+  if (source && source !== "complimentary" && active) {
     return <p className="text-sm">This business has a paid plan, so it is read-only here.</p>;
   }
 
@@ -41,7 +41,7 @@ export function PlanControls({ businessId, businessName, source, active, hasEndD
   const granting = !active;
   return (
     <div className={`grid gap-3 ${compact ? "" : "max-w-md"}`}>
-      {source === "stripe" && (
+      {source && source !== "complimentary" && (
         <p className="text-sm">The paid plan has lapsed. A complimentary plan can replace it.</p>
       )}
       <div>

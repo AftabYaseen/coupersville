@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "staging:build": "node scripts/staging.mjs build",
+    "staging:start": "node scripts/staging.mjs start"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

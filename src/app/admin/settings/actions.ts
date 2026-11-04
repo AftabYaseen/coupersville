@@ -21,6 +21,8 @@ export async function updateSettings(input: unknown): Promise<ActionResult> {
       subscription_expiry: v.subscription_expiry,
       founders_rule: v.founders_rule,
       founders_full_early_access: v.founders_full === "early_access",
+      payments_open: v.payments_open === "open",
+      renewals_enabled: v.renewals_enabled === "on",
       publishing_opens_at: startOfDayInZone(v.publishing_opens_on, OFFER_TIME_ZONE).toISOString(),
     })
     .eq("singleton", true)

@@ -15,6 +15,8 @@ const FONT = "Archivo, 'Helvetica Neue', Arial, sans-serif";
 
 export type RenderedEmail = { subject: string; html: string; text: string };
 
+export type PlanSource = "stripe" | "complimentary" | "authorize_net";
+
 type Block =
   | { kind: "p"; text: string }
   | { kind: "button"; label: string; href: string }
@@ -129,18 +131,26 @@ export function planStartedEmail({
   endsAt,
   timeZone,
   foundingSeat = false,
+  offerName = null,
+  renewalTerms = null,
 }: {
   businessName: string;
-  source: "stripe" | "complimentary";
+  source: PlanSource;
   endsAt: string | null;
   timeZone: string;
   foundingSeat?: boolean;
+  // Paid plans: the offer name, for example "Founding Merchant".
+  offerName?: string | null;
+  // Paid plans: the automatic renewal terms the merchant agreed to, word for word.
+  renewalTerms?: string | null;
 }): RenderedEmail {
+  const paid = source !== "complimentary";
   const rows: [string, string][] = [["Business", businessName]];
   if (foundingSeat) rows.push(["Plan", "Founding Merchant, free seat"]);
-  if (endsAt) rows.push([source === "stripe" ? "Renews on" : "Active until", day(endsAt, timeZone)]);
+  if (paid && offerName) rows.push(["Plan", offerName]);
+  if (endsAt) rows.push([paid ? "Renews on" : "Active until", day(endsAt, timeZone)]);
   let text = "Coupersville gave your business a complimentary plan. Your published coupons are live for shoppers.";
-  if (source === "stripe") text = "Thanks for starting your annual plan. Your published coupons are live for shoppers.";
+  if (paid) text = "Thanks for your payment. Your plan is active and your published coupons are live for shoppers.";
   if (foundingSeat) text = "Welcome, Founding Merchant. You have one of the free Founding seats: your first 12 months are on us, and your coupon is live for shoppers.";
   return layout({
     subject: foundingSeat ? "Your Founding Merchant seat is confirmed" : "Your Coupersville plan is active",
@@ -148,12 +158,37 @@ export function planStartedEmail({
     blocks: [
       { kind: "p", text },
       { kind: "stub", rows },
+      ...renewalTermsBlocks(renewalTerms),
       { kind: "button", label: "Open your dashboard", href: absoluteUrl("/merchant") },
     ],
   });
 }
 
+// The automatic renewal terms as agreed, and where to cancel (New York General Business Law 527-a).
+function renewalTermsBlocks(terms: string | null): Block[] {
+  if (!terms) return [];
+  return [
+    { kind: "p", text: "Your automatic renewal terms, as you agreed to them:" },
+    { kind: "note", text: terms },
+    { kind: "p", text: `To cancel, open Billing and choose Cancel renewal: ${absoluteUrl("/merchant/billing")}` },
+  ];
+}
+
+// After a free Founding seat adds a card: confirms the plan will continue on General automatically.
+export function renewalTermsEmail({ businessName, terms, last4 }: { businessName: string; terms: string; last4: string | null }): RenderedEmail {
+  return layout({
+    subject: "Your card is saved: your automatic renewal terms",
+    heading: "Your card is saved",
+    blocks: [
+      { kind: "p", text: `Thanks. Your card${last4 ? ` ending in ${last4}` : ""} is saved for ${businessName}, so your plan continues when your free Founding year ends.` },
+      ...renewalTermsBlocks(terms),
+      { kind: "button", label: "Open Billing", href: absoluteUrl("/merchant/billing") },
+    ],
+  });
+}
+
 export function paymentFailedEmail({ businessName, graceEndsAt, timeZone }: { businessName: string; graceEndsAt: string; timeZone: string }): RenderedEmail {
+  // Renewals are retried 1, 3 and 7 days after the renewal date.
   return layout({
     subject: "Your Coupersville payment failed",
     heading: "Your payment failed",
@@ -162,7 +197,7 @@ export function paymentFailedEmail({ businessName, graceEndsAt, timeZone }: { bu
       { kind: "p", text: `We could not charge your card for the ${businessName} plan. Your coupons stay live for ${PAST_DUE_GRACE_DAYS} days while you update your card.` },
       { kind: "stub", rows: [["Coupons stay live until", day(graceEndsAt, timeZone)]] },
       { kind: "button", label: "Update card", href: absoluteUrl("/merchant/billing") },
-      { kind: "note", text: "Our payment processor will try the card again on its own. If it goes through, you do not need to do anything." },
+      { kind: "note", text: "We will try the card again 1, 3 and 7 days after the renewal date. If a payment goes through, you do not need to do anything." },
     ],
   });
 }
@@ -174,10 +209,11 @@ export function planEndingEmail({
   timeZone,
 }: {
   businessName: string;
-  source: "stripe" | "complimentary";
+  source: PlanSource;
   endsAt: string;
   timeZone: string;
 }): RenderedEmail {
+  const paid = source !== "complimentary";
   return layout({
     subject: "Your Coupersville plan ends in 7 days",
     heading: "Your plan ends soon",
@@ -185,12 +221,12 @@ export function planEndingEmail({
       {
         kind: "p",
         text:
-          source === "stripe"
-            ? `Your annual plan for ${businessName} is cancelled and ends soon. After that, your coupons are hidden from shoppers.`
+          paid
+            ? `Your plan for ${businessName} is cancelled and ends soon. After that, your coupons are hidden from shoppers.`
             : `The complimentary plan for ${businessName} ends soon. After that, your coupons are hidden from shoppers.`,
       },
       { kind: "stub", rows: [["Plan ends on", day(endsAt, timeZone)]] },
-      { kind: "button", label: source === "stripe" ? "Renew your plan" : "See your plan", href: absoluteUrl("/merchant/billing") },
+      { kind: "button", label: paid ? "Renew your plan" : "See your plan", href: absoluteUrl("/merchant/billing") },
     ],
   });
 }
@@ -221,6 +257,75 @@ export function couponRemovedEmail({ businessName, couponTitle, reason }: { busi
       { kind: "stub", rows },
       { kind: "p", text: "You can still edit the coupon, or delete it if nobody has redeemed it." },
       { kind: "button", label: "See your coupons", href: absoluteUrl("/merchant/coupons") },
+    ],
+  });
+}
+
+// 60 and 30 days before a paid plan renews.
+export function renewalReminderEmail({
+  businessName,
+  renewsOn,
+  priceText,
+  offerName,
+  timeZone,
+}: {
+  businessName: string;
+  renewsOn: string;
+  priceText: string;
+  offerName: string;
+  timeZone: string;
+}): RenderedEmail {
+  return layout({
+    subject: `Your Coupersville plan renews on ${day(renewsOn, timeZone)}`,
+    heading: "Your plan renews soon",
+    blocks: [
+      { kind: "p", text: `The plan for ${businessName} renews on its own, using the card on file.` },
+      { kind: "stub", rows: [["Renews on", day(renewsOn, timeZone)], ["Plan", offerName], ["Price", priceText]] },
+      { kind: "button", label: "See your plan", href: absoluteUrl("/merchant/billing") },
+      { kind: "note", text: "To stop it renewing, open Billing and cancel before that date. Your plan stays active until then." },
+    ],
+  });
+}
+
+// 60 and 30 days before a free Founding seat ends.
+export function addCardReminderEmail({
+  businessName,
+  endsOn,
+  generalPrices,
+  hasCard,
+  timeZone,
+}: {
+  businessName: string;
+  endsOn: string;
+  generalPrices: string;
+  hasCard: boolean;
+  timeZone: string;
+}): RenderedEmail {
+  return layout({
+    subject: hasCard ? "Your Founding seat continues on General soon" : "Your free Founding seat ends soon",
+    heading: hasCard ? "Your plan continues soon" : "Your free year ends soon",
+    blocks: [
+      {
+        kind: "p",
+        text: hasCard
+          ? `The free Founding seat for ${businessName} ends soon. Your card is on file, so the plan continues on General.`
+          : `The free Founding seat for ${businessName} ends soon. Add a card to continue on General, or the plan ends and your coupons are hidden from shoppers.`,
+      },
+      { kind: "stub", rows: [["Free seat ends on", day(endsOn, timeZone)], ["General", generalPrices]] },
+      { kind: "button", label: hasCard ? "See your plan" : "Add card", href: absoluteUrl("/merchant/billing") },
+    ],
+  });
+}
+
+// To Coupersville admins when a payment needs a person to look at it.
+export function adminBillingAlertEmail({ subject, lines }: { subject: string; lines: string[] }): RenderedEmail {
+  return layout({
+    subject: `Billing needs a look: ${subject}`,
+    heading: "Billing needs a look",
+    alert: true,
+    blocks: [
+      ...lines.map((text) => ({ kind: "p" as const, text })),
+      { kind: "button", label: "Open subscriptions", href: absoluteUrl("/admin/subscriptions") },
     ],
   });
 }

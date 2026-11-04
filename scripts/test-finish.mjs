@@ -1,7 +1,7 @@
 // Phase 7 checks, through a local production build:
 //
-//   npm run build && npx next start -p 3100
-//   BASE_URL=http://localhost:3100 node --env-file=.env.local scripts/test-finish.mjs
+//   npm run staging:build && npm run staging:start
+//   BASE_URL=http://localhost:3100 node --env-file=.env.staging.local scripts/test-finish.mjs
 //
 // Public pages, metadata files, the PWA files, the 404 page, emails (welcome, staff invite, plan
 // started, plan ending, plan ended, coupon removed), the daily cron job run twice, and account
@@ -10,6 +10,8 @@
 // Test accounts that should get a real email use Resend's test inbox (delivered+...@resend.dev),
 // so each email really goes through Resend and shows in its dashboard, but reaches no person.
 
+// Exits unless this run targets staging, or production with ALLOW_PRODUCTION_TESTS=1 (see the guard).
+import { PRODUCTION_MODE } from "./lib/staging-guard.mjs";
 import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
@@ -217,6 +219,15 @@ async function emails() {
   const plans = must(await admin.from("subscriptions").select("id, business_id, current_period_end").in("business_id", [shop.id, ended.id, renewing.id]), "plans");
   const planOf = (b) => plans.find((p) => p.business_id === b.id);
 
+  if (PRODUCTION_MODE) {
+    // Without ?only= the job works on every real business (plan emails, renewals, reminders).
+    check("the job refuses a request without the secret", (await cron(null)).status === 401);
+    check("and one with the wrong secret", (await cron("Bearer wrong")).status === 401);
+    console.log("  skip  running the daily job (it would act on real businesses; test-anet runs it for test businesses only)");
+    created.refs.push(link.user.id, coupon.id, `complimentary:${later.id}`);
+    return;
+  }
+
   // The job reads every plan, and this may be the live database: never email a real merchant from a test.
   const window = must(
     await admin.from("subscriptions").select("business_id").gte("current_period_end", iso(-7)).lte("current_period_end", iso(7)),
@@ -235,7 +246,7 @@ async function emails() {
   check("a plan that ended 2 days ago gets the ended email", (await noticesLike("plan_ended", planOf(ended).id)).length === 1);
   check("a Stripe plan that renews gets no ending email", (await noticesLike("plan_ending", planOf(renewing).id)).length === 0);
   const second = await cron(`Bearer ${cronSecret}`);
-  check("running the job twice is safe", second.status === 200 && second.body.report.ending.sent === 0 && second.body.report.ended.sent === 0, second.body);
+  check("running the job twice is safe", second.status === 200 && second.body.report.plan_notices.ending.sent === 0 && second.body.report.plan_notices.ended.sent === 0, second.body);
   check("still one email each", (await noticesLike("plan_ending", planOf(shop).id)).length === 1 && (await noticesLike("plan_ended", planOf(ended).id)).length === 1);
   created.refs.push(link.user.id, coupon.id, `complimentary:${later.id}`, planOf(shop).id, planOf(ended).id);
 }

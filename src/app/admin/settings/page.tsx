@@ -33,6 +33,8 @@ async function SettingsContent() {
               subscription_expiry: data.subscription_expiry,
               founders_rule: data.founders_rule,
               founders_full: data.founders_full_early_access ? "early_access" : "wait",
+              payments_open: data.payments_open ? "open" : "closed",
+              renewals_enabled: data.renewals_enabled ? "on" : "off",
               publishing_opens_on: dayInZone(data.publishing_opens_at, OFFER_TIME_ZONE),
             }}
           />

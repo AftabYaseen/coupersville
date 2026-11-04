@@ -16,7 +16,7 @@ Read this whole file before writing code. Build one phase at a time (see "Build 
 - Tailwind CSS (latest)
 - Supabase: Postgres, Auth, Storage, Row Level Security, PostGIS
 - `@supabase/ssr` for server and browser clients
-- Payments: none yet (billing Part A, 2026-10-31). A processor is still to be chosen; nothing may call Authorize.net until sandbox credentials exist, and its live keys must never be used for development. The Stripe webhook route and `src/lib/stripe.ts` stay, unlinked, for the plans Stripe already holds
+- Payments: Authorize.net (billing Part B, 2026-11-05). Cards are entered only on Authorize.net's hosted pages (Accept Hosted for checkout, the hosted profile page for Update card); card data never reaches our servers. `AUTHORIZE_NET_ENV` picks the endpoint, and nothing calls the production endpoint unless it is `production`. The Stripe webhook route and `src/lib/stripe.ts` stay until Stripe is removed
 - React Hook Form + Zod for forms
 - `qrcode` to render QR codes, `html5-qrcode` to scan
 - Resend for email
@@ -43,6 +43,10 @@ SUPABASE_SECRET_KEY            # server only, added by the developer
 STRIPE_SECRET_KEY              # phase 6
 STRIPE_WEBHOOK_SECRET          # phase 6
 STRIPE_ANNUAL_PRICE_ID         # phase 6
+AUTHORIZE_NET_API_LOGIN_ID     # billing Part B
+AUTHORIZE_NET_TRANSACTION_KEY
+AUTHORIZE_NET_SIGNATURE_KEY    # verifies X-ANET-Signature on webhooks
+AUTHORIZE_NET_ENV              # sandbox | production; .env.local is always sandbox
 RESEND_API_KEY                 # phase 7
 EMAIL_FROM                     # sender on mail.coupersville.com, for example "Coupersville <hello@mail.coupersville.com>"
 CRON_SECRET                    # Vercel Cron sends it as a Bearer token to /api/cron/daily
@@ -91,6 +95,13 @@ All tables have `id uuid` primary keys, `created_at`, and `updated_at` where it 
 - **billing_customers**: `business_id` (primary key), `stripe_customer_id` (unique). One Stripe customer per business (from before billing Part A). Server code writes it.
 - **stripe_events**: `id` (the Stripe event id), `type`, `received_at`. Webhook events already processed, so a repeated delivery is ignored. Server code only.
 - **Billing rules**: the webhook at `/api/stripe/webhook` is the only writer of Stripe plan state. It verifies the signature, skips event ids it has already processed, and always re-reads the subscription from Stripe, so late or out-of-order events cannot roll a plan back. A plan is current (`plan_is_current`) when it is active and not past its end date (Stripe plans get one extra day for a late renewal webhook), or when a Stripe plan is past due for under 7 days. A paid plan that starts replaces a complimentary one. An admin can grant a complimentary plan only once a paid plan has lapsed. Checkout, the Customer Portal and the success page were removed in billing Part A.
+- **Paid billing (Authorize.net, Part B)**: `src/lib/paid-billing.ts`, `src/lib/authorize-net.ts`.
+  - **Buying**: when `payments_open` is on, Billing offers the current offer with annual or monthly. Before payment the merchant ticks a box next to the automatic-renewal terms (price, cycle, renewal date, renewal price, how to cancel; New York GBL 527-a, `src/lib/renewal-terms.ts`); the wording and time are recorded in `renewal_consents` and repeated in the plan started email. Paid Founding seats are held for 30 minutes under the offer lock (`begin_paid_checkout`), and Founding is bought only once its free seats are gone.
+  - **Confirming**: checkout only authorises. The return page, the webhook (`/api/authorize-net/webhook`, X-ANET-Signature checked, duplicates ignored) and the daily sweep each confirm with getTransactionDetails, take a lock (`checkout_start_resolving`), then capture, or void if the seat is gone; `checkout_finish` records it once. A payment is captured exactly once, whichever path gets there first. The return page keeps confirming for a few seconds, because Authorize.net lists a new payment 10 to 20 seconds late. Admins are emailed about a checkout unresolved after 24 hours or a renewal with an unknown result.
+  - **Renewals**: our own daily job, only while the `renewals_enabled` setting is on (off at launch). It charges the saved card at the offers-table price on the renewal date (a 12-month term renews into its `renews_into` offer), retries on days 1, 3 and 7 with a 7-day grace, sends one payment failed email per period, then ends the plan. Each attempt has a unique key per plan, period and day, so a second run never charges twice; an unknown or held result is settled later by transaction id or invoice. Reminders go out 60 and 30 days ahead; a free Founding seat gets add-a-card reminders and, with a card, continues on General.
+  - **Cancelling**: Cancel renewal on Billing, any time; the plan lasts to the end of the paid period, no partial refunds. Billing history shows date, amount, last 4 and status.
+  - **Admin test**: `/admin/merchants/[id]` has Test checkout, which buys the admin-only $1.00 `admin_test` offer (inactive, `admin_only`, no seat cap): merchants never see it, and it claims no Founding seat.
+- **checkouts**, **payments**, **renewal_attempts**, **renewal_consents**, **anet_events**: the Part B billing records. Server code writes them; managers and admins read their own business's checkouts, payments and agreements.
 - **email_notices**: `kind`, `ref` (primary key together), `sent_at`. Emails that must go out once: server code claims the row before sending and releases it if the send fails. Server code only.
 - **platform_settings**: single row holding the decisions above. `/admin/settings` shows only the settings the app acts on (plan expiry, publishing open date, the Founding seat rule, and what happens when Founding seats fill). The others, and the retired `plans` column, stay in the table, out of the UI, until they are built.
 
@@ -124,9 +135,13 @@ Sent through Resend's HTTP API from `src/lib/email/` (brand templates in `templa
 |---|---|---|
 | Welcome | First sign-in of an account made in the last 2 days | `email_notices` (user id) |
 | Staff invite | Owner invites staff; the copy-link stays as a fallback | the invite itself |
-| Plan started | Stripe plan becomes active (webhook), an admin grants a new complimentary plan, or a merchant claims a Founding seat (Founding wording) | `email_notices` |
-| Payment failed | `invoice.payment_failed` while the plan is past due | `email_notices` (invoice id) |
+| Plan started | A paid plan is captured (with the agreed renewal terms), an admin grants a new complimentary plan, or a merchant claims a Founding seat (Founding wording) | `email_notices` |
+| Payment failed | A renewal is declined (once per plan period; retried on days 1, 3 and 7) | `email_notices` (business + period end) |
 | Plan ending in 7 days | Daily job: complimentary, or Stripe set to cancel, ending within 7 days | `email_notices` (plan + end date) |
+| Renewal reminder | 60 and 30 days before a paid plan renews, with date and price (only while renewals are on) | `email_notices` (business + end date) |
+| Add a card | 60 and 30 days before a free Founding seat ends | `email_notices` (business + end date) |
+| Card saved | A free Founding seat adds a card, repeating the agreed renewal terms | `email_notices` (agreement id) |
+| Billing alert (admins) | A checkout unresolved after 24 hours, a renewal with an unknown result or held for review | `email_notices` (record + admin) |
 | Plan ended | Daily job: plan stopped being current in the last 7 days (not past due) | `email_notices` (plan + end date) |
 | Coupon removed by Coupersville | Admin puts a coupon on hold | `email_notices` (coupon + held at) |
 
@@ -164,10 +179,12 @@ Prices appear only on signed-in merchant and admin screens (`/merchant/billing`,
 /merchant/coupons  /merchant/coupons/new  /merchant/coupons/[id]
 /merchant/scan          staff scanner + code entry
 /merchant/staff         owner invites and removes staff
-/merchant/billing       plan state, current offer, seats left, Claim free seat (profile-complete rule)
+/merchant/billing       plan state, current offer, seats left, Claim free seat, Continue to payment, Update card, Cancel renewal
+/merchant/billing/history  payments: date, amount, last 4, status
 /join/[token]           staff accept an invite
 /api/stripe/webhook     Stripe events (kept for plans Stripe already holds; nothing links to Stripe)
-/api/cron/daily         Vercel Cron (vercel.json): plan ending in 7 days, plan ended
+/api/authorize-net/webhook  Authorize.net events (signature checked; confirms payments, refreshes saved cards)
+/api/cron/daily         Vercel Cron (vercel.json): confirm open checkouts, renewals and reminders (when on), plan ending in 7 days, plan ended
 
 /admin                  platform stats
 /admin/merchants  /admin/coupons  /admin/categories

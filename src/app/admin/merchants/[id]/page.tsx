@@ -18,13 +18,19 @@ import { PlanControls } from "@/components/admin/plan-controls";
 import { setBusinessStatus } from "@/app/admin/merchants/actions";
 import { DeleteBusiness } from "@/components/admin/delete-business";
 import { businessDeletionPlan } from "@/lib/business-deletion";
+import { adminTestCheckout } from "@/app/admin/merchants/billing-actions";
+import { HostedPageButton } from "@/components/merchant/hosted-page-button";
+import { FormMessage } from "@/components/field";
+import { anetConfigured, anetIsProduction } from "@/lib/authorize-net";
+import { resolveCheckout } from "@/lib/paid-billing";
+import { AutoRefresh } from "@/components/auto-refresh";
 
 export const metadata: Metadata = { title: "Business" };
 
-export default function AdminBusinessPage({ params }: PageProps<"/admin/merchants/[id]">) {
+export default function AdminBusinessPage({ params, searchParams }: PageProps<"/admin/merchants/[id]">) {
   return (
     <Suspense fallback={<PageLoading />}>
-      <BusinessContent params={params} />
+      <BusinessContent params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
@@ -34,8 +40,15 @@ function clockNow() {
 }
 
 
-async function BusinessContent({ params }: { params: PageProps<"/admin/merchants/[id]">["params"] }) {
+async function BusinessContent({
+  params,
+  searchParams,
+}: {
+  params: PageProps<"/admin/merchants/[id]">["params"];
+  searchParams: PageProps<"/admin/merchants/[id]">["searchParams"];
+}) {
   const { id } = await params;
+  const { checkout, cancelled } = await searchParams;
   const { supabase } = await requireAdminPage(`/admin/merchants/${id}`);
   if (!z.uuid().safeParse(id).success) notFound();
 
@@ -58,6 +71,19 @@ async function BusinessContent({ params }: { params: PageProps<"/admin/merchants
       supabase.from("redemptions").select("id", { count: "exact", head: true }).eq("business_id", id),
     ]);
   if (!business) notFound();
+
+  // Back from a test checkout: confirm it the same way a merchant's is confirmed.
+  let checkoutResult: string | null = null;
+  if (typeof checkout === "string" && z.uuid().safeParse(checkout).success && anetConfigured()) {
+    checkoutResult = cancelled === "1" ? "cancelled" : await resolveCheckout(checkout).catch(() => "retry_later");
+    // Authorize.net lists a new payment 10 to 20 seconds late: on a recent checkout, keep confirming.
+    if (checkoutResult === "no_payment") {
+      const { data: started } = await supabase.from("checkouts").select("created_at").eq("id", checkout).maybeSingle();
+      if (started && clockNow() - new Date(started.created_at).getTime() < 20 * 60_000) checkoutResult = "confirming";
+    }
+    if (checkoutResult === "retry_later" || checkoutResult === "busy") checkoutResult = "confirming";
+  }
+  const { data: settings } = await supabase.from("platform_settings").select("payments_open").eq("singleton", true).maybeSingle();
 
   const now = clockNow();
   const tz = business.timezone;
@@ -172,6 +198,32 @@ async function BusinessContent({ params }: { params: PageProps<"/admin/merchants
           today={today}
           suggestedEnd={planActive ? (currentEnd ?? "") : dayOneYearOn(today)}        />
       </section>
+
+      {anetConfigured() && (
+        <section className="panel grid gap-3 p-5" aria-labelledby="test-checkout-heading">
+          <h2 id="test-checkout-heading" className="text-xl font-semibold">
+            Test checkout
+          </h2>
+          <p>
+            Buys the $1.00 admin payment test for this business on Authorize.net&apos;s payment page
+            {anetIsProduction() ? ", with a real card and real money." : " (sandbox: use a test card, nothing is charged)."} Merchants
+            never see this offer, and it claims no Founding seat. Use it on a test business only.
+            {settings?.payments_open ? " Payments are open to merchants." : " Payments are closed to merchants."}
+          </p>
+          {checkoutResult && (
+            <FormMessage tone={checkoutResult === "captured" || checkoutResult === "confirming" ? "success" : "error"}>
+              Checkout result: {checkoutResult === "confirming" ? "confirming the payment, this page updates on its own" : checkoutResult.replace(/_/g, " ")}.
+            </FormMessage>
+          )}
+          {checkoutResult === "confirming" && <AutoRefresh seconds={5} />}
+          <HostedPageButton
+            label="Test checkout ($1.00)"
+            pendingLabel="Opening the payment page"
+            start={adminTestCheckout.bind(null, business.id)}
+            variant="secondary"
+          />
+        </section>
+      )}
 
       <section aria-labelledby="coupons-heading">
         <div className="flex flex-wrap items-end justify-between gap-3">

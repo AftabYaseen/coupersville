@@ -1,13 +1,15 @@
 // Billing Part A checks: offers, the publishing open date, and Founding Merchant free seats,
 // through the real server actions and database functions, against a running build.
 //
-//   npm run build && npx next start -p 3100
-//   BASE_URL=http://localhost:3100 node --env-file=.env.local scripts/test-offers.mjs
+//   npm run staging:build && npm run staging:start
+//   BASE_URL=http://localhost:3100 node --env-file=.env.staging.local scripts/test-offers.mjs
 //
 // To test the Founders window before it opens, and the last free seat, the script moves the
 // publishing date and the Founding offer's window and free seats for a few seconds. It puts every
 // value back afterwards, and deletes its throwaway users and businesses (and so their seat claims).
 
+// Exits unless this run targets the staging project (never production).
+import "./lib/staging-guard.mjs";
 import { createClient } from "@supabase/supabase-js";
 import { callAction, makeUser } from "./lib/call-action.mjs";
 

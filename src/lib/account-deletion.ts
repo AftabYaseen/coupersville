@@ -18,11 +18,14 @@ export async function ownedBusinesses(userId: string): Promise<OwnedBusiness[]> 
   if (!businesses?.length) return [];
   const { data: plans } = await admin
     .from("subscriptions")
-    .select("business_id, source, status, stripe_subscription_id")
+    .select("business_id, source, status, stripe_subscription_id, anet_payment_profile_id")
     .in("business_id", businesses.map((b) => b.id));
   return businesses.map((b) => {
     const plan = plans?.find((p) => p.business_id === b.id);
-    return { ...b, paidPlan: Boolean(plan?.source === "stripe" && plan.stripe_subscription_id && STRIPE_LIVE.has(plan.status)) };
+    const stripePlan = plan?.source === "stripe" && plan.stripe_subscription_id && STRIPE_LIVE.has(plan.status);
+    // Authorize.net plans, and free seats with a card, renew from our own daily job.
+    const renewing = Boolean(plan?.anet_payment_profile_id) && STRIPE_LIVE.has(plan?.status ?? "");
+    return { ...b, paidPlan: Boolean(stripePlan || renewing) };
   });
 }
 
@@ -54,6 +57,16 @@ export async function deleteAccount(userId: string): Promise<DeletionResult> {
       console.error(`account deletion: could not cancel plan (${error instanceof Error ? error.name : "unknown"})`);
       return { ok: false, reason: "billing" };
     }
+  }
+
+  // Our own renewals: stop them. The plan lasts until the end of the period already paid for.
+  if (owned.length) {
+    const { error: renewError } = await admin
+      .from("subscriptions")
+      .update({ cancel_at_period_end: true })
+      .in("business_id", owned.map((b) => b.id))
+      .not("anet_payment_profile_id", "is", null);
+    if (renewError) return { ok: false, reason: "billing" };
   }
 
   for (const business of owned) {

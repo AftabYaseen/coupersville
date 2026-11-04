@@ -1,9 +1,11 @@
 // Page checks against a running app, signed in as a shopper, a staff member, an owner, and nobody.
 // Creates throwaway users and a test business, fetches pages, then deletes everything.
 //
-//   npm run build && npx next start -p 3100
-//   BASE_URL=http://localhost:3100 node --env-file=.env.local scripts/test-pages.mjs
+//   npm run staging:build && npm run staging:start
+//   BASE_URL=http://localhost:3100 node --env-file=.env.staging.local scripts/test-pages.mjs
 
+// Exits unless this run targets staging, or production with ALLOW_PRODUCTION_TESTS=1 (see the guard).
+import "./lib/staging-guard.mjs";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { callAction } from "./lib/call-action.mjs";

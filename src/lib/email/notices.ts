@@ -62,13 +62,14 @@ export async function notifyWelcome(user: { id: string; email?: string | null; c
 }
 
 // Once per plan: a Stripe subscription id, a complimentary grant, or a Founding seat (one per business).
-export async function notifyPlanStarted(businessId: string, ref: string): Promise<NoticeOutcome> {
+export async function notifyPlanStarted(businessId: string, ref: string, renewalTerms: string | null = null): Promise<NoticeOutcome> {
   const admin = createAdminClient();
   const [{ data: plan }, contact] = await Promise.all([
     admin.from("subscriptions").select("*").eq("business_id", businessId).maybeSingle(),
     businessContact(businessId),
   ]);
   if (!plan || !contact || plan.status !== "active") return "skipped";
+  const offerName = plan.offer_code ? (await admin.from("offers").select("name").eq("code", plan.offer_code).maybeSingle()).data?.name : null;
   return sendOnce(
     "plan_started",
     ref,
@@ -78,7 +79,9 @@ export async function notifyPlanStarted(businessId: string, ref: string): Promis
       source: plan.source,
       endsAt: plan.current_period_end,
       timeZone: contact.timeZone,
-      foundingSeat: plan.offer_code === FOUNDING_OFFER,
+      foundingSeat: plan.source === "complimentary" && plan.offer_code === FOUNDING_OFFER,
+      offerName,
+      renewalTerms,
     }),
   );
 }
@@ -136,7 +139,7 @@ export async function runPlanNotices(now = Date.now()): Promise<PlanNoticeReport
 
   const { data: plans, error } = await admin
     .from("subscriptions")
-    .select("id, business_id, source, status, current_period_end, cancel_at_period_end, past_due_since")
+    .select("id, business_id, source, status, current_period_end, cancel_at_period_end, past_due_since, anet_payment_profile_id, offer_code, term_ends_at")
     .not("current_period_end", "is", null)
     .gte("current_period_end", weekAgo)
     .lte("current_period_end", soon);
@@ -146,7 +149,8 @@ export async function runPlanNotices(now = Date.now()): Promise<PlanNoticeReport
     const endsAt = plan.current_period_end!;
     const current = planIsCurrent(plan, now);
     const endsInFuture = new Date(endsAt).getTime() > now;
-    const willNotRenew = plan.source === "complimentary" || plan.cancel_at_period_end;
+    // Free seats with a card continue on General, and paid plans renew, unless cancelled.
+    const willNotRenew = plan.cancel_at_period_end || (plan.source === "complimentary" && !(plan.offer_code === FOUNDING_OFFER && plan.anet_payment_profile_id && plan.term_ends_at));
 
     if (current && endsInFuture && plan.status === "active" && willNotRenew) {
       const contact = await businessContact(plan.business_id);
