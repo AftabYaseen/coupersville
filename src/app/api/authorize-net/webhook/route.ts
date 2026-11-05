@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { transactionDetails, webhookSignatureValid } from "@/lib/authorize-net";
+import { anetWebhooksEnabled, transactionDetails, webhookSignatureValid } from "@/lib/authorize-net";
 import { refreshCard, resolveCheckout, runRenewals } from "@/lib/paid-billing";
 
 // Authorize.net webhooks. The signature (X-ANET-Signature, HMAC-SHA512 with the Signature Key) is
@@ -14,6 +14,9 @@ type Notification = {
 };
 
 export async function POST(request: Request) {
+  // No signature key: nothing can be verified, so every notification is refused, quietly. Payments
+  // are still confirmed on the return page and by the sweep.
+  if (!anetWebhooksEnabled()) return NextResponse.json({ error: "Webhooks are not enabled" }, { status: 503 });
   const raw = await request.text();
   if (!webhookSignatureValid(raw, request.headers.get("x-anet-signature"))) {
     return NextResponse.json({ error: "Bad signature" }, { status: 400 });

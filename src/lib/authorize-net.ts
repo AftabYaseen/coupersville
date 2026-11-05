@@ -15,8 +15,15 @@ const API = () => (anetIsProduction() ? "https://api.authorize.net/xml/v1/reques
 export const hostedPaymentUrl = () => (anetIsProduction() ? "https://accept.authorize.net/payment/payment" : "https://test.authorize.net/payment/payment");
 export const hostedProfileUrl = () => (anetIsProduction() ? "https://accept.authorize.net/customer/manage" : "https://test.authorize.net/customer/manage");
 
+// Payments need only the API login and transaction key. The signature key is for webhooks alone:
+// without it the webhook refuses every notification, and payments are confirmed on return and by
+// the sweep instead.
 export function anetConfigured(): boolean {
-  return Boolean(process.env.AUTHORIZE_NET_API_LOGIN_ID && process.env.AUTHORIZE_NET_TRANSACTION_KEY && process.env.AUTHORIZE_NET_SIGNATURE_KEY);
+  return Boolean(process.env.AUTHORIZE_NET_API_LOGIN_ID && process.env.AUTHORIZE_NET_TRANSACTION_KEY);
+}
+
+export function anetWebhooksEnabled(): boolean {
+  return Boolean(process.env.AUTHORIZE_NET_SIGNATURE_KEY);
 }
 
 function auth() {

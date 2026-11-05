@@ -1,8 +1,8 @@
-import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { runPlanNotices } from "@/lib/email/notices";
 import { runRenewalReminders, runRenewals, sweepCheckouts, testClockAllowed } from "@/lib/paid-billing";
 import { anetConfigured } from "@/lib/authorize-net";
+import { cronAuthorised } from "@/lib/cron-auth";
 
 // Vercel Cron calls this once a day (vercel.json) with "Authorization: Bearer <CRON_SECRET>".
 // Every email it sends is claimed in email_notices first, and every renewal charge is claimed in
@@ -11,20 +11,12 @@ import { anetConfigured } from "@/lib/authorize-net";
 // Tests only (never on Vercel, sandbox only): ?now=<ISO time> runs the job as of that moment, and
 // ?only=<business id>,<business id> limits it to those businesses.
 
-function authorised(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  const given = Buffer.from(request.headers.get("authorization") ?? "");
-  const expected = Buffer.from(`Bearer ${secret}`);
-  return given.length === expected.length && timingSafeEqual(given, expected);
-}
-
 export async function GET(request: Request) {
   if (!process.env.CRON_SECRET) {
     console.error("cron daily: CRON_SECRET is not set");
     return NextResponse.json({ error: "Cron is not configured" }, { status: 500 });
   }
-  if (!authorised(request)) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  if (!cronAuthorised(request)) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
 
   const params = new URL(request.url).searchParams;
   let now = Date.now();
