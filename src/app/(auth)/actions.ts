@@ -15,6 +15,22 @@ import {
 
 const INVALID_INPUT: ActionResult = { ok: false, error: "Some details are missing or invalid. Check the form and try again." };
 
+function signUpErrorMessage(error: { status?: number; code?: string; message: string }): string {
+  if (error.code === "weak_password") return "That password is too easy to guess. Try a longer one.";
+  if (error.code === "user_already_exists" || error.code === "email_exists") {
+    return "That email already has an account. Sign in instead, or reset your password.";
+  }
+  if (error.code === "email_address_invalid") return "We cannot send email to that address. Check it, or use a different one.";
+  if (error.code === "signup_disabled" || error.code === "email_provider_disabled") {
+    return "New accounts are switched off right now. Try again later.";
+  }
+  if (error.status === 429) return "Too many sign-up emails were sent just now. Wait a few minutes, then try again.";
+  // Supabase cancels the sign-up when the confirmation email cannot be sent, so nothing was saved.
+  if (/sending.*email/i.test(error.message)) {
+    return "We could not send your confirmation email, so your account was not created. This is a problem on our side. Please try again later.";
+  }
+  return "Something went wrong on our side and your account was not created. Please try again later.";
+}
 
 export async function signIn(input: unknown): Promise<ActionResult> {
   const parsed = loginSchema.safeParse(input);
@@ -65,10 +81,9 @@ export async function signUp(input: unknown): Promise<ActionResult> {
   });
 
   if (error) {
-    if (error.code === "weak_password") {
-      return { ok: false, error: "That password is too easy to guess. Try a longer one." };
-    }
-    return { ok: false, error: "We could not create your account. Try again in a moment." };
+    // Supabase's own wording goes to the server log, never to the page: it can name our mail setup.
+    console.error(`sign up failed: ${error.status ?? "no status"} ${error.code ?? "no code"} ${error.message}`);
+    return { ok: false, error: signUpErrorMessage(error) };
   }
 
   if (data.session && data.user) {
