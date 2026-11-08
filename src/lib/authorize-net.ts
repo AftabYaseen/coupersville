@@ -114,7 +114,7 @@ export async function hostedPaymentToken(input: {
     { settingName: "hostedPaymentSecurityOptions", settingValue: JSON.stringify({ captcha: false }) },
     { settingName: "hostedPaymentBillingAddressOptions", settingValue: JSON.stringify({ show: true, required: false }) },
     { settingName: "hostedPaymentCustomerOptions", settingValue: JSON.stringify({ showEmail: false, requiredEmail: false, addPaymentProfile: true }) },
-    { settingName: "hostedPaymentOrderOptions", settingValue: JSON.stringify({ show: true, merchantName: "Coupersville" }) },
+    { settingName: "hostedPaymentOrderOptions", settingValue: JSON.stringify({ show: true }) },
   ];
   const r = await call<Envelope & { token?: string }>("getHostedPaymentPageRequest", {
     transactionRequest: {
