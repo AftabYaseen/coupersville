@@ -113,7 +113,7 @@ export async function hostedPaymentToken(input: {
     { settingName: "hostedPaymentPaymentOptions", settingValue: JSON.stringify({ cardCodeRequired: true, showCreditCard: true, showBankAccount: false }) },
     { settingName: "hostedPaymentSecurityOptions", settingValue: JSON.stringify({ captcha: false }) },
     { settingName: "hostedPaymentBillingAddressOptions", settingValue: JSON.stringify({ show: true, required: false }) },
-    { settingName: "hostedPaymentCustomerOptions", settingValue: JSON.stringify({ showEmail: false, requiredEmail: false, addPaymentProfile: true }) },
+    { settingName: "hostedPaymentCustomerOptions", settingValue: JSON.stringify({ showEmail: false, requiredEmail: false, ...(input.customerProfileId ? { addPaymentProfile: true } : {}) }) },
     { settingName: "hostedPaymentOrderOptions", settingValue: JSON.stringify({ show: true }) },
   ];
   const r = await call<Envelope & { token?: string }>("getHostedPaymentPageRequest", {

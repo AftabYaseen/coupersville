@@ -74,10 +74,11 @@ async function BillingContent({ searchParams }: { searchParams: PageProps<"/merc
   let message = typeof claim === "string" ? CLAIM_MESSAGES[claim] : undefined;
   let confirming = false;
   if (anetConfigured()) {
-    if (typeof checkout === "string" && /^[0-9a-f-]{36}$/.test(checkout)) {
+    if (cancelled === "1") {
+      message = CHECKOUT_MESSAGES.no_payment;
+    } else if (typeof checkout === "string" && /^[0-9a-f-]{36}$/.test(checkout)) {
       const { data: own } = await supabase.from("checkouts").select("id, created_at").eq("id", checkout).eq("business_id", business.id).maybeSingle();
-      if (cancelled === "1") message = CHECKOUT_MESSAGES.no_payment;
-      else if (own) {
+      if (own) {
         let result: string = await resolveCheckout(own.id).catch(() => "retry_later" as const);
         // Authorize.net lists a new payment 10 to 20 seconds after it is made, and the merchant is
         // usually back before that. On a recent checkout, keep confirming rather than say nothing was paid.

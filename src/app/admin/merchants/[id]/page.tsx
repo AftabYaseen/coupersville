@@ -74,8 +74,10 @@ async function BusinessContent({
 
   // Back from a test checkout: confirm it the same way a merchant's is confirmed.
   let checkoutResult: string | null = null;
-  if (typeof checkout === "string" && z.uuid().safeParse(checkout).success && anetConfigured()) {
-    checkoutResult = cancelled === "1" ? "cancelled" : await resolveCheckout(checkout).catch(() => "retry_later");
+  if (cancelled === "1") {
+    checkoutResult = "cancelled";
+  } else if (typeof checkout === "string" && z.uuid().safeParse(checkout).success && anetConfigured()) {
+    checkoutResult = await resolveCheckout(checkout).catch(() => "retry_later");
     // Authorize.net lists a new payment 10 to 20 seconds late: on a recent checkout, keep confirming.
     if (checkoutResult === "no_payment") {
       const { data: started } = await supabase.from("checkouts").select("created_at").eq("id", checkout).maybeSingle();

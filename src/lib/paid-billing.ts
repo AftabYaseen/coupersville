@@ -136,7 +136,6 @@ export async function startCheckout(input: {
   if (begun.result !== "ok" || !begun.id) return { ok: false, reason: begun.result as "no_offer" | "has_plan" | "seats_gone" };
 
   const { data: plan } = await admin.from("subscriptions").select("anet_customer_profile_id").eq("business_id", input.businessId).maybeSingle();
-  const sep = input.returnPath.includes("?") ? "&" : "?";
   try {
     const token = await hostedPaymentToken({
       amountCents: amount,
@@ -145,8 +144,9 @@ export async function startCheckout(input: {
       customerProfileId: plan?.anet_customer_profile_id ?? null,
       merchantCustomerId: shortId(input.businessId),
       email: input.email,
-      returnUrl: absoluteUrl(`${input.returnPath}${sep}checkout=${begun.id}`),
-      cancelUrl: absoluteUrl(`${input.returnPath}${sep}checkout=${begun.id}&cancelled=1`),
+      // One query parameter each: an "&" in either address blanks Authorize.net's payment page.
+      returnUrl: absoluteUrl(`${input.returnPath}?checkout=${begun.id}`),
+      cancelUrl: absoluteUrl(`${input.returnPath}?cancelled=1`),
     });
     return { ok: true, token, url: hostedPaymentUrl(), checkoutId: begun.id };
   } catch (e) {
