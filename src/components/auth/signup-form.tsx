@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { signUp } from "@/app/(auth)/actions";
 import { signupSchema, type SignupInput } from "@/lib/validation/auth";
 import { Field, FormMessage } from "@/components/field";
+import { PasswordInput } from "@/components/auth/password-input";
 
 const ACCOUNT_TYPES = [
   { value: "consumer", title: "I'm a shopper", body: "Save and redeem coupons from local shops." },
@@ -101,11 +102,9 @@ export function SignupForm({
       </Field>
 
       <Field id="password" label="Password" hint="At least 8 characters." error={errors.password?.message}>
-        <input
+        <PasswordInput
           id="password"
-          type="password"
           autoComplete="new-password"
-          className="field-input"
           aria-invalid={Boolean(errors.password)}
           {...register("password")}
         />

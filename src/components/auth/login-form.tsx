@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "@/app/(auth)/actions";
 import { loginSchema, type LoginInput } from "@/lib/validation/auth";
 import { Field, FormMessage } from "@/components/field";
+import { PasswordInput } from "@/components/auth/password-input";
 
 export function LoginForm({ next, notice }: { next?: string; notice?: string }) {
   const [serverError, setServerError] = useState<string | null>(null);
@@ -46,11 +47,9 @@ export function LoginForm({ next, notice }: { next?: string; notice?: string }) 
       </Field>
 
       <Field id="password" label="Password" error={errors.password?.message}>
-        <input
+        <PasswordInput
           id="password"
-          type="password"
           autoComplete="current-password"
-          className="field-input"
           aria-invalid={Boolean(errors.password)}
           aria-describedby={errors.password ? "password-error" : undefined}
           {...register("password")}

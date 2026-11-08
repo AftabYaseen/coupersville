@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { updatePassword } from "@/app/(auth)/actions";
 import { newPasswordSchema, type NewPasswordInput } from "@/lib/validation/auth";
 import { Field, FormMessage } from "@/components/field";
+import { PasswordInput } from "@/components/auth/password-input";
 
 export function NewPasswordForm() {
   const [serverError, setServerError] = useState<string | null>(null);
@@ -32,22 +33,18 @@ export function NewPasswordForm() {
       {serverError && <FormMessage tone="error">{serverError}</FormMessage>}
 
       <Field id="password" label="New password" hint="At least 8 characters." error={errors.password?.message}>
-        <input
+        <PasswordInput
           id="password"
-          type="password"
           autoComplete="new-password"
-          className="field-input"
           aria-invalid={Boolean(errors.password)}
           {...register("password")}
         />
       </Field>
 
       <Field id="confirm" label="Confirm new password" error={errors.confirm?.message}>
-        <input
+        <PasswordInput
           id="confirm"
-          type="password"
           autoComplete="new-password"
-          className="field-input"
           aria-invalid={Boolean(errors.confirm)}
           {...register("confirm")}
         />
