@@ -79,6 +79,20 @@ function firstMessage(envelope: Envelope): Message {
 
 const dollars = (cents: number) => (cents / 100).toFixed(2);
 
+// ---------------------------------------------------------------- Connection check
+
+// Asks Authorize.net whether the keys are valid. No payment, and only the result comes back.
+export async function checkConnection(): Promise<{ connected: boolean; code: string; message: string }> {
+  try {
+    const r = await call<Envelope>("authenticateTestRequest", {});
+    const m = firstMessage(r);
+    return { connected: ok(r), code: m.code, message: m.text };
+  } catch (e) {
+    if (e instanceof AnetError) return { connected: false, code: e.code, message: e.message };
+    return { connected: false, code: "unknown", message: "The check could not run." };
+  }
+}
+
 // ---------------------------------------------------------------- Accept Hosted
 
 export async function hostedPaymentToken(input: {

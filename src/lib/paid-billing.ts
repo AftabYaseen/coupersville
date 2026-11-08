@@ -104,7 +104,8 @@ export async function alertAdmins(ref: string, subject: string, lines: string[])
 
 export type StartCheckout =
   | { ok: true; token: string; url: string; checkoutId: string }
-  | { ok: false; reason: "no_offer" | "no_price" | "has_plan" | "seats_gone" | "processor" };
+  // detail is Authorize.net's own code and message, for admin screens only.
+  | { ok: false; reason: "no_offer" | "no_price" | "has_plan" | "seats_gone" | "processor"; detail?: string };
 
 export async function startCheckout(input: {
   businessId: string;
@@ -152,7 +153,7 @@ export async function startCheckout(input: {
     console.error(`checkout ${begun.id}: hosted page failed (${e instanceof AnetError ? e.code : "unknown"})`);
     // Release the seat hold straight away.
     await admin.from("checkouts").update({ status: "expired", outcome: "hosted_page_failed" }).eq("id", begun.id).eq("status", "pending");
-    return { ok: false, reason: "processor" };
+    return { ok: false, reason: "processor", detail: e instanceof AnetError ? `${e.code}: ${e.message}` : undefined };
   }
 }
 

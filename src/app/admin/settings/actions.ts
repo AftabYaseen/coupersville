@@ -2,10 +2,22 @@
 
 import { refresh } from "next/cache";
 import { NOT_ADMIN, requireAdminAction } from "@/lib/admin";
+import { anetConfigured, anetIsProduction, checkConnection } from "@/lib/authorize-net";
 import { startOfDayInZone } from "@/lib/dates";
 import { OFFER_TIME_ZONE } from "@/lib/offers";
 import { settingsSchema } from "@/lib/validation/admin";
 import type { ActionResult } from "@/lib/validation/auth";
+
+// Checks this deployment's Authorize.net keys without a payment. Shows the result, never the keys.
+export async function checkAuthorizeNetConnection(): Promise<ActionResult> {
+  const ctx = await requireAdminAction();
+  if (!ctx) return NOT_ADMIN;
+  if (!anetConfigured()) return { ok: false, error: "Authorize.net is not set up on this deployment." };
+
+  const { connected, code, message } = await checkConnection();
+  const text = `${code}: ${message} (${anetIsProduction() ? "production" : "sandbox"} endpoint)`;
+  return connected ? { ok: true, message: text } : { ok: false, error: text };
+}
 
 export async function updateSettings(input: unknown): Promise<ActionResult> {
   const parsed = settingsSchema.safeParse(input);

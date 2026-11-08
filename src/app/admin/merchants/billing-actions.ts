@@ -36,6 +36,7 @@ export async function adminTestCheckout(businessId: unknown): Promise<HostedPage
     returnPath: `/admin/merchants/${business.id}`,
   });
   if (r.ok) return { ok: true, url: r.url, token: r.token };
+  if (r.detail) return { ok: false, error: `Authorize.net returned ${r.detail}` };
   const reasons: Record<string, string> = {
     has_plan: "This business already has a paid plan.",
     no_offer: "The admin test offer is not available.",

@@ -5,6 +5,7 @@ import { dayInZone } from "@/lib/dates";
 import { OFFER_TIME_ZONE } from "@/lib/offers";
 import { PageLoading } from "@/components/page-loading";
 import { SettingsForm } from "@/components/admin/settings-form";
+import { AnetConnectionCheck } from "@/components/admin/anet-connection-check";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -40,6 +41,13 @@ async function SettingsContent() {
           />
         </div>
       )}
+      <section className="panel mt-6 grid gap-3 p-5" aria-labelledby="anet-check-heading">
+        <h2 id="anet-check-heading" className="text-xl font-semibold">
+          Authorize.net connection
+        </h2>
+        <p>Checks the saved keys with Authorize.net. No payment is made and the keys are never shown.</p>
+        <AnetConnectionCheck />
+      </section>
     </div>
   );
 }

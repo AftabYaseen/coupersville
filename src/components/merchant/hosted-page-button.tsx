@@ -5,6 +5,8 @@ import { FormMessage } from "@/components/field";
 
 type Hosted = { ok: true; url: string; token: string } | { ok: false; error: string };
 
+const RELOAD = "This page is out of date or lost its connection. Reload the page and try again.";
+
 // Gets a one-time token from our server, then posts it to Authorize.net's own page (Accept Hosted
 // or the card page). Card details are typed there, never here.
 export function HostedPageButton({
@@ -37,7 +39,8 @@ export function HostedPageButton({
   function go() {
     setError(null);
     startTransition(async () => {
-      const r = await start(cycle, shown && agreed ? shown : null);
+      // A page left open across a deploy, or a dropped connection, rejects here.
+      const r = await start(cycle, shown && agreed ? shown : null).catch((): Hosted => ({ ok: false, error: RELOAD }));
       if (!r.ok) {
         setError(r.error);
         return;
