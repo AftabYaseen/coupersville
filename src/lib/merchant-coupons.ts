@@ -2,12 +2,13 @@ import "server-only";
 import { requireManagedBusiness } from "@/lib/merchant";
 import { subscriptionIsActive } from "@/lib/merchant";
 import { dayInZone } from "@/lib/dates";
+import { loadUsage } from "@/lib/limits";
 
 type Ctx = Awaited<ReturnType<typeof requireManagedBusiness>>;
 
 // Everything the coupon builder needs besides the coupon itself.
 export async function loadCouponBuilderData({ business, supabase }: Pick<Ctx, "business" | "supabase">) {
-  const [{ data: categories }, { data: locations }, { data: subscription }] = await Promise.all([
+  const [{ data: categories }, { data: locations }, { data: subscription }, usage] = await Promise.all([
     supabase.from("categories").select("id, name, stock_tint").eq("active", true).order("sort_order"),
     supabase
       .from("locations")
@@ -15,6 +16,7 @@ export async function loadCouponBuilderData({ business, supabase }: Pick<Ctx, "b
       .eq("business_id", business.id)
       .order("store_name"),
     supabase.from("subscriptions").select("*").eq("business_id", business.id).maybeSingle(),
+    loadUsage(supabase, business.id),
   ]);
 
   const now = Date.now();
@@ -26,6 +28,7 @@ export async function loadCouponBuilderData({ business, supabase }: Pick<Ctx, "b
       active: l.active,
     })),
     planActive: subscriptionIsActive(subscription, now),
+    usage,
     today: dayInZone(now, business.timezone),
   };
 }

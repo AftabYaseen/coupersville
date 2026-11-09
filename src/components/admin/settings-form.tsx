@@ -57,6 +57,13 @@ export function SettingsForm({ defaults }: { defaults: SettingsInput }) {
       >
         <input id="setting-publishing-opens" type="date" className="field-input tabular" {...register("publishing_opens_on")} />
       </Field>
+      <Field
+        id="setting-contact-email"
+        label="Contact for more than 3 locations"
+        hint="Merchants see this address on their Billing pages."
+      >
+        <input id="setting-contact-email" type="email" className="field-input" {...register("enterprise_contact_email")} />
+      </Field>
       <button type="submit" className="btn justify-self-start" disabled={pending}>
         {pending ? "Saving" : "Save settings"}
       </button>

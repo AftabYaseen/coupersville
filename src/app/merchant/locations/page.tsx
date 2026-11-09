@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { MapPin, Plus } from "lucide-react";
 import { requireManagedBusiness } from "@/lib/merchant";
+import { atLocationLimit, loadUsage, locationLimitText, locationsText } from "@/lib/limits";
 import { PageLoading } from "@/components/page-loading";
 import { LocationActiveToggle } from "@/components/merchant/location-form";
 
@@ -24,16 +25,24 @@ async function LocationsContent() {
     .eq("business_id", business.id)
     .order("active", { ascending: false })
     .order("store_name");
+  const usage = await loadUsage(supabase, business.id);
+  const full = atLocationLimit(usage);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="wordmark text-4xl text-ink">Stores</h1>
-        <Link href="/merchant/locations/new" className="btn">
-          <Plus aria-hidden size={18} strokeWidth={1.5} />
-          Add store
-        </Link>
+        <div>
+          <h1 className="wordmark text-4xl text-ink">Stores</h1>
+          {usage && <p className="mt-1 font-semibold tabular">{locationsText(usage)}</p>}
+        </div>
+        {!full && (
+          <Link href="/merchant/locations/new" className="btn">
+            <Plus aria-hidden size={18} strokeWidth={1.5} />
+            Add store
+          </Link>
+        )}
       </div>
+      {full && usage?.locationsLimit && <p className="mt-3">{locationLimitText(usage.locationsLimit)}</p>}
 
       {!locations?.length ? (
         <p className="panel mt-6 p-5">You have no stores yet. Add one so shoppers know where to use your coupons.</p>

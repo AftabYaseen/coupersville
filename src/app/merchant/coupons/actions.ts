@@ -13,6 +13,7 @@ import { COUPON_IMAGE_BUCKET, IMAGE_ERROR, isBusinessImagePath } from "@/lib/sto
 import { verifyStoredImage } from "@/lib/verify-image";
 import { couponIntentSchema, couponRuleColumns, couponSchema } from "@/lib/validation/merchant";
 import { parseStats } from "@/lib/redemption-stats";
+import { campaignLimitError } from "@/lib/limits";
 import type { ActionResult } from "@/lib/validation/auth";
 import type { PostgrestError } from "@supabase/supabase-js";
 
@@ -39,6 +40,7 @@ const HELD: ActionResult = {
 function writeError(error: PostgrestError): ActionResult {
   if (error.hint === "admin_hold") return HELD;
   if (error.hint === "publishing_not_open") return NOT_OPEN;
+  if (error.hint === "campaign_limit") return campaignLimitError(error.details);
   return error.hint === "subscription_required" ? PLAN_REQUIRED : FAILED;
 }
 
@@ -168,7 +170,7 @@ export async function saveCoupon(couponId: unknown, input: unknown, intentInput:
 
   if (claimSeat) {
     const { data, error } = await supabase.rpc("claim_founding_seat", { p_business_id: business.id, p_coupon_id: savedId });
-    const result = error ? "failed" : parseClaim(data);
+    const result = error?.hint === "campaign_limit" ? "campaign_limit" : error ? "failed" : parseClaim(data);
     if (result !== "claimed") {
       // The coupon is saved as a draft. Billing explains why it could not go live.
       redirect(`/merchant/billing?claim=${result}`);

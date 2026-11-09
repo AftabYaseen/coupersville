@@ -82,6 +82,48 @@ export type Database = {
           },
         ]
       }
+      business_limit_overrides: {
+        Row: {
+          business_id: string
+          campaigns_per_month: number | null
+          created_at: string
+          max_locations: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          business_id: string
+          campaigns_per_month?: number | null
+          created_at?: string
+          max_locations?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          business_id?: string
+          campaigns_per_month?: number | null
+          created_at?: string
+          max_locations?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_limit_overrides_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_limit_overrides_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_members: {
         Row: {
           business_id: string
@@ -302,6 +344,52 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "offers"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      coupon_campaigns: {
+        Row: {
+          business_id: string
+          counted_at: string
+          coupon_id: string | null
+          id: string
+          month: string
+        }
+        Insert: {
+          business_id: string
+          counted_at?: string
+          coupon_id?: string | null
+          id?: string
+          month: string
+        }
+        Update: {
+          business_id?: string
+          counted_at?: string
+          coupon_id?: string | null
+          id?: string
+          month?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_campaigns_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_campaigns_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: true
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_campaigns_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: true
+            referencedRelation: "live_coupons"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -675,6 +763,7 @@ export type Database = {
           active: boolean
           admin_only: boolean
           annual_price_cents: number
+          campaigns_per_month: number | null
           code: string
           created_at: string
           free_seats: number
@@ -694,6 +783,7 @@ export type Database = {
           active?: boolean
           admin_only?: boolean
           annual_price_cents: number
+          campaigns_per_month?: number | null
           code: string
           created_at?: string
           free_seats?: number
@@ -713,6 +803,7 @@ export type Database = {
           active?: boolean
           admin_only?: boolean
           annual_price_cents?: number
+          campaigns_per_month?: number | null
           code?: string
           created_at?: string
           free_seats?: number
@@ -823,6 +914,7 @@ export type Database = {
           consumer_login: string
           coupon_moderation: string
           created_at: string
+          enterprise_contact_email: string
           founders_full_early_access: boolean
           founders_rule: string
           id: string
@@ -840,6 +932,7 @@ export type Database = {
           consumer_login?: string
           coupon_moderation?: string
           created_at?: string
+          enterprise_contact_email?: string
           founders_full_early_access?: boolean
           founders_rule?: string
           id?: string
@@ -857,6 +950,7 @@ export type Database = {
           consumer_login?: string
           coupon_moderation?: string
           created_at?: string
+          enterprise_contact_email?: string
           founders_full_early_access?: boolean
           founders_rule?: string
           id?: string
@@ -1512,6 +1606,10 @@ export type Database = {
         }
         Returns: Json
       }
+      business_effective_limits: {
+        Args: { p_business_id: string }
+        Returns: Record<string, unknown>
+      }
       business_is_publishable: {
         Args: { p_business_id: string }
         Returns: boolean
@@ -1530,6 +1628,11 @@ export type Database = {
           role: Database["public"]["Enums"]["member_role"]
           user_id: string
         }[]
+      }
+      business_usage: { Args: { p_business_id: string }; Returns: Json }
+      campaign_month: {
+        Args: { p_at?: string; p_timezone: string }
+        Returns: string
       }
       can_manage_business: { Args: { p_business_id: string }; Returns: boolean }
       can_manage_business_path: { Args: { p_name: string }; Returns: boolean }
@@ -1670,6 +1773,7 @@ export type Database = {
         Returns: {
           active: boolean
           annual_price_cents: number
+          campaigns_per_month: number
           code: string
           free_seats: number
           free_seats_used: number

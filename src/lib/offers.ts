@@ -5,11 +5,13 @@ import { formatDay } from "@/lib/dates";
 // offer_overview() with the seats used. Windows are [starts, ends): the end is exclusive.
 
 type Overview = Database["public"]["Functions"]["offer_overview"]["Returns"][number];
-type Nullable = "window_starts_at" | "window_ends_at" | "seat_cap" | "term_months" | "monthly_price_cents" | "renews_into" | "max_locations" | "max_live_coupons";
+type Nullable = "window_starts_at" | "window_ends_at" | "seat_cap" | "term_months" | "monthly_price_cents" | "renews_into" | "max_locations" | "max_live_coupons" | "campaigns_per_month";
 // Generated function types mark every column as set; these can be null.
 export type Offer = Omit<Overview, Nullable> & { [K in Nullable]: Overview[K] | null };
 
 export const FOUNDING_OFFER = "founding_merchant";
+// Granted by an admin with custom limits. It has no price and no checkout.
+export const ENTERPRISE_OFFER = "enterprise";
 
 // Offers and Founding seats are dated in Pacific time, like the launch date.
 export const OFFER_TIME_ZONE = "America/Los_Angeles";
@@ -47,7 +49,7 @@ export function currentOffer(offers: Offer[], now: number, earlyAccessWhenFull: 
   return active.find((o) => o.window_starts_at && new Date(o.window_starts_at).getTime() > now && !isFull(o)) ?? null;
 }
 
-// "$99 for your first year", "$149 a year or $19 a month for your first year", "$249 a year or $29 a month".
+// "$99 a year or $12 a month for your first year", "$249 a year or $29 a month".
 export function priceLine(offer: Pick<Offer, "annual_price_cents" | "monthly_price_cents" | "term_months">): string {
   const firstYear = offer.term_months === 12;
   if (offer.monthly_price_cents === null) {

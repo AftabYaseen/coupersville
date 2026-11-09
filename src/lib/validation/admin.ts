@@ -82,6 +82,7 @@ export const settingsSchema = z.object({
   renewals_enabled: z.enum(values("renewals_enabled")),
   // The day publishing opens, from midnight Pacific time.
   publishing_opens_on: z.string().trim().regex(DAY_PATTERN, { error: "Choose a valid date." }),
+  enterprise_contact_email: z.email({ error: "Enter a valid email address." }).max(254),
 });
 export type SettingsInput = z.input<typeof settingsSchema>;
 
@@ -124,7 +125,21 @@ export const offerSchema = z
     active: z.boolean(),
     maxLocations: optionalWhole(10000),
     maxLiveCoupons: optionalWhole(10000),
+    campaignsPerMonth: optionalWhole(10000),
   })
   .refine((v) => !v.startsOn || !v.endsOn || v.endsOn >= v.startsOn, { error: "The last day must be on or after the first day.", path: ["endsOn"] })
   .refine((v) => v.seatCap === null || v.freeSeats <= v.seatCap, { error: "Free seats cannot be more than the seat cap.", path: ["freeSeats"] });
 export type OfferInput = z.input<typeof offerSchema>;
+
+// Limits for one business. Blank means "use the plan's limit".
+export const businessLimitsSchema = z.object({
+  maxLocations: optionalWhole(10000),
+  campaignsPerMonth: optionalWhole(10000),
+});
+
+// Enterprise is always granted with its own numbers.
+export const enterpriseGrantSchema = z.object({
+  maxLocations: optionalWhole(10000).refine((v) => v !== null, { error: "Enter the number of locations." }),
+  campaignsPerMonth: optionalWhole(10000).refine((v) => v !== null, { error: "Enter the campaigns per month." }),
+  endsOn: planEndSchema,
+});

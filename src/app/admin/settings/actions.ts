@@ -36,6 +36,7 @@ export async function updateSettings(input: unknown): Promise<ActionResult> {
       payments_open: v.payments_open === "open",
       renewals_enabled: v.renewals_enabled === "on",
       publishing_opens_at: startOfDayInZone(v.publishing_opens_on, OFFER_TIME_ZONE).toISOString(),
+      enterprise_contact_email: v.enterprise_contact_email,
     })
     .eq("singleton", true)
     .select("id");

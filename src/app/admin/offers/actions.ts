@@ -41,6 +41,7 @@ export async function updateOffer(codeInput: unknown, input: unknown): Promise<A
       active: v.active,
       max_locations: v.maxLocations,
       max_live_coupons: v.maxLiveCoupons,
+      campaigns_per_month: v.campaignsPerMonth,
     })
     .eq("code", code.data)
     .select("code");

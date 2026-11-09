@@ -20,6 +20,8 @@ export type BillingContext = {
   foundersRule: FoundersRule;
   // Paid sign-ups are live (the "payments open" setting).
   paymentsOpen: boolean;
+  // Shown as "More than 3 locations? Contact us".
+  contactEmail: string;
 };
 
 // Everything the billing page, the dashboard and the publish action need to know about plans and offers.
@@ -27,7 +29,7 @@ export async function loadBillingContext(supabase: Client, businessId: string, n
   const [{ data: plan }, { data: offers }, { data: settings }, { data: claim }] = await Promise.all([
     supabase.from("subscriptions").select("*").eq("business_id", businessId).maybeSingle(),
     supabase.rpc("offer_overview"),
-    supabase.from("platform_settings").select("publishing_opens_at, founders_rule, founders_full_early_access, payments_open").limit(1).maybeSingle(),
+    supabase.from("platform_settings").select("publishing_opens_at, founders_rule, founders_full_early_access, payments_open, enterprise_contact_email").limit(1).maybeSingle(),
     supabase
       .from("offer_seat_claims")
       .select("offer_code, seat_number, free, claimed_at")
@@ -48,6 +50,7 @@ export async function loadBillingContext(supabase: Client, businessId: string, n
     publishingOpen: new Date(publishingOpensAt).getTime() <= now,
     foundersRule: settings?.founders_rule === "profile_complete" ? "profile_complete" : "profile_and_first_coupon",
     paymentsOpen: Boolean(settings?.payments_open),
+    contactEmail: settings?.enterprise_contact_email ?? "admin@opalqsm.com",
   };
 }
 

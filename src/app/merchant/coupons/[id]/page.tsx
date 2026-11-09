@@ -10,6 +10,7 @@ import { couponRuleDefaults } from "@/lib/validation/merchant";
 import { PageLoading } from "@/components/page-loading";
 import { CouponForm } from "@/components/merchant/coupon-form";
 import { CouponStatusActions } from "@/components/merchant/coupon-status-actions";
+import { CampaignUsage } from "@/components/merchant/usage";
 
 export const metadata: Metadata = { title: "Edit coupon" };
 
@@ -48,6 +49,7 @@ async function EditCouponContent({ params }: { params: PageProps<"/merchant/coup
         <div>
           <h1 className="wordmark text-4xl text-ink">Edit coupon</h1>
           <p className="mt-1 font-medium">Status: {COUPON_VIEW_STATUS[view]}</p>
+          <CampaignUsage usage={data.usage} className="mt-2" />
         </div>
         <CouponStatusActions
           couponId={coupon.id}

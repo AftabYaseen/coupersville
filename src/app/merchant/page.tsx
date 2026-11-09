@@ -12,6 +12,8 @@ import { planState } from "@/lib/billing";
 import { FOUNDING_OFFER } from "@/lib/offers";
 import { PageLoading } from "@/components/page-loading";
 import { PlanPanel } from "@/components/merchant/plan-panel";
+import { CampaignUsage } from "@/components/merchant/usage";
+import { loadUsage, locationsText } from "@/lib/limits";
 
 export const metadata: Metadata = { title: "Merchant portal" };
 
@@ -50,7 +52,7 @@ async function MerchantHome() {
   if (managed.businessStatus === "draft") redirect("/merchant/onboarding");
 
   const supabase = await createClient();
-  const [{ data: business }, { data: subscription }, { data: coupons }, { count: storeCount }, { data: rawStats }] =
+  const [{ data: business }, { data: subscription }, { data: coupons }, { count: storeCount }, { data: rawStats }, usage] =
     await Promise.all([
       supabase.from("businesses").select("name, status, timezone").eq("id", managed.businessId).single(),
       supabase.from("subscriptions").select("*").eq("business_id", managed.businessId).maybeSingle(),
@@ -64,6 +66,7 @@ async function MerchantHome() {
         .eq("business_id", managed.businessId)
         .eq("active", true),
       supabase.rpc("business_redemption_stats", { p_business_id: managed.businessId }),
+      loadUsage(supabase, managed.businessId),
     ]);
   if (!business) redirect("/merchant/onboarding");
 
@@ -166,6 +169,7 @@ async function MerchantHome() {
         <h2 id="coupons-heading" className="text-xl font-semibold">
           Coupons
         </h2>
+        <CampaignUsage usage={usage} className="mt-2" />
         <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
           {COUPON_VIEWS.filter((view) => view !== "removed" || counts.removed > 0).map((view) => (
             <li key={view}>
@@ -187,7 +191,7 @@ async function MerchantHome() {
             Stores
           </h2>
           <p className="mt-1 tabular">
-            {storeCount ?? 0} active {storeCount === 1 ? "store" : "stores"}
+            {usage ? locationsText(usage) : `${storeCount ?? 0} active ${storeCount === 1 ? "store" : "stores"}`}
           </p>
         </div>
         <Link href="/merchant/locations" className="btn btn-secondary">

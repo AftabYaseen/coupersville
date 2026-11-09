@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { requireAdminPage } from "@/lib/admin";
 import { addDays, dayInZone } from "@/lib/dates";
-import { OFFER_TIME_ZONE, freeSeatsLeft, priceLine, termLabel, windowLabel, type Offer } from "@/lib/offers";
+import { ENTERPRISE_OFFER, OFFER_TIME_ZONE, freeSeatsLeft, priceLine, termLabel, windowLabel, type Offer } from "@/lib/offers";
 import { PageLoading } from "@/components/page-loading";
 import { OfferForm } from "@/components/admin/offer-form";
 
@@ -43,7 +43,7 @@ async function OffersContent() {
                   {!o.active && <span className="ml-2 text-base font-medium">(inactive)</span>}
                 </h2>
                 <p className="mt-1 text-sm tabular">
-                  {priceLine(o)}. {windowLabel(o)}. {termLabel(o.term_months)}.
+                  {o.code === ENTERPRISE_OFFER ? "Custom, no checkout. Granted on a merchant's page, with its own limits." : `${priceLine(o)}. ${windowLabel(o)}. ${termLabel(o.term_months)}.`}
                 </p>
               </div>
               {(o.seat_cap !== null || o.free_seats > 0) && (
@@ -71,11 +71,11 @@ async function OffersContent() {
                   )}
                 </dl>
               )}
-              <OfferForm
+              {o.code !== ENTERPRISE_OFFER && <OfferForm
                 code={o.code}
                 seatsUsed={Number(o.seats_used)}
                 freeSeatsUsed={Number(o.free_seats_used)}
-                renewOptions={offers.filter((x) => x.code !== o.code).map((x) => ({ code: x.code, name: x.name }))}
+                renewOptions={offers.filter((x) => x.code !== o.code && x.code !== ENTERPRISE_OFFER).map((x) => ({ code: x.code, name: x.name }))}
                 defaults={{
                   name: o.name,
                   startsOn: o.window_starts_at ? dayInZone(o.window_starts_at, OFFER_TIME_ZONE) : "",
@@ -90,8 +90,9 @@ async function OffersContent() {
                   active: o.active,
                   maxLocations: o.max_locations === null ? "" : String(o.max_locations),
                   maxLiveCoupons: o.max_live_coupons === null ? "" : String(o.max_live_coupons),
+                  campaignsPerMonth: o.campaigns_per_month === null ? "" : String(o.campaigns_per_month),
                 }}
-              />
+              />}
             </li>
           ))}
         </ul>

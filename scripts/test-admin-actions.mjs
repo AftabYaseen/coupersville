@@ -468,6 +468,7 @@ async function main() {
     founders_rule: originalSettings.founders_rule,
     founders_full: originalSettings.founders_full_early_access ? "early_access" : "wait",
     publishing_opens_on: "2026-10-01",
+    enterprise_contact_email: "admin@opalqsm.com",
     payments_open: originalSettings.payments_open ? "open" : "closed",
     renewals_enabled: originalSettings.renewals_enabled ? "on" : "off",
   };

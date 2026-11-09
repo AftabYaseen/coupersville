@@ -171,7 +171,7 @@ async function main() {
   check("an admin can still publish", !bossPublish.error, bossPublish.error);
   check("live coupons stay live", await isLive(paidUp.coupon.id));
   const billingEarly = await page("/merchant/billing", a.owner);
-  check("billing page says when publishing opens and shows the Founding offer", /Publishing opens on/.test(billingEarly) && /Founding Merchant: \$99 for your first year/.test(billingEarly), billingEarly.length);
+  check("billing page says when publishing opens and shows the Founding offer", /Publishing opens on/.test(billingEarly) && /Founding Merchant: \$99 a year or \$12 a month for your first year/.test(billingEarly), billingEarly.length);
 
   console.log("\nFounders window open: the race for the last free seat");
   must(await settings({ publishing_opens_at: iso(-1) }), "open publishing");
@@ -193,7 +193,7 @@ async function main() {
   const loserSave = (await callAction(base, loser.owner.cookie, A("merchant/coupons/actions.ts"), "saveCoupon", [loser.coupon.id, couponInput(`Loser ${run}`), "publish"])).value;
   check("Publish coupon says a plan is needed", loserSave?.ok === false && /need an active plan/.test(loserSave.error), loserSave);
   const loserBilling = await page("/merchant/billing", loser.owner);
-  check("billing: Founding Merchant: $99 for your first year, Payments open soon, 0 free seats left", /Founding Merchant: \$99 for your first year/.test(loserBilling) && /Payments open soon/.test(loserBilling) && /0 of /.test(loserBilling));
+  check("billing: Founding Merchant: $99 a year or $12 a month for your first year, Payments open soon, 0 free seats left", /Founding Merchant: \$99 a year or \$12 a month for your first year/.test(loserBilling) && /Payments open soon/.test(loserBilling) && /0 of /.test(loserBilling));
   check("billing: no Stripe, Checkout or portal", !/stripe|start annual plan|manage billing/i.test(loserBilling));
 
   console.log("\nOne seat per business, and nothing for anyone else");

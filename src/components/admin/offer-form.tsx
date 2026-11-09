@@ -69,8 +69,11 @@ export function OfferForm({ code, defaults, renewOptions, seatsUsed, freeSeatsUs
             ))}
           </select>
         </Field>
-        <Field id={id("locations")} label="Most stores" hint="Stored, not enforced yet. Blank means unlimited.">
+        <Field id={id("locations")} label="Most locations" hint="Active stores. Blank means unlimited.">
           <input id={id("locations")} type="number" min={1} inputMode="numeric" className="field-input tabular" {...register("maxLocations")} />
+        </Field>
+        <Field id={id("campaigns")} label="Campaigns per month" hint="First publishes per calendar month. Blank means unlimited.">
+          <input id={id("campaigns")} type="number" min={1} inputMode="numeric" className="field-input tabular" {...register("campaignsPerMonth")} />
         </Field>
         <Field id={id("coupons")} label="Most live coupons" hint="Stored, not enforced yet. Blank means unlimited.">
           <input id={id("coupons")} type="number" min={1} inputMode="numeric" className="field-input tabular" {...register("maxLiveCoupons")} />

@@ -4,6 +4,7 @@ import { requireManagedBusiness } from "@/lib/merchant";
 import { loadCouponBuilderData } from "@/lib/merchant-coupons";
 import { PageLoading } from "@/components/page-loading";
 import { CouponForm } from "@/components/merchant/coupon-form";
+import { CampaignUsage } from "@/components/merchant/usage";
 
 export const metadata: Metadata = { title: "Create coupon" };
 
@@ -22,7 +23,8 @@ async function NewCouponContent() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="wordmark mb-8 text-4xl text-ink">Create a coupon</h1>
+      <h1 className="wordmark text-4xl text-ink">Create a coupon</h1>
+      <CampaignUsage usage={data.usage} className="mt-2 mb-8" />
       <CouponForm
         couponId={null}
         status={null}

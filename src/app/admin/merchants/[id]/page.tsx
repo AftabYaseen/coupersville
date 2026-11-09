@@ -7,7 +7,9 @@ import { z } from "zod";
 import { requireAdminPage } from "@/lib/admin";
 import { subscriptionIsActive } from "@/lib/merchant";
 import { planState, planSummary } from "@/lib/billing";
-import { FOUNDING_OFFER } from "@/lib/offers";
+import { ENTERPRISE_OFFER, FOUNDING_OFFER } from "@/lib/offers";
+import { campaignsText, loadUsage, locationsText } from "@/lib/limits";
+import { BusinessLimits } from "@/components/admin/business-limits";
 import { COUPON_VIEW_STATUS, couponView } from "@/lib/coupons";
 import { dayInZone, dayOneYearOn, formatDay } from "@/lib/dates";
 import { formatOffer } from "@/components/ticket";
@@ -52,7 +54,7 @@ async function BusinessContent({
   const { supabase } = await requireAdminPage(`/admin/merchants/${id}`);
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const [{ data: business }, { data: plan }, { data: stores }, { data: coupons }, { data: team }, { count: redemptions }] =
+  const [{ data: business }, { data: plan }, { data: stores }, { data: coupons }, { data: team }, { count: redemptions }, { data: override }, usage] =
     await Promise.all([
       supabase.from("businesses").select("*, categories(name)").eq("id", id).maybeSingle(),
       supabase.from("subscriptions").select("*").eq("business_id", id).maybeSingle(),
@@ -69,6 +71,8 @@ async function BusinessContent({
         .order("updated_at", { ascending: false }),
       supabase.rpc("business_team", { p_business_id: id }),
       supabase.from("redemptions").select("id", { count: "exact", head: true }).eq("business_id", id),
+      supabase.from("business_limit_overrides").select("max_locations, campaigns_per_month").eq("business_id", id).maybeSingle(),
+      loadUsage(supabase, id),
     ]);
   if (!business) notFound();
 
@@ -189,7 +193,7 @@ async function BusinessContent({
         <p>
           {!plan
             ? "No plan. Coupons cannot go live until the business has one."
-            : `${plan.offer_code === FOUNDING_OFFER && plan.source === "complimentary" ? "Founding Merchant, free seat. " : ""}${planSummary(planState(plan, now), tz)}.${planActive ? "" : " Coupons are hidden from shoppers."}`}
+            : `${plan.offer_code === ENTERPRISE_OFFER ? "Enterprise (Custom). " : ""}${plan.offer_code === FOUNDING_OFFER && plan.source === "complimentary" ? "Founding Merchant, free seat. " : ""}${planSummary(planState(plan, now), tz)}.${planActive ? "" : " Coupons are hidden from shoppers."}`}
         </p>
         <PlanControls
           businessId={business.id}
@@ -199,6 +203,24 @@ async function BusinessContent({
           hasEndDate={Boolean(plan?.current_period_end)}
           today={today}
           suggestedEnd={planActive ? (currentEnd ?? "") : dayOneYearOn(today)}        />
+      </section>
+
+      <section className="panel grid gap-3 p-5" aria-labelledby="limits-heading">
+        <h2 id="limits-heading" className="text-xl font-semibold">
+          Limits
+        </h2>
+        {usage && (
+          <p className="tabular">
+            {locationsText(usage)}. {campaignsText(usage)}.
+          </p>
+        )}
+        <BusinessLimits
+          businessId={business.id}
+          maxLocations={override?.max_locations?.toString() ?? ""}
+          campaignsPerMonth={override?.campaigns_per_month?.toString() ?? ""}
+          canGrantEnterprise={!(plan && plan.source !== "complimentary" && planActive) && !(planActive && plan?.offer_code === ENTERPRISE_OFFER)}
+          today={today}
+        />
       </section>
 
       {anetConfigured() && (

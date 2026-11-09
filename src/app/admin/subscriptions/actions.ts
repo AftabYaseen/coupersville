@@ -5,8 +5,9 @@ import { z } from "zod";
 import { notifyPlanStarted } from "@/lib/email/notices";
 import { NOT_ADMIN, requireAdminAction } from "@/lib/admin";
 import { endOfDayInZone, formatDay } from "@/lib/dates";
-import { planEndSchema } from "@/lib/validation/admin";
+import { businessLimitsSchema, enterpriseGrantSchema, planEndSchema } from "@/lib/validation/admin";
 import { planIsCurrent } from "@/lib/billing";
+import { ENTERPRISE_OFFER } from "@/lib/offers";
 import type { ActionResult } from "@/lib/validation/auth";
 
 const NOT_FOUND: ActionResult = { ok: false, error: "That business could not be found." };
@@ -70,6 +71,79 @@ export async function setComplimentaryPlan(businessId: unknown, endsOnInput: unk
   refresh();
   const until = endsAt ? `until ${formatDay(endsAt, business.timezone)}` : "with no end date";
   return { ok: true, message: `${business.name} has a complimentary plan ${until}.` };
+}
+
+// Grants Enterprise (Custom): a complimentary plan on the enterprise offer, with its own limits.
+export async function grantEnterprisePlan(businessId: unknown, input: unknown): Promise<ActionResult> {
+  const id = z.uuid().safeParse(businessId);
+  const parsed = enterpriseGrantSchema.safeParse(input);
+  if (!id.success) return NOT_FOUND;
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+
+  const ctx = await requireAdminAction();
+  if (!ctx) return NOT_ADMIN;
+  const { business, plan } = await load(ctx, id.data);
+  if (!business) return NOT_FOUND;
+  if (plan && plan.source !== "complimentary" && planIsCurrent(plan)) return PAID;
+
+  const endsAt = parsed.data.endsOn ? endOfDayInZone(parsed.data.endsOn, business.timezone) : null;
+  if (endsAt && endsAt.getTime() <= Date.now()) return { ok: false, error: "The end date has already passed. Choose a later date." };
+
+  const { error: limitsError } = await ctx.supabase.from("business_limit_overrides").upsert({
+    business_id: business.id,
+    max_locations: parsed.data.maxLocations,
+    campaigns_per_month: parsed.data.campaignsPerMonth,
+    updated_by: ctx.user.id,
+  });
+  if (limitsError) return FAILED;
+
+  const row = {
+    business_id: business.id,
+    source: "complimentary" as const,
+    status: "active" as const,
+    current_period_end: endsAt?.toISOString() ?? null,
+    cancel_at_period_end: false,
+    stripe_subscription_id: null,
+    past_due_since: null,
+    offer_code: ENTERPRISE_OFFER,
+    term_ends_at: null,
+  };
+  const { error } = plan
+    ? await ctx.supabase.from("subscriptions").update(row).eq("id", plan.id)
+    : await ctx.supabase.from("subscriptions").insert(row);
+  if (error) return FAILED;
+
+  if (!planIsCurrent(plan) || plan?.offer_code !== ENTERPRISE_OFFER) {
+    await notifyPlanStarted(business.id, `enterprise:${business.id}:${new Date().toISOString()}`);
+  }
+
+  refresh();
+  return { ok: true, message: `${business.name} is on Enterprise (Custom).` };
+}
+
+// Limits for one business, over its plan's. Both blank removes the override.
+export async function setBusinessLimits(businessId: unknown, input: unknown): Promise<ActionResult> {
+  const id = z.uuid().safeParse(businessId);
+  const parsed = businessLimitsSchema.safeParse(input);
+  if (!id.success) return NOT_FOUND;
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+
+  const ctx = await requireAdminAction();
+  if (!ctx) return NOT_ADMIN;
+  const { data: business } = await ctx.supabase.from("businesses").select("id, name").eq("id", id.data).maybeSingle();
+  if (!business) return NOT_FOUND;
+
+  const { maxLocations, campaignsPerMonth } = parsed.data;
+  const { error } =
+    maxLocations === null && campaignsPerMonth === null
+      ? await ctx.supabase.from("business_limit_overrides").delete().eq("business_id", business.id)
+      : await ctx.supabase
+          .from("business_limit_overrides")
+          .upsert({ business_id: business.id, max_locations: maxLocations, campaigns_per_month: campaignsPerMonth, updated_by: ctx.user.id });
+  if (error) return { ok: false, error: "We could not save these limits. Try again in a moment." };
+
+  refresh();
+  return { ok: true, message: `Limits saved for ${business.name}.` };
 }
 
 // Adds a year from the current end date, or from today if it has already ended.

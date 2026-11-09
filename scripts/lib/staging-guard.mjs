@@ -21,7 +21,7 @@ import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const PRODUCTION_REF = "aidfrqepbtspddgwjpfw";
-const PRODUCTION_ALLOWED = new Set(["test-anet.mjs", "test-pages.mjs", "test-admin-actions.mjs", "test-finish.mjs"]);
+const PRODUCTION_ALLOWED = new Set(["test-anet.mjs", "test-pages.mjs", "test-admin-actions.mjs", "test-finish.mjs", "test-limits.mjs"]);
 
 function refuse(reason) {
   console.error(`\nRefusing to run: ${reason}\nTests run only against the staging project. See scripts/lib/staging-guard.mjs.\n`);

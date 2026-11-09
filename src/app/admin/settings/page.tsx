@@ -37,6 +37,7 @@ async function SettingsContent() {
               payments_open: data.payments_open ? "open" : "closed",
               renewals_enabled: data.renewals_enabled ? "on" : "off",
               publishing_opens_on: dayInZone(data.publishing_opens_at, OFFER_TIME_ZONE),
+              enterprise_contact_email: data.enterprise_contact_email,
             }}
           />
         </div>

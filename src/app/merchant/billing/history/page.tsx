@@ -5,6 +5,7 @@ import { requireManagedBusiness } from "@/lib/merchant";
 import { formatDay } from "@/lib/dates";
 import { formatPrice } from "@/lib/offers";
 import { PageLoading } from "@/components/page-loading";
+import { ContactForMore } from "@/components/merchant/usage";
 
 export const metadata: Metadata = { title: "Billing history" };
 
@@ -20,12 +21,15 @@ const STATUS: Record<string, string> = { paid: "Paid", declined: "Declined", voi
 
 async function HistoryContent() {
   const { business, supabase } = await requireManagedBusiness("/merchant/billing/history");
-  const { data: payments } = await supabase
-    .from("payments")
-    .select("id, created_at, amount_cents, card_last4, status, kind")
-    .eq("business_id", business.id)
-    .order("created_at", { ascending: false })
-    .limit(100);
+  const [{ data: payments }, { data: settings }] = await Promise.all([
+    supabase
+      .from("payments")
+      .select("id, created_at, amount_cents, card_last4, status, kind")
+      .eq("business_id", business.id)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    supabase.from("platform_settings").select("enterprise_contact_email").limit(1).maybeSingle(),
+  ]);
 
   return (
     <div className="mx-auto grid max-w-2xl gap-6 px-4 py-10">
@@ -64,6 +68,7 @@ async function HistoryContent() {
           </table>
         </div>
       )}
+      <ContactForMore email={settings?.enterprise_contact_email ?? "admin@opalqsm.com"} />
     </div>
   );
 }

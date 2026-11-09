@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { requireManagedBusiness } from "@/lib/merchant";
 import { planState } from "@/lib/billing";
 import { canClaimFreeSeat, loadBillingContext, type BillingContext } from "@/lib/founding";
-import { FOUNDING_OFFER, OFFER_TIME_ZONE, freeSeatsLeft, priceLine, termLabel, windowLabel, type Offer } from "@/lib/offers";
+import { ENTERPRISE_OFFER, FOUNDING_OFFER, OFFER_TIME_ZONE, freeSeatsLeft, priceLine, termLabel, windowLabel, type Offer } from "@/lib/offers";
 import { formatDay, safeTimeZone } from "@/lib/dates";
 import { continueTerms, purchaseTerms, type Cycle } from "@/lib/renewal-terms";
 import { PageLoading } from "@/components/page-loading";
@@ -14,6 +14,8 @@ import { ClaimSeatButton } from "@/components/merchant/claim-seat-button";
 import { HostedPageButton } from "@/components/merchant/hosted-page-button";
 import { RenewalToggle } from "@/components/merchant/renewal-toggle";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { CampaignUsage, ContactForMore } from "@/components/merchant/usage";
+import { loadUsage, locationsText } from "@/lib/limits";
 import { startCardUpdate, startPlanCheckout } from "./actions";
 import { priceFor, priceText, purchasableOffer, refreshCard, renewalTerms, resolveCheckout, sweepCheckouts } from "@/lib/paid-billing";
 import { anetConfigured } from "@/lib/authorize-net";
@@ -44,6 +46,7 @@ const CLAIM_MESSAGES: Record<string, { tone: "error" | "success"; text: string }
   profile_incomplete: { tone: "error", text: "Finish your business profile and first store first. Your coupon is saved as a draft." },
   coupon_required: { tone: "error", text: "Publish your first coupon to claim your free seat." },
   coupon_invalid: { tone: "error", text: "That coupon cannot be published, so it is saved as a draft. Check its end date and try again." },
+  campaign_limit: { tone: "error", text: "You have used all your campaigns for this month, so your coupon is saved as a draft." },
   has_plan: { tone: "success", text: "You already have a plan, so you can publish coupons." },
   not_allowed: { tone: "error", text: "Only the owner or a manager can claim a seat for this business." },
   failed: { tone: "error", text: "We could not claim a seat just now. Your coupon is saved as a draft. Try again in a moment." },
@@ -97,7 +100,7 @@ async function BillingContent({ searchParams }: { searchParams: PageProps<"/merc
         : { tone: "error", text: "No card is saved yet. Add one to keep your plan going." };
     }
   }
-  const billing = await loadBillingContext(supabase, business.id, now);
+  const [billing, usage] = await Promise.all([loadBillingContext(supabase, business.id, now), loadUsage(supabase, business.id)]);
 
   return (
     <div className="mx-auto grid max-w-2xl gap-6 px-4 py-10">
@@ -122,8 +125,16 @@ async function BillingContent({ searchParams }: { searchParams: PageProps<"/merc
           Founding Merchant seat {billing.claim.seat_number}, claimed on {formatDay(billing.claim.claimed_at, business.timezone)}.
         </p>
       )}
+      <section className="panel grid gap-3 p-5" aria-labelledby="limits-heading">
+        <h2 id="limits-heading" className="text-xl font-semibold">
+          What your plan includes
+        </h2>
+        <CampaignUsage usage={usage} />
+        {usage && <p className="font-semibold tabular">{locationsText(usage)}</p>}
+        <ContactForMore email={billing.contactEmail} />
+      </section>
       {billing.plan && <PaymentPanel plan={billing.plan} billing={billing} timeZone={business.timezone} />}
-      {(!billing.planCurrent || billing.plan?.source === "complimentary") && !freeSeatPlan(billing.plan, billing.planCurrent) && (
+      {(!billing.planCurrent || (billing.plan?.source === "complimentary" && billing.plan.offer_code !== ENTERPRISE_OFFER)) && !freeSeatPlan(billing.plan, billing.planCurrent) && (
         <OfferPanel billing={billing} businessStatus={business.status} now={now} timeZone={safeTimeZone(business.timezone)} />
       )}
       <Link href="/merchant/billing/history" className="font-medium text-ink underline underline-offset-4">
