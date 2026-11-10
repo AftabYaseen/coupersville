@@ -1,12 +1,11 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { safeTimeZone } from "@/lib/dates";
-import { PAST_DUE_GRACE_DAYS, planIsCurrent } from "@/lib/billing";
+import { planIsCurrent } from "@/lib/billing";
 import { sendEmail } from "@/lib/email/send";
 import { FOUNDING_OFFER } from "@/lib/offers";
 import {
   couponRemovedEmail,
-  paymentFailedEmail,
   planEndedEmail,
   planEndingEmail,
   planStartedEmail,
@@ -61,7 +60,7 @@ export async function notifyWelcome(user: { id: string; email?: string | null; c
   return sendOnce("welcome", user.id, user.email ?? null, welcomeEmail({ role: profile.role, name: profile.full_name }));
 }
 
-// Once per plan: a Stripe subscription id, a complimentary grant, or a Founding seat (one per business).
+// Once per plan: a paid checkout, a complimentary grant, or a Founding seat (one per business).
 export async function notifyPlanStarted(businessId: string, ref: string, renewalTerms: string | null = null): Promise<NoticeOutcome> {
   const admin = createAdminClient();
   const [{ data: plan }, contact] = await Promise.all([
@@ -83,25 +82,6 @@ export async function notifyPlanStarted(businessId: string, ref: string, renewal
       offerName,
       renewalTerms,
     }),
-  );
-}
-
-// Once per failed invoice. Only when the plan we hold is that Stripe subscription and is past due.
-export async function notifyPaymentFailed(stripeSubscriptionId: string, invoiceId: string): Promise<NoticeOutcome> {
-  const { data: plan } = await createAdminClient()
-    .from("subscriptions")
-    .select("business_id, status, past_due_since")
-    .eq("stripe_subscription_id", stripeSubscriptionId)
-    .maybeSingle();
-  if (!plan || plan.status !== "past_due") return "skipped";
-  const contact = await businessContact(plan.business_id);
-  if (!contact) return "skipped";
-  const since = plan.past_due_since ? new Date(plan.past_due_since).getTime() : Date.now();
-  return sendOnce(
-    "payment_failed",
-    invoiceId,
-    contact.email,
-    paymentFailedEmail({ businessName: contact.name, graceEndsAt: new Date(since + PAST_DUE_GRACE_DAYS * DAY_MS).toISOString(), timeZone: contact.timeZone }),
   );
 }
 
@@ -127,7 +107,7 @@ export type PlanNoticeReport = { ending: Record<NoticeOutcome, number>; ended: R
 
 const emptyCounts = (): Record<NoticeOutcome, number> => ({ sent: 0, skipped: 0, already_sent: 0, failed: 0, no_recipient: 0 });
 
-// The daily job. "Ending" covers plans that will not renew (complimentary, or Stripe set to cancel)
+// The daily job. "Ending" covers plans that will not renew (complimentary, or renewal turned off)
 // and end within 7 days. "Ended" covers plans that stopped being current in the last 7 days. Both are
 // keyed on the plan's end date, so running the job twice in a day, or every day of the week, sends
 // each email once per plan period.

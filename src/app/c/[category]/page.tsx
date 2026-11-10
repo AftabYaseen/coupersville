@@ -64,7 +64,7 @@ async function CategoryContent({ params }: { params: PageProps<"/c/[category]">[
         <EmptyState title="Nothing on the shelf just yet.">
           <p>There are no active {shop.name} deals at the moment, but new offers are always arriving in Coupersville.</p>
           <div className="flex flex-wrap gap-3">
-            <Link href="/#categories" className="btn btn-secondary">
+            <Link href="/explore" className="btn btn-secondary">
               Browse other categories
             </Link>
             <Link href="/search" className="btn btn-secondary">

@@ -11,6 +11,8 @@ export type Email = {
   text: string;
   // Template name, for logs.
   tag: string;
+  // Where a reply goes, for example the sender of a contact message.
+  replyTo?: string;
 };
 
 export type SendResult = { ok: true; skipped?: boolean } | { ok: false; reason: string };
@@ -36,7 +38,14 @@ export async function sendEmail(email: Email): Promise<SendResult> {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to: [email.to], subject: email.subject, html: email.html, text: email.text }),
+      body: JSON.stringify({
+        from,
+        to: [email.to],
+        subject: email.subject,
+        html: email.html,
+        text: email.text,
+        ...(email.replyTo ? { reply_to: email.replyTo } : {}),
+      }),
       signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) {

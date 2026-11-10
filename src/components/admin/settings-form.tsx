@@ -19,7 +19,11 @@ const FIELDS: { key: keyof typeof SETTING_OPTIONS; label: string }[] = [
 export function SettingsForm({ defaults }: { defaults: SettingsInput }) {
   const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
-  const { register, handleSubmit } = useForm<SettingsInput, unknown, z.output<typeof settingsSchema>>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SettingsInput, unknown, z.output<typeof settingsSchema>>({
     resolver: zodResolver(settingsSchema),
     defaultValues: defaults,
   });
@@ -59,10 +63,19 @@ export function SettingsForm({ defaults }: { defaults: SettingsInput }) {
       </Field>
       <Field
         id="setting-contact-email"
-        label="Contact for more than 3 locations"
-        hint="Merchants see this address on their Billing pages."
+        label="Contact email"
+        hint="Contact page messages go here. Also shown on the Contact, Business membership and Billing pages."
+        error={errors.enterprise_contact_email?.message}
       >
         <input id="setting-contact-email" type="email" className="field-input" {...register("enterprise_contact_email")} />
+      </Field>
+      <Field
+        id="setting-response-time"
+        label="Response time"
+        hint='Shown after a message is sent: "We will respond within 2 business days."'
+        error={errors.contact_response_time?.message}
+      >
+        <input id="setting-response-time" className="field-input" {...register("contact_response_time")} />
       </Field>
       <button type="submit" className="btn justify-self-start" disabled={pending}>
         {pending ? "Saving" : "Save settings"}

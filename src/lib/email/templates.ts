@@ -15,7 +15,7 @@ const FONT = "Archivo, 'Helvetica Neue', Arial, sans-serif";
 
 export type RenderedEmail = { subject: string; html: string; text: string };
 
-export type PlanSource = "stripe" | "complimentary" | "authorize_net";
+export type PlanSource = "complimentary" | "authorize_net";
 
 type Block =
   | { kind: "p"; text: string }
@@ -318,6 +318,31 @@ export function addCardReminderEmail({
 }
 
 // To Coupersville admins when a payment needs a person to look at it.
+// A message from the Contact page, to the site's contact address. Reply goes to the sender.
+export function contactMessageEmail({
+  name,
+  email,
+  role,
+  topic,
+  message,
+}: {
+  name: string;
+  email: string;
+  role: string;
+  topic: string;
+  message: string;
+}): RenderedEmail {
+  return layout({
+    subject: `Contact: ${topic} from ${name}`,
+    heading: "New message from the Contact page",
+    blocks: [
+      { kind: "stub", rows: [["From", `${name} (${email})`], ["I am a", role], ["Topic", topic]] },
+      ...message.split(/\n{2,}/).map((text) => ({ kind: "p" as const, text })),
+      { kind: "note", text: "Reply to this email to answer them directly." },
+    ],
+  });
+}
+
 export function adminBillingAlertEmail({ subject, lines }: { subject: string; lines: string[] }): RenderedEmail {
   return layout({
     subject: `Billing needs a look: ${subject}`,

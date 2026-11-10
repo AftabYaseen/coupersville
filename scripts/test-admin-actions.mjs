@@ -103,7 +103,7 @@ async function main() {
 
   const shop = await business(owner, `Admin test shop ${run}`, { source: "complimentary", status: "active" });
   const noPlan = await business(owner, `No plan shop ${run}`, null);
-  const paid = await business(owner, `Stripe shop ${run}`, { source: "stripe", status: "active", stripe_subscription_id: `sub_test_${run}` });
+  const paid = await business(owner, `Paid shop ${run}`, { source: "authorize_net", status: "active", current_period_end: new Date(Date.now() + 200 * 86_400_000).toISOString() });
   const store = must(
     await admin.from("locations").insert({ business_id: shop.id, store_name: "Main store", address_line1: "1 Main St", city: "Coupersville" }).select().single(),
     "store",
@@ -189,10 +189,10 @@ async function main() {
   check("revoking twice says there is no active plan", revokeAgain.ok === false, revokeAgain);
   const regrant = await act(boss, "admin/subscriptions/actions.ts", "setComplimentaryPlan", noPlan.id, day(30));
   check("grant again after revoking", regrant.ok === true, regrant);
-  const stripe = await act(boss, "admin/subscriptions/actions.ts", "setComplimentaryPlan", paid.id, day(30));
-  check("paid plans are left alone", stripe.ok === false && /paid plan/.test(stripe.error), stripe);
-  const stripeRevoke = await act(boss, "admin/subscriptions/actions.ts", "revokeComplimentaryPlan", paid.id);
-  check("paid plans cannot be revoked here", stripeRevoke.ok === false && /paid plan/.test(stripeRevoke.error), stripeRevoke);
+  const paidGrant = await act(boss, "admin/subscriptions/actions.ts", "setComplimentaryPlan", paid.id, day(30));
+  check("paid plans are left alone", paidGrant.ok === false && /paid plan/.test(paidGrant.error), paidGrant);
+  const paidRevoke = await act(boss, "admin/subscriptions/actions.ts", "revokeComplimentaryPlan", paid.id);
+  check("paid plans cannot be revoked here", paidRevoke.ok === false && /paid plan/.test(paidRevoke.error), paidRevoke);
   const ownerGrant = await callAction(base, owner.cookie, A("admin/subscriptions/actions.ts"), "setComplimentaryPlan", [noPlan.id, ""]);
   check("merchant cannot grant themselves a plan", ownerGrant.blocked === true, ownerGrant);
 
@@ -469,6 +469,7 @@ async function main() {
     founders_full: originalSettings.founders_full_early_access ? "early_access" : "wait",
     publishing_opens_on: "2026-10-01",
     enterprise_contact_email: "admin@opalqsm.com",
+    contact_response_time: "within 2 business days",
     payments_open: originalSettings.payments_open ? "open" : "closed",
     renewals_enabled: originalSettings.renewals_enabled ? "on" : "off",
   };

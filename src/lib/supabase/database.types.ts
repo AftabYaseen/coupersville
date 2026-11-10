@@ -56,32 +56,6 @@ export type Database = {
         }
         Relationships: []
       }
-      billing_customers: {
-        Row: {
-          business_id: string
-          created_at: string
-          stripe_customer_id: string
-        }
-        Insert: {
-          business_id: string
-          created_at?: string
-          stripe_customer_id: string
-        }
-        Update: {
-          business_id?: string
-          created_at?: string
-          stripe_customer_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "billing_customers_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: true
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       business_limit_overrides: {
         Row: {
           business_id: string
@@ -915,6 +889,7 @@ export type Database = {
       platform_settings: {
         Row: {
           consumer_login: string
+          contact_response_time: string
           coupon_moderation: string
           created_at: string
           enterprise_contact_email: string
@@ -933,6 +908,7 @@ export type Database = {
         }
         Insert: {
           consumer_login?: string
+          contact_response_time?: string
           coupon_moderation?: string
           created_at?: string
           enterprise_contact_email?: string
@@ -951,6 +927,7 @@ export type Database = {
         }
         Update: {
           consumer_login?: string
+          contact_response_time?: string
           coupon_moderation?: string
           created_at?: string
           enterprise_contact_email?: string
@@ -1332,24 +1309,6 @@ export type Database = {
           },
         ]
       }
-      stripe_events: {
-        Row: {
-          id: string
-          received_at: string
-          type: string
-        }
-        Insert: {
-          id: string
-          received_at?: string
-          type: string
-        }
-        Update: {
-          id?: string
-          received_at?: string
-          type?: string
-        }
-        Relationships: []
-      }
       subscriptions: {
         Row: {
           anet_customer_profile_id: string | null
@@ -1366,8 +1325,6 @@ export type Database = {
           past_due_since: string | null
           source: Database["public"]["Enums"]["subscription_source"]
           status: Database["public"]["Enums"]["subscription_status"]
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
           term_ends_at: string | null
           updated_at: string
         }
@@ -1386,8 +1343,6 @@ export type Database = {
           past_due_since?: string | null
           source: Database["public"]["Enums"]["subscription_source"]
           status?: Database["public"]["Enums"]["subscription_status"]
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
           term_ends_at?: string | null
           updated_at?: string
         }
@@ -1406,8 +1361,6 @@ export type Database = {
           past_due_since?: string | null
           source?: Database["public"]["Enums"]["subscription_source"]
           status?: Database["public"]["Enums"]["subscription_status"]
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
           term_ends_at?: string | null
           updated_at?: string
         }
@@ -1897,7 +1850,7 @@ export type Database = {
       member_role: "owner" | "manager" | "staff"
       redemption_method: "qr" | "code"
       stock_tint: "mint" | "pink" | "sky" | "butter"
-      subscription_source: "stripe" | "complimentary" | "authorize_net"
+      subscription_source: "complimentary" | "authorize_net"
       subscription_status: "active" | "past_due" | "canceled" | "expired"
       user_role: "consumer" | "merchant" | "admin"
     }
@@ -2034,7 +1987,7 @@ export const Constants = {
       member_role: ["owner", "manager", "staff"],
       redemption_method: ["qr", "code"],
       stock_tint: ["mint", "pink", "sky", "butter"],
-      subscription_source: ["stripe", "complimentary", "authorize_net"],
+      subscription_source: ["complimentary", "authorize_net"],
       subscription_status: ["active", "past_due", "canceled", "expired"],
       user_role: ["consumer", "merchant", "admin"],
     },

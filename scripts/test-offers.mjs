@@ -191,10 +191,10 @@ async function main() {
   const loserDirect = await loser.owner.client.from("coupons").update({ status: "published" }).eq("id", loser.coupon.id);
   check("a merchant without a plan cannot publish straight to the database", loserDirect.error?.hint === "subscription_required", loserDirect.error);
   const loserSave = (await callAction(base, loser.owner.cookie, A("merchant/coupons/actions.ts"), "saveCoupon", [loser.coupon.id, couponInput(`Loser ${run}`), "publish"])).value;
-  check("Publish coupon says a plan is needed", loserSave?.ok === false && /need an active plan/.test(loserSave.error), loserSave);
+  check("Publish coupon says a membership is needed", loserSave?.ok === false && /active plan|active membership/.test(loserSave.error), loserSave);
   const loserBilling = await page("/merchant/billing", loser.owner);
   check("billing: Founding Merchant: $99 a year or $12 a month for your first year, Payments open soon, 0 free seats left", /Founding Merchant: \$99 a year or \$12 a month for your first year/.test(loserBilling) && /Payments open soon/.test(loserBilling) && /0 of /.test(loserBilling));
-  check("billing: no Stripe, Checkout or portal", !/stripe|start annual plan|manage billing/i.test(loserBilling));
+  check("billing: no checkout while payments are closed", !/Continue to payment/.test(loserBilling));
 
   console.log("\nOne seat per business, and nothing for anyone else");
   check("the winner cannot claim again (has a plan)", (await claim(winner.owner, winner.business.id, null)) === "has_plan");
@@ -212,11 +212,11 @@ async function main() {
   const first = must(await admin.from("coupons").select("id, status").eq("title", `First coupon ${run}`).single(), "first coupon");
   check("that coupon is live", first.status === "published" && (await isLive(first.id)));
   const cBilling = await page("/merchant/billing?claim=claimed", c.owner);
-  check("billing shows the free seat", /Your free Founding Merchant seat is confirmed/.test(cBilling) && /Founding Merchant, free seat/.test(cBilling) && /Founding Merchant seat \d+/.test(cBilling));
+  check("billing shows the free seat", /Your free Founding Merchant seat is confirmed/.test(cBilling) && /Founding Merchant, complimentary year/.test(cBilling) && /Founding Merchant seat \d+/.test(cBilling));
   const second = await callAction(base, c.owner.cookie, A("merchant/coupons/actions.ts"), "saveCoupon", [c.coupon.id, couponInput(`Second coupon ${run}`), "publish"]);
   check("with the plan, a second coupon publishes normally", second.redirect?.startsWith("/merchant/coupons"), second);
   const dash = await page("/merchant", c.owner);
-  check("dashboard shows the Founding plan", /Founding Merchant, free seat/.test(dash) && !/stripe/i.test(dash));
+  check("dashboard shows the Founding plan", /Founding Merchant, complimentary year/.test(dash));
   const email = must(await admin.from("email_notices").select("kind").eq("kind", "plan_started").eq("ref", `founding:${c.business.id}`), "notice");
   check("the plan started email is claimed once (sending is skipped for test addresses)", email.length === 0 || email.length === 1, email);
 
@@ -237,9 +237,6 @@ async function main() {
   check("a new admin grant is not a Founding seat", regrant.value?.ok === true && (await planOf(d.business.id))?.offer_code === null, await planOf(d.business.id));
   const subsPage = await page("/admin/subscriptions", boss);
   check("subscriptions page shows the Founding seat", /Founding Merchant, free seat/.test(subsPage));
-  // Visible text only: the page data still carries a plan's source value ("stripe") for paid plans.
-  const visible = subsPage.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ");
-  check("subscriptions page shows no Stripe wording", !/stripe/i.test(visible), visible.match(/.{60}stripe.{60}/i)?.[0]);
   const offersPage = await page("/admin/offers", boss);
   check("offers page lists all four with seats taken", ["Founding Merchant", "Early Access", "General", "Merchant Plus"].every((n) => offersPage.includes(n)) && /Free seats taken/.test(offersPage));
   const current = await founding();

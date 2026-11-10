@@ -46,7 +46,7 @@ export default function Home() {
           <Link href="/search" className="btn">
             Find a deal
           </Link>
-          <Link href="#categories" className="btn btn-secondary">
+          <Link href="/explore" className="btn btn-secondary">
             Explore Coupersville
           </Link>
         </div>
@@ -96,6 +96,9 @@ export default function Home() {
         <Suspense fallback={<ShopGridSkeleton />}>
           <ShopGrid />
         </Suspense>
+        <Link href="/explore" className="btn btn-secondary mt-4">
+          Explore all categories
+        </Link>
       </section>
 
       <Suspense fallback={<RowSkeleton title="Catch these before they're gone" />}>

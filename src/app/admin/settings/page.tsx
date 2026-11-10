@@ -38,6 +38,7 @@ async function SettingsContent() {
               renewals_enabled: data.renewals_enabled ? "on" : "off",
               publishing_opens_on: dayInZone(data.publishing_opens_at, OFFER_TIME_ZONE),
               enterprise_contact_email: data.enterprise_contact_email,
+              contact_response_time: data.contact_response_time,
             }}
           />
         </div>

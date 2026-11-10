@@ -44,7 +44,7 @@ async function SavedContent() {
             <Link href="/search" className="btn">
               Find a deal
             </Link>
-            <Link href="/#categories" className="btn btn-secondary">
+            <Link href="/explore" className="btn btn-secondary">
               Browse categories
             </Link>
           </div>

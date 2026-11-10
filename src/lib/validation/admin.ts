@@ -86,6 +86,7 @@ export const settingsSchema = z.object({
   // The day publishing opens, from midnight Pacific time.
   publishing_opens_on: z.string().trim().regex(DAY_PATTERN, { error: "Choose a valid date." }),
   enterprise_contact_email: z.email({ error: "Enter a valid email address." }).max(254),
+  contact_response_time: z.string().trim().min(1, { error: "Enter a response time." }).max(80, { error: "Use 80 characters or fewer." }),
 });
 export type SettingsInput = z.input<typeof settingsSchema>;
 

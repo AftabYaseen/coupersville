@@ -57,6 +57,9 @@ export default function ForBusinessesPage() {
         <Link href={JOIN_HREF} className="btn">
           Join Coupersville
         </Link>
+        <Link href="/business-membership" className="btn btn-secondary">
+          View business membership
+        </Link>
       </div>
 
       <section className="mt-12" aria-labelledby="why-heading">
@@ -108,7 +111,6 @@ export default function ForBusinessesPage() {
         </ol>
       </section>
 
-      {/* PRICING: the Business membership page (phase 2) shows prices from the offers table. */}
       <div className="mt-10">
         <Link href={JOIN_HREF} className="btn">
           Open your door in Coupersville
@@ -124,7 +126,11 @@ async function FoundingCallout() {
   return (
     <p className="mt-6 rounded-sm border-[1.5px] border-ink bg-stock-butter p-4">
       <span className="font-semibold">Be a Founding Merchant.</span> The first {f.freeSeats} qualifying merchants to join between{" "}
-      {f.from} and {f.to} receive one complimentary year.
+      {f.from} and {f.to} receive one complimentary year. See{" "}
+      <Link href="/business-membership" className="font-medium text-ink underline underline-offset-4">
+        Business membership
+      </Link>{" "}
+      for details.
     </p>
   );
 }

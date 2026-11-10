@@ -5,7 +5,7 @@
 //
 // Public pages, metadata files, the PWA files, the 404 page, emails (welcome, staff invite, plan
 // started, plan ending, plan ended, coupon removed), the daily cron job run twice, and account
-// deletion for a shopper and for a business owner with a Stripe plan (test mode only).
+// deletion for a shopper and for a business owner whose paid plan renews (no payment is made).
 //
 // Test accounts that should get a real email use Resend's test inbox (delivered+...@resend.dev),
 // so each email really goes through Resend and shows in its dashboard, but reaches no person.
@@ -14,7 +14,6 @@
 import { PRODUCTION_MODE } from "./lib/staging-guard.mjs";
 import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
-import Stripe from "stripe";
 import { callAction, makeUser } from "./lib/call-action.mjs";
 
 const base = process.env.BASE_URL ?? "http://localhost:3100";
@@ -22,17 +21,25 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const publishable = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const secret = process.env.SUPABASE_SECRET_KEY;
 const cronSecret = process.env.CRON_SECRET;
-const stripeKey = process.env.STRIPE_SECRET_KEY;
 if (!url || !publishable || !secret || !cronSecret) {
   console.error("Missing env vars (Supabase keys, CRON_SECRET). Run with --env-file=.env.local");
   process.exit(1);
 }
-const stripe = stripeKey?.startsWith("sk_test_") ? new Stripe(stripeKey) : null;
 
 const admin = createClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
 const run = Date.now().toString(36);
 const password = `Pw-${run}-x9Z!`;
-const created = { users: [], businesses: [], refs: [], stripe: [] };
+const created = { users: [], businesses: [], refs: [] };
+// A paid plan as Authorize.net leaves it. The profile ids are made up: nothing here calls Authorize.net.
+const renewingPlan = (periodEnd) => ({
+  source: "authorize_net",
+  status: "active",
+  current_period_end: periodEnd,
+  offer_code: "general",
+  billing_cycle: "annual",
+  anet_customer_profile_id: `test-${run}`,
+  anet_payment_profile_id: `test-${run}`,
+});
 const DAY = 86_400_000;
 const iso = (days) => new Date(Date.now() + days * DAY).toISOString();
 
@@ -185,6 +192,68 @@ async function pages() {
   check("an unknown address gets a branded 404", missing.status === 404 && missing.body.includes("This page is not in town"));
   const badCoupon = await get("/coupon/00000000-0000-4000-8000-000000000000");
   check("an unknown coupon says it is not available", badCoupon.body.includes("This deal is not available"));
+
+  await phaseTwoPages();
+}
+
+// Copy deck phase 2: Business membership, Explore, About, Contact.
+async function phaseTwoPages() {
+  console.log("\nBusiness membership, Explore, About, Contact");
+  const shown = (html) => html.replace(/<script[\s\S]*?<\/script>/g, "");
+  const money = (cents) => `$${(cents / 100).toFixed(2)}`;
+  const offers = must(await admin.from("offers").select("*"), "offers");
+  const by = Object.fromEntries(offers.map((o) => [o.code, o]));
+
+  const mem = await get("/business-membership");
+  const memText = shown(mem.body);
+  check("membership page loads with the deck headline", mem.status === 200 && memText.includes("One membership. Plenty of possibilities."));
+  for (const code of ["founding_merchant", "early_access", "general", "merchant_plus"]) {
+    const o = by[code];
+    const saved = o.monthly_price_cents * 12 - o.annual_price_cents;
+    const pct = ((saved / (o.monthly_price_cents * 12)) * 100).toFixed(1);
+    check(
+      `${o.name}: annual, monthly and savings from the offers table`,
+      memText.includes(o.name) && memText.includes(money(o.annual_price_cents)) && memText.includes(money(o.monthly_price_cents)) && memText.includes(`saves ${money(saved)} (${pct}%)`),
+      { name: o.name, saved, pct },
+    );
+  }
+  check("Founding: 50 free, the next 150, and its window", memText.includes(`First ${by.founding_merchant.free_seats} qualifying merchants`) && memText.includes(`The next ${by.founding_merchant.seat_cap - by.founding_merchant.free_seats}`) && memText.includes("November 1, 2026 to January 31, 2027"));
+  check("Enterprise asks for a custom quote and links to Contact", memText.includes("Enterprise (Custom)") && memText.includes("Contact us for a custom quote") && mem.body.includes('href="/contact"'));
+  check("the $1 admin test offer never shows", !memText.includes(by.admin_test?.name ?? "Admin payment test") && !memText.includes("$1.00"));
+  check("Start my membership goes to sign-up", mem.body.includes('href="/signup?type=merchant"') && memText.includes("Start my membership"));
+
+  const explore = await get("/explore");
+  const live = must(await admin.from("categories").select("name, description").eq("active", true), "categories");
+  check("explore lists every active category with its description", explore.status === 200 && live.every((c) => shown(explore.body).includes(c.name.replace(/&/g, "&amp;")) && (!c.description || shown(explore.body).includes(c.description.replace(/'/g, "&#x27;").replace(/&/g, "&amp;")))));
+
+  const about = await get("/about");
+  check("about loads, says how sign-up works, never no account", about.status === 200 && shown(about.body).includes("A place where businesses and savings meet.") && !/no account|without (creating )?an account|or creating an account/i.test(shown(about.body)));
+
+  const contact = await get("/contact");
+  check("contact page loads with the form and the contact address", contact.status === 200 && shown(contact.body).includes("How can we help?") && shown(contact.body).includes("Send message") && contact.body.includes("mailto:"));
+  const home = await get("/");
+  check("header and footer link Explore, Business membership, About and Contact", ["/explore", "/business-membership", "/about", "/contact"].every((p) => home.body.includes(`href="${p}"`)));
+
+  const { createHmac } = await import("node:crypto");
+  const hash = (kind, value) => createHmac("sha256", secret).update(`${kind}:${value}`).digest("hex");
+  const ip = `203.0.113.${(Date.now() % 200) + 20}`;
+  const sender = fakeInbox("contact");
+  const message = (extra = {}) => ({ name: "Test sender", email: sender, role: "Shopper", topic: "Coupon question", message: "Is this deal still on next week?", website: "", ...extra });
+  const send = (input) => callAction(base, null, A("contact/actions.ts"), "sendContactMessage", [input], { headers: { "x-forwarded-for": ip } });
+  try {
+    const bad = await send(message({ message: "hi" }));
+    check("contact: a too-short message is refused with a clear reason", bad.value?.ok === false && /at least 10 characters/.test(bad.value.error), bad.value);
+    const bot = await send(message({ website: "http://spam.example" }));
+    check("contact: a filled honeypot looks sent but is not counted", bot.value?.ok === true && (await admin.from("auth_code_requests").select("id").eq("kind", "contact").eq("email_hash", hash("email", sender))).data.length === 0, bot.value);
+    const results = [];
+    for (let i = 0; i < 4; i++) results.push(await send(message()));
+    check("contact: a message is accepted with the response time", results[0].value?.ok === true && /will respond within/.test(results[0].value.message), results[0].value);
+    check("contact: the fourth message in 10 minutes from one email is refused", results.slice(0, 3).every((r) => r.value?.ok === true) && results[3].value?.ok === false && /wait a few minutes/.test(results[3].value.error), results.map((r) => r.value?.ok));
+  } finally {
+    // The limiter keeps keyed hashes only; remove this run's rows.
+    await admin.from("auth_code_requests").delete().eq("kind", "contact").eq("email_hash", hash("email", sender));
+    await admin.from("auth_code_requests").delete().eq("kind", "contact").eq("ip_hash", hash("ip", ip));
+  }
 }
 
 async function emails() {
@@ -237,7 +306,7 @@ async function emails() {
 
   console.log("\nDaily job: plan ending and plan ended");
   const ended = await business(owner, `Ended plan shop ${run}`, { source: "complimentary", status: "active", current_period_end: iso(-2) });
-  const renewing = await business(owner, `Renewing shop ${run}`, { source: "stripe", status: "active", current_period_end: iso(3), stripe_subscription_id: `sub_test_${run}` });
+  const renewing = await business(owner, `Renewing shop ${run}`, renewingPlan(iso(3)));
   const plans = must(await admin.from("subscriptions").select("id, business_id, current_period_end").in("business_id", [shop.id, ended.id, renewing.id]), "plans");
   const planOf = (b) => plans.find((p) => p.business_id === b.id);
 
@@ -266,7 +335,7 @@ async function emails() {
   // Supabase returns timestamps in its own format; match on the plan id.
   check("plan ending in 3 days gets the ending email", (await noticesLike("plan_ending", planOf(shop).id)).length === 1, endingRef(shop));
   check("a plan that ended 2 days ago gets the ended email", (await noticesLike("plan_ended", planOf(ended).id)).length === 1);
-  check("a Stripe plan that renews gets no ending email", (await noticesLike("plan_ending", planOf(renewing).id)).length === 0);
+  check("a paid plan that renews gets no ending email", (await noticesLike("plan_ending", planOf(renewing).id)).length === 0);
   const second = await cron(`Bearer ${cronSecret}`);
   check("running the job twice is safe", second.status === 200 && second.body.report.plan_notices.ending.sent === 0 && second.body.report.plan_notices.ended.sent === 0, second.body);
   check("still one email each", (await noticesLike("plan_ending", planOf(shop).id)).length === 1 && (await noticesLike("plan_ended", planOf(ended).id)).length === 1);
@@ -329,37 +398,15 @@ async function deletion() {
   must(await admin.from("businesses").update({ contact_email: fakeInbox("contact"), contact_phone: "555-0100", website_url: "https://example.com" }).eq("id", paidShop.id), "contact details");
   must(await admin.from("locations").insert({ business_id: paidShop.id, store_name: "Main", address_line1: "2 Main St", city: "Coupersville" }), "store");
 
-  let sub = null;
-  if (stripe) {
-    const customer = await stripe.customers.create({ email: fakeInbox("paidowner"), payment_method: "pm_card_visa", invoice_settings: { default_payment_method: "pm_card_visa" } });
-    created.stripe.push(customer.id);
-    sub = await stripe.subscriptions.create({ customer: customer.id, items: [{ price: process.env.STRIPE_ANNUAL_PRICE_ID }] });
-    // Stripe's test-mode webhook reaches the site, which claims a plan started notice keyed by this id.
-    created.refs.push(sub.id);
-    must(
-      await admin.from("subscriptions").insert({
-        business_id: paidShop.id,
-        source: "stripe",
-        status: "active",
-        stripe_customer_id: customer.id,
-        stripe_subscription_id: sub.id,
-        current_period_end: new Date(sub.items.data[0].current_period_end * 1000).toISOString(),
-      }),
-      "paid plan",
-    );
-  } else {
-    console.log("  skip  Stripe plan cancel (no test-mode Stripe key)");
-  }
+  must(await admin.from("subscriptions").insert({ business_id: paidShop.id, ...renewingPlan(iso(200)) }), "paid plan");
 
   const ownerAccount = await get("/account", paidOwner.cookie);
   check("Account warns the business will be taken off", ownerAccount.body.includes(`Paid deletion shop ${run} is taken off Coupersville`));
-  if (stripe) check("and that the plan will be cancelled", ownerAccount.body.includes("plan is cancelled"));
+  check("and that the plan will be cancelled", ownerAccount.body.includes("plan is cancelled"));
   const gone = await callAction(base, paidOwner.cookie, A("account/actions.ts"), "deleteMyAccount", [{ confirm: "delete" }]);
   check("the owner's account is deleted", gone.redirect === "/account-deleted", gone);
-  if (stripe) {
-    const after = await stripe.subscriptions.retrieve(sub.id);
-    check("the Stripe plan is set to cancel at the end of the period, not now", after.cancel_at_period_end === true && after.status === "active", { status: after.status, cancel: after.cancel_at_period_end });
-  }
+  const planAfter = must(await admin.from("subscriptions").select("status, cancel_at_period_end").eq("business_id", paidShop.id).single(), "plan after");
+  check("the paid plan stops renewing but lasts to the end of the period", planAfter.cancel_at_period_end === true && planAfter.status === "active", planAfter);
   const shopAfter = must(await admin.from("businesses").select("status, owner_id, contact_email, contact_phone, website_url").eq("id", paidShop.id).single(), "business after");
   check("the business is suspended and has no owner", shopAfter.status === "suspended" && shopAfter.owner_id === null, shopAfter);
   check("staff lose access", (await admin.from("business_members").select("id").eq("business_id", paidShop.id)).data.length === 0);
@@ -376,7 +423,6 @@ async function cleanup() {
   for (const u of data?.users ?? []) if (u.email?.includes(`cpv-test-${run}-`)) created.users.push(u.id);
   for (const id of new Set(created.users)) await admin.auth.admin.deleteUser(id);
   for (const ref of created.refs) await admin.from("email_notices").delete().like("ref", `%${ref}%`);
-  if (stripe) for (const id of created.stripe) await stripe.customers.del(id).catch(() => {});
 }
 
 try {

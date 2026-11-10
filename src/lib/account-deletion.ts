@@ -1,6 +1,5 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getStripe } from "@/lib/stripe";
 
 // Deleting an account removes the sign-in, the profile, saved coupons and unused redemption codes.
 // Redemptions stay, with the shopper (and the staff member who checked them) removed, so a
@@ -10,7 +9,7 @@ import { getStripe } from "@/lib/stripe";
 
 export type OwnedBusiness = { id: string; name: string; paidPlan: boolean };
 
-const STRIPE_LIVE = new Set(["active", "past_due"]);
+const LIVE = new Set(["active", "past_due"]);
 
 export async function ownedBusinesses(userId: string): Promise<OwnedBusiness[]> {
   const admin = createAdminClient();
@@ -18,14 +17,13 @@ export async function ownedBusinesses(userId: string): Promise<OwnedBusiness[]> 
   if (!businesses?.length) return [];
   const { data: plans } = await admin
     .from("subscriptions")
-    .select("business_id, source, status, stripe_subscription_id, anet_payment_profile_id")
+    .select("business_id, status, anet_payment_profile_id")
     .in("business_id", businesses.map((b) => b.id));
   return businesses.map((b) => {
     const plan = plans?.find((p) => p.business_id === b.id);
-    const stripePlan = plan?.source === "stripe" && plan.stripe_subscription_id && STRIPE_LIVE.has(plan.status);
     // Authorize.net plans, and free seats with a card, renew from our own daily job.
-    const renewing = Boolean(plan?.anet_payment_profile_id) && STRIPE_LIVE.has(plan?.status ?? "");
-    return { ...b, paidPlan: Boolean(stripePlan || renewing) };
+    const renewing = Boolean(plan?.anet_payment_profile_id) && LIVE.has(plan?.status ?? "");
+    return { ...b, paidPlan: renewing };
   });
 }
 
@@ -39,27 +37,7 @@ export async function deleteAccount(userId: string): Promise<DeletionResult> {
 
   const owned = await ownedBusinesses(userId);
 
-  // Billing first: if Stripe cannot be told, stop before anything is removed.
-  if (owned.some((b) => b.paidPlan)) {
-    const { data: plans } = await admin
-      .from("subscriptions")
-      .select("stripe_subscription_id, status, source")
-      .in("business_id", owned.map((b) => b.id));
-    try {
-      for (const plan of plans ?? []) {
-        if (plan.source !== "stripe" || !plan.stripe_subscription_id || !STRIPE_LIVE.has(plan.status)) continue;
-        const sub = await getStripe().subscriptions.retrieve(plan.stripe_subscription_id);
-        if (sub.status !== "canceled" && !sub.cancel_at_period_end) {
-          await getStripe().subscriptions.update(sub.id, { cancel_at_period_end: true });
-        }
-      }
-    } catch (error) {
-      console.error(`account deletion: could not cancel plan (${error instanceof Error ? error.name : "unknown"})`);
-      return { ok: false, reason: "billing" };
-    }
-  }
-
-  // Our own renewals: stop them. The plan lasts until the end of the period already paid for.
+  // Billing first: stop renewals before anything is removed. The plan lasts until the end of the period already paid for.
   if (owned.length) {
     const { error: renewError } = await admin
       .from("subscriptions")

@@ -63,7 +63,6 @@ export async function deleteBusinessAction(businessId: unknown, confirmInput: un
 
   const result = await deleteBusiness(id.data);
   if (!result.ok) {
-    if (result.reason === "stripe_plan") return { ok: false, error: "This business has a running Stripe plan. Cancel it in Stripe first, then delete the business." };
     if (result.reason === "not_found") return { ok: false, error: "That business could not be found." };
     return { ok: false, error: "We could not delete this business. Try again in a moment." };
   }

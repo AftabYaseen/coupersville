@@ -90,7 +90,7 @@ async function SearchContent({ searchParams }: { searchParams: PageProps<"/searc
               <Link href="/search" className="btn btn-secondary">
                 Clear filters
               </Link>
-              <Link href="/#categories" className="btn btn-secondary">
+              <Link href="/explore" className="btn btn-secondary">
                 Explore all deals
               </Link>
             </div>

@@ -2,13 +2,13 @@ import Link from "next/link";
 import { cacheLife } from "next/cache";
 import { BRAND_LINE, ENDING_SOON_HREF, JOIN_HREF } from "@/lib/site-copy";
 
-// Explore, Business membership, About and Contact join these when their pages exist. Coupon terms,
-// Business membership terms and Accessibility wait for the client's texts.
+// Coupon terms, Business membership terms and Accessibility wait for the client's texts.
 const GROUPS = [
   {
     label: "For shoppers",
     links: [
       { href: "/search", label: "Find deals" },
+      { href: "/explore", label: "Explore" },
       { href: "/how-to-save", label: "How to save" },
       { href: ENDING_SOON_HREF, label: "Ending soon" },
     ],
@@ -17,6 +17,7 @@ const GROUPS = [
     label: "For businesses",
     links: [
       { href: "/for-businesses", label: "For businesses" },
+      { href: "/business-membership", label: "Business membership" },
       { href: JOIN_HREF, label: "Join Coupersville" },
       { href: "/login", label: "Merchant sign in" },
     ],
@@ -24,6 +25,8 @@ const GROUPS = [
   {
     label: "Coupersville",
     links: [
+      { href: "/about", label: "About" },
+      { href: "/contact", label: "Contact" },
       { href: "/privacy", label: "Privacy notice" },
       { href: "/terms", label: "Terms of use" },
     ],

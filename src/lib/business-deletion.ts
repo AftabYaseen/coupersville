@@ -1,7 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { planIsCurrent } from "@/lib/billing";
 
 // An admin deletes a business.
 //
@@ -18,7 +17,7 @@ import { planIsCurrent } from "@/lib/billing";
 export type BusinessDeletionPlan = { mode: "delete" | "keep_records"; reasons: string[] };
 export type BusinessDeletionResult =
   | { ok: true; mode: "deleted" | "kept_records" }
-  | { ok: false; reason: "not_found" | "stripe_plan" | "failed" };
+  | { ok: false; reason: "not_found" | "failed" };
 
 const BUCKETS = ["logos", "coupon-images"] as const;
 
@@ -32,16 +31,15 @@ async function count(admin: SupabaseClient, table: string, businessId: string): 
 export async function businessDeletionPlan(businessId: string): Promise<BusinessDeletionPlan> {
   // Untyped: payments is a billing table this check reads by name.
   const admin = createAdminClient() as unknown as SupabaseClient;
-  const [redemptions, payments, seats, stripeCustomers, { data: plan }] = await Promise.all([
+  const [redemptions, payments, seats, { data: plan }] = await Promise.all([
     count(admin, "redemptions", businessId),
     count(admin, "payments", businessId),
     count(admin, "offer_seat_claims", businessId),
-    count(admin, "billing_customers", businessId),
     admin.from("subscriptions").select("source").eq("business_id", businessId).maybeSingle(),
   ]);
   const reasons: string[] = [];
   if (redemptions) reasons.push(redemptions === 1 ? "1 redemption" : `${redemptions} redemptions`);
-  if (payments || stripeCustomers || (plan && plan.source !== "complimentary")) reasons.push("payment records");
+  if (payments || (plan && plan.source !== "complimentary")) reasons.push("payment records");
   if (seats) reasons.push("a Founding Merchant seat");
   return { mode: reasons.length ? "keep_records" : "delete", reasons };
 }
@@ -65,10 +63,6 @@ export async function deleteBusiness(businessId: string): Promise<BusinessDeleti
   const admin = createAdminClient();
   const { data: business } = await admin.from("businesses").select("id").eq("id", businessId).maybeSingle();
   if (!business) return { ok: false, reason: "not_found" };
-
-  // A running Stripe plan must be cancelled in Stripe first; nothing here can stop it charging.
-  const { data: plan } = await admin.from("subscriptions").select("*").eq("business_id", businessId).maybeSingle();
-  if (plan?.source === "stripe" && planIsCurrent(plan) && !plan.cancel_at_period_end) return { ok: false, reason: "stripe_plan" };
 
   let decision: BusinessDeletionPlan;
   try {

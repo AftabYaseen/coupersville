@@ -14,7 +14,7 @@ const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUP
 const COUNTED = [
   "businesses", "coupons", "subscriptions", "offer_seat_claims", "locations", "business_members", "staff_invites",
   "favorites", "redemptions", "redemption_tokens", "checkouts", "payments", "renewal_attempts", "renewal_consents",
-  "anet_events", "email_notices", "billing_customers", "coupon_campaigns", "business_limit_overrides",
+  "anet_events", "email_notices", "coupon_campaigns", "business_limit_overrides",
 ];
 
 async function count(table, filter = (q) => q) {

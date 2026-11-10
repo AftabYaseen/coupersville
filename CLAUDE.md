@@ -16,7 +16,7 @@ Read this whole file before writing code. Build one phase at a time (see "Build 
 - Tailwind CSS (latest)
 - Supabase: Postgres, Auth, Storage, Row Level Security, PostGIS
 - `@supabase/ssr` for server and browser clients
-- Payments: Authorize.net (billing Part B, 2026-11-05). Cards are entered only on Authorize.net's hosted pages (Accept Hosted for checkout, the hosted profile page for Update card); card data never reaches our servers. `AUTHORIZE_NET_ENV` picks the endpoint, and nothing calls the production endpoint unless it is `production`. The Stripe webhook route and `src/lib/stripe.ts` stay until Stripe is removed
+- Payments: Authorize.net (billing Part B, 2026-11-05). Cards are entered only on Authorize.net's hosted pages (Accept Hosted for checkout, the hosted profile page for Update card); card data never reaches our servers. `AUTHORIZE_NET_ENV` picks the endpoint, and nothing calls the production endpoint unless it is `production`.. Stripe was removed on 2026-11-11 (code, package, webhook, env vars and tables)
 - React Hook Form + Zod for forms
 - `qrcode` to render QR codes, `html5-qrcode` to scan
 - Resend for email
@@ -26,7 +26,7 @@ Read this whole file before writing code. Build one phase at a time (see "Build 
 
 - Live site: **https://coupersville.com** (primary domain). `www.coupersville.com` redirects to it. Hosted on Vercel.
 - `NEXT_PUBLIC_SITE_URL` holds the live address, `https://coupersville.com` (set in `.env.local` and on Vercel). It is read at build time, so changing it needs a redeploy. Every absolute link the app sends out (auth email links, staff invite links, `metadataBase`) is built from it through `src/lib/site.ts`. Never build links from request headers or hard-code a domain.
-- Supabase Auth Site URL (`https://coupersville.com`, redirect URLs `https://coupersville.com/**`), the Stripe webhook (`https://coupersville.com/api/stripe/webhook`) and the Stripe Customer Portal return URL (`https://coupersville.com/merchant/billing`) all point at this domain. Stripe does not follow redirects, so the webhook must use the primary domain.
+- Supabase Auth Site URL (`https://coupersville.com`, redirect URLs `https://coupersville.com/**`) and the Authorize.net return and webhook URLs all point at this domain. Webhooks must use the primary domain, since a redirect is not followed.
 
 ## Supabase access
 
@@ -40,9 +40,6 @@ NEXT_PUBLIC_SITE_URL           # https://coupersville.com
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 SUPABASE_SECRET_KEY            # server only, added by the developer
-STRIPE_SECRET_KEY              # phase 6
-STRIPE_WEBHOOK_SECRET          # phase 6
-STRIPE_ANNUAL_PRICE_ID         # phase 6
 AUTHORIZE_NET_API_LOGIN_ID     # billing Part B
 AUTHORIZE_NET_TRANSACTION_KEY
 AUTHORIZE_NET_SIGNATURE_KEY    # verifies X-ANET-Signature on webhooks
@@ -88,16 +85,14 @@ All tables have `id uuid` primary keys, `created_at`, and `updated_at` where it 
 - **Redemption rules**: per customer once, up to N times, or unlimited; optionally at most once per calendar day or week (weeks start Monday); optionally only on some weekdays and inside a time window (start included, end excluded). Days, weeks and times are in the business timezone. `coupon_rule_problem` enforces them inside `create_redemption_token`, `preview_redemption` and `verify_redemption` (results `outside_schedule`, `user_limit_reached`, `frequency_limit`, `total_limit_reached`). A coupon outside its schedule is still live and listed; the app shows the rules in words (`src/lib/rules.ts`) and greys out Redeem with when it is next available.
 - **staff_invites**: `business_id`, `email` (lowercase), `token` (random, for the join link), `invited_by`, `expires_at` (14 days), `accepted_at`, `accepted_by`. Owners create them; `accept_staff_invite` adds the member when the signed-in email matches.
 - **auth_code_requests**: `kind` (`send` | `verify`), `email_hash`, `ip_hash` (keyed hashes, never the address), `created_at`. Rate limits for shopper sign-in codes through `register_auth_code_request`: sending 3 per email per 10 minutes and 10 a day, 10 per IP per 10 minutes and 50 a day; checking 10 per email per 10 minutes and 30 a day, 30 per IP per 10 minutes and 200 a day. Server code only.
-- **subscriptions**: `business_id` (unique), `source` (`stripe` | `complimentary`), `stripe_customer_id`, `stripe_subscription_id`, `status` (`active` | `past_due` | `canceled` | `expired`), `current_period_end`, `cancel_at_period_end`, `past_due_since`, `offer_code` (the offer a plan came from; `founding_merchant` on a free seat).
+- **subscriptions**: `business_id` (unique), `source` (`complimentary` | `authorize_net`), `status` (`active` | `past_due` | `canceled` | `expired`), `current_period_end`, `cancel_at_period_end`, `past_due_since`, `offer_code` (the offer a plan came from; `founding_merchant` on a free seat).
 - **offers**: `code` (primary key), `name`, `window_starts_at` / `window_ends_at` (sign-up window, end exclusive, null is open), `seat_cap`, `free_seats`, `term_months` (12, or null for ongoing), `annual_price_cents`, `monthly_price_cents` (null is annual only), `renews_into`, `active`, `max_locations` (enforced), `campaigns_per_month` (enforced), `max_live_coupons` (stored, not enforced); null is unlimited; `sort_order`. Seeded: Founding Merchant (Nov 1, 2026 to Jan 31, 2027, 200 seats, first 50 free, $99 a year or $12 a month, 12 months, renews into General on the same cycle), Early Access (Feb 1 to Jun 30, 2027, $149 a year or $19 a month, 12 months, renews into General), General (from Jul 1, 2027, $249 or $29, ongoing), Merchant Plus ($499 or $49, inactive), Enterprise (Custom) (inactive, admin only, no price, no checkout: an admin grants it on the merchant page with its own limits). Founding, Early Access and General include 1 location, Merchant Plus 3; all four include 4 campaigns a month. Admins read and edit; merchants read active offers with seats used through `offer_overview()`. Never deleted, only deactivated; the seat cap and free seats cannot go below the seats taken.
 - **offer_seat_claims**: `offer_code`, `business_id`, `seat_number`, `free`, `coupon_id`, `claimed_by`, `claimed_at`. One per business per offer; seat numbers never repeat. Permanent: revoking the plan does not give the seat back. Written only by `claim_founding_seat`.
 - **Founding free seats**: `claim_founding_seat(business_id, coupon_id)` (security definer) checks that publishing is open, the business is active (profile and first store saved), it has no current plan, the rule is met, and the Founding offer is active, in its window and has free seats. It locks the offer row, so two merchants claiming the last seat at once get exactly one claim, then in one transaction records the claim, gives a 12-month complimentary plan with `offer_code`, and publishes the coupon. A merchant without a plan can publish only through it, so no plan-less coupon is ever live. When the free seats are gone the coupon stays a draft and Billing shows "Founding Merchant: $99 a year or $12 a month for your first year" with "Payments open soon". In Part A a free-seat plan just ends after 12 months; renewing into General needs the payment processor.
 - **coupon_campaigns**: `business_id`, `coupon_id` (unique, emptied if the coupon is deleted), `month` (first day, business timezone), `counted_at`. One row per coupon's first publish, so deleting a coupon never gives a campaign back. Written only by the `count_coupon_campaign` trigger.
 - **business_limit_overrides**: `business_id` (primary key), `max_locations`, `campaigns_per_month` (null uses the plan's limit), `updated_by`. Admins write it from `/admin/merchants/[id]`; it stays until an admin clears it.
-- **Limits**: a business's limits are its override, else its plan's offer, else General (a grant with no offer, or no plan). A campaign is a coupon's first publish; editing, pausing and resuming do not count; a free seat's first coupon counts as one. Counted per business per calendar month in its timezone, resetting on the 1st, no rollover. `count_coupon_campaign` and `enforce_location_limit` refuse signed-in users over the limit (hints `campaign_limit`, `location_limit`); server code and the SQL editor are not refused, but first publishes still count. Only active stores count, and lowering a limit closes nothing. `business_usage` gives owners, managers and admins the numbers; `src/lib/limits.ts` words them. The contact address for "More than 3 locations?" is `platform_settings.enterprise_contact_email`.
-- **billing_customers**: `business_id` (primary key), `stripe_customer_id` (unique). One Stripe customer per business (from before billing Part A). Server code writes it.
-- **stripe_events**: `id` (the Stripe event id), `type`, `received_at`. Webhook events already processed, so a repeated delivery is ignored. Server code only.
-- **Billing rules**: the webhook at `/api/stripe/webhook` is the only writer of Stripe plan state. It verifies the signature, skips event ids it has already processed, and always re-reads the subscription from Stripe, so late or out-of-order events cannot roll a plan back. A plan is current (`plan_is_current`) when it is active and not past its end date (Stripe plans get one extra day for a late renewal webhook), or when a Stripe plan is past due for under 7 days. A paid plan that starts replaces a complimentary one. An admin can grant a complimentary plan only once a paid plan has lapsed. Checkout, the Customer Portal and the success page were removed in billing Part A.
+- **Limits**: a business's limits are its override, else its plan's offer, else General (a grant with no offer, or no plan). A campaign is a coupon's first publish; editing, pausing and resuming do not count; a free seat's first coupon counts as one. Counted per business per calendar month in its timezone, resetting on the 1st, no rollover. `count_coupon_campaign` and `enforce_location_limit` refuse signed-in users over the limit (hints `campaign_limit`, `location_limit`); server code and the SQL editor are not refused, but first publishes still count. Only active stores count, and lowering a limit closes nothing. `business_usage` gives owners, managers and admins the numbers; `src/lib/limits.ts` words them. The site's contact address is `platform_settings.enterprise_contact_email` and the promised reply time `contact_response_time` (both in Admin > Settings; `src/lib/site-contact.ts`).
+- **Billing rules**: a plan is current (`plan_is_current`) when it is active and not past its end date (paid plans get one extra day for a late renewal), or when a paid plan is past due for under 7 days. A paid plan that starts replaces a complimentary one. An admin can grant a complimentary plan only once a paid plan has lapsed. Checkout, the Customer Portal and the success page were removed in billing Part A.
 - **Paid billing (Authorize.net, Part B)**: `src/lib/paid-billing.ts`, `src/lib/authorize-net.ts`.
   - **Buying**: when `payments_open` is on, Billing offers the current offer with annual or monthly. Before payment the merchant ticks a box next to the automatic-renewal terms (price, cycle, renewal date, renewal price, how to cancel; New York GBL 527-a, `src/lib/renewal-terms.ts`); the wording and time are recorded in `renewal_consents` and repeated in the plan started email. Paid Founding seats are held for 30 minutes under the offer lock (`begin_paid_checkout`), and Founding is bought only once its free seats are gone.
   - **Confirming**: checkout only authorises. The return page, the webhook (`/api/authorize-net/webhook`, X-ANET-Signature checked, duplicates ignored) and the daily sweep each confirm with getTransactionDetails, take a lock (`checkout_start_resolving`), then capture, or void if the seat is gone; `checkout_finish` records it once. A payment is captured exactly once, whichever path gets there first. The return page keeps confirming for a few seconds, because Authorize.net lists a new payment 10 to 20 seconds late. Admins are emailed about a checkout unresolved after 24 hours or a renewal with an unknown result.
@@ -140,7 +135,7 @@ Sent through Resend's HTTP API from `src/lib/email/` (brand templates in `templa
 | Staff invite | Owner invites staff; the copy-link stays as a fallback | the invite itself |
 | Plan started | A paid plan is captured (with the agreed renewal terms), an admin grants a new complimentary plan, or a merchant claims a Founding seat (Founding wording) | `email_notices` |
 | Payment failed | A renewal is declined (once per plan period; retried on days 1, 3 and 7) | `email_notices` (business + period end) |
-| Plan ending in 7 days | Daily job: complimentary, or Stripe set to cancel, ending within 7 days | `email_notices` (plan + end date) |
+| Plan ending in 7 days | Daily job: complimentary, or renewal turned off, ending within 7 days | `email_notices` (plan + end date) |
 | Renewal reminder | 60 and 30 days before a paid plan renews, with date and price (only while renewals are on) | `email_notices` (business + end date) |
 | Add a card | 60 and 30 days before a free Founding seat ends | `email_notices` (business + end date) |
 | Card saved | A free Founding seat adds a card, repeating the agreed renewal terms | `email_notices` (agreement id) |
@@ -152,13 +147,13 @@ Business emails go to the owner's sign-in address.
 
 ### Pricing
 
-Prices appear only on signed-in merchant and admin screens (`/merchant/billing`, `/admin/offers`), read from `offers`. No prices on public pages until the client confirms; `/for-businesses` has a marked pricing spot. Public pages never promise unlimited coupons or locations.
+Prices are read from `offers` everywhere: `/business-membership` (public, confirmed by the client's pricing sheet and copy deck, 2026-11-11; `src/lib/membership.ts` builds each level's dates, seats, limits and annual savings from the table), `/merchant/billing` and `/admin/offers`. Public pages never promise unlimited coupons or locations.
 
 ### Shopper sign-in and data
 
 - "Save coupon" and "Redeem now" when signed out open a bottom sheet on the same page: email, then the code from the email (Supabase email OTP, `signInWithOtp` and `verifyOtp`). The action then carries on. New accounts made this way are shoppers; the name is optional and set in Account. Merchant and admin emails are refused and pointed to password sign-in.
 - Per shopper we store: the auth account (email, optional password hash, sign-in times), the profile (role, optional name, status), saved coupons, redemption codes and redemptions. Unused redemption codes are deleted a day after they expire by the hourly `purge_stale_codes` cron job; a code linked to a redemption is never deleted.
-- Deleting an account (Account page, type "delete" to confirm) removes the sign-in, profile, saved coupons and redemption codes. Redemptions stay with `user_id` and `verified_by` emptied, so counts stay right. An owner's businesses are suspended, their contact email, phone and website cleared, their staff and every staff invite (accepted or waiting) removed, and a Stripe plan is set to cancel at period end; if Stripe cannot be reached nothing is deleted. Admin accounts cannot be deleted from the app.
+- Deleting an account (Account page, type "delete" to confirm) removes the sign-in, profile, saved coupons and redemption codes. Redemptions stay with `user_id` and `verified_by` emptied, so counts stay right. An owner's businesses are suspended, their contact email, phone and website cleared, their staff and every staff invite (accepted or waiting) removed, and a paid plan stops renewing (it lasts to the end of the period already paid for). Admin accounts cannot be deleted from the app.
 - Near me rounds the location to 3 decimal places (about 110 m) and keeps it in a 30-minute HttpOnly `cpv_near` cookie (`src/lib/near-me.ts`). The search address carries only `near=1`, so coordinates never appear in URLs or request logs, and they are never stored.
 - An admin can delete a business from `/admin/merchants/[id]` after typing its name (`src/lib/business-deletion.ts`). With no payments, redemptions or Founding seat it is deleted completely, with its images. Otherwise only the business name, store addresses, plan and payment records, the Founding seat and the redeemed coupons (for redemption counts) are kept; contact details, store phones, images, unredeemed coupons, the team and invites are removed, and the plan stops renewing.
 - No third-party scripts or trackers on any page. Fonts are self-hosted at build time.
@@ -173,7 +168,9 @@ Prices appear only on signed-in merchant and admin screens (`/merchant/billing`,
 /redeem/[tokenId]       QR + short code with countdown
 /saved  /history  /account  /account-deleted
 /login  /signup  /reset-password
-/how-to-save  /for-businesses    marketing pages, linked in header and footer (/how-it-works redirects to /how-to-save)
+/explore               every category with its description and live deal count
+/how-to-save  /for-businesses  /business-membership  /about   marketing pages, linked in header and footer (/how-it-works redirects to /how-to-save)
+/contact               form emailed to the contact address (Resend, Reply-To the sender; honeypot field; per email and IP limits as kind 'contact' in auth_code_requests; nothing stored)
 /privacy  /terms        drafts for the client's lawyer, linked in footer, sign-in sheet, signup
 
 /merchant               dashboard and stats
@@ -185,7 +182,6 @@ Prices appear only on signed-in merchant and admin screens (`/merchant/billing`,
 /merchant/billing       plan state, current offer, seats left, Claim free seat, Continue to payment, Update card, Cancel renewal
 /merchant/billing/history  payments: date, amount, last 4, status
 /join/[token]           staff accept an invite
-/api/stripe/webhook     Stripe events (kept for plans Stripe already holds; nothing links to Stripe)
 /api/authorize-net/webhook  Authorize.net events (signature checked; confirms payments, refreshes saved cards)
 /api/cron/daily         Vercel Cron (vercel.json): confirm open checkouts, renewals and reminders (when on), plan ending in 7 days, plan ended
 
@@ -268,11 +264,11 @@ Plain, short, sentence case. Buttons say what happens: "Save coupon", "Redeem no
 Stop after each phase, summarise what was built, and list anything the developer needs to do or decide.
 
 1. **Foundation**: scaffold Next.js, Tailwind tokens, Archivo, base layout, `<Ticket>` component with a sample page, all migrations (schema, RLS, functions, seed categories), Supabase clients, auth pages, role-based redirects, middleware.
-2. **Merchant portal**: onboarding, business profile, locations, coupon builder with image upload, coupon list by status. Until Stripe exists, a merchant can publish only if an admin has granted a complimentary subscription (insert one manually for testing).
+2. **Merchant portal**: onboarding, business profile, locations, coupon builder with image upload, coupon list by status. Until payments exist, a merchant can publish only if an admin has granted a complimentary subscription (insert one manually for testing).
 3. **Consumer app**: home, categories, search and filters, near me, coupon detail, save, saved list.
 4. **Redemption**: redeem screen with QR, code, and countdown; merchant scanner page with camera scan and code entry; confirm screen showing limits for staff; the stamp moment; consumer history; merchant stats.
 5. **Admin portal**: merchants, coupons, categories, complimentary subscriptions, settings, platform stats.
-6. **Billing**: Stripe Checkout for the annual plan, Customer Portal, webhook handler as the only writer of Stripe subscription status. Billing Part A (2026-10-31) replaced Checkout and the portal with offers and Founding free seats; Part B adds the payment processor.
+6. **Billing**: originally Stripe (removed 2026-11-11). Billing Part A (2026-10-31) replaced Checkout and the portal with offers and Founding free seats; Part B adds the payment processor.
 7. **Finish**: Resend emails (verification, reset, subscription notices), PWA manifest and icons, offline page, account deletion, empty and error states, accessibility pass, seed script with demo businesses and coupons.
 
 ## Working rules

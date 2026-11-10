@@ -16,8 +16,10 @@ function NavLink({ href, label, Icon }: { href: string; label: string; Icon: Luc
 
 const SITE_LINKS = [
   { href: "/search", label: "Find deals" },
+  { href: "/explore", label: "Explore" },
   { href: "/how-to-save", label: "How to save" },
   { href: "/for-businesses", label: "For businesses" },
+  { href: "/business-membership", label: "Business membership" },
 ];
 
 export function SiteHeader() {

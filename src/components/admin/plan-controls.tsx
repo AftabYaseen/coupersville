@@ -8,7 +8,7 @@ import type { ActionResult } from "@/lib/validation/auth";
 type Props = {
   businessId: string;
   businessName: string;
-  source: "stripe" | "complimentary" | "authorize_net" | null;
+  source: "complimentary" | "authorize_net" | null;
   active: boolean;
   hasEndDate: boolean;
   // Defaults for the date field, as YYYY-MM-DD in the business timezone.

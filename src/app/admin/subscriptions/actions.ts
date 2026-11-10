@@ -52,8 +52,6 @@ export async function setComplimentaryPlan(businessId: unknown, endsOnInput: unk
     status: "active" as const,
     current_period_end: endsAt?.toISOString() ?? null,
     cancel_at_period_end: false,
-    // Drop the lapsed Stripe subscription, so a late webhook about it cannot touch this plan.
-    stripe_subscription_id: null,
     past_due_since: null,
     // A new grant is not a Founding seat. Changing the end date of a running plan keeps its offer.
     ...(planIsCurrent(plan) ? {} : { offer_code: null }),
@@ -103,7 +101,6 @@ export async function grantEnterprisePlan(businessId: unknown, input: unknown): 
     status: "active" as const,
     current_period_end: endsAt?.toISOString() ?? null,
     cancel_at_period_end: false,
-    stripe_subscription_id: null,
     past_due_since: null,
     offer_code: ENTERPRISE_OFFER,
     term_ends_at: null,

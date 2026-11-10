@@ -3,7 +3,7 @@ import { createHmac } from "node:crypto";
 import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// Rate limits for email sign-in codes. Emails and IP addresses are never stored: only keyed
+// Rate limits for email sign-in codes and Contact page messages. Emails and IP addresses are never stored: only keyed
 // hashes, so the table cannot be turned back into a list of addresses.
 
 function keyedHash(kind: string, value: string): string {
@@ -22,7 +22,7 @@ async function clientIp(): Promise<string | null> {
 export type CodeLimit = "ok" | "email_limited" | "ip_limited";
 
 // Counts the request and says whether it is within the limits (see register_auth_code_request).
-export async function registerCodeRequest(kind: "send" | "verify", email: string): Promise<CodeLimit> {
+export async function registerCodeRequest(kind: "send" | "verify" | "contact", email: string): Promise<CodeLimit> {
   const ip = await clientIp();
   const { data, error } = await createAdminClient().rpc("register_auth_code_request", {
     p_kind: kind,
