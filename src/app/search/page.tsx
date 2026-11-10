@@ -10,14 +10,18 @@ import { SearchForm } from "@/components/consumer/search-form";
 import { TicketGridSkeleton } from "@/components/consumer/ticket-skeleton";
 
 export const metadata: Metadata = {
-  title: "Search coupons",
-  description: "Search coupons from local shops by product, shop, category, city or ZIP, or find what is near you.",
+  title: "Find coupons and local deals",
+  description: "Search Coupersville by business, product, category or location, or find the deals closest to you.",
 };
 
 export default function SearchPage({ searchParams }: PageProps<"/search">) {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
-      <h1 className="wordmark text-4xl text-ink">Search coupons</h1>
+      <h1 className="wordmark text-4xl text-ink">Find a deal worth leaving home for.</h1>
+      <p className="mt-3 max-w-2xl text-lg">
+        Search Coupersville by business, product, category or location. Whether you know exactly what you want or simply feel like
+        exploring, a good deal may be waiting nearby.
+      </p>
       <Suspense fallback={<SearchSkeleton />}>
         <SearchContent searchParams={searchParams} />
       </Suspense>
@@ -50,12 +54,12 @@ async function SearchContent({ searchParams }: { searchParams: PageProps<"/searc
   const shown = (query.page - 1) * PAGE_SIZE + coupons.length;
 
   const notes: string[] = [];
-  if (options.usingLocation) notes.push("Showing coupons within 25 miles of you.");
-  if (query.place) notes.push(`Showing coupons at stores in ${query.place}.`);
-  if (query.near === "1" && !query.place && !near) notes.push("Your location has expired. Tap Near me again to see what is close by.");
+  if (options.usingLocation) notes.push("Showing deals within 25 miles of you.");
+  if (query.near === "1" && !query.place && !near) notes.push("Your location has expired. Tap Use my location again to see what is close by.");
   if (query.sort === "nearest" && !options.usingLocation) {
-    notes.push("Sorting by nearest needs your location. Tap Near me, or these are sorted newest first.");
+    notes.push("Sorting by nearest needs your location. Tap Use my location, or these are sorted newest first.");
   }
+  const where = query.place ? ` near ${query.place}` : options.usingLocation ? " near you" : "";
 
   return (
     <div className="mt-6 grid gap-8">
@@ -64,7 +68,8 @@ async function SearchContent({ searchParams }: { searchParams: PageProps<"/searc
       <section aria-labelledby="results-heading" className="grid gap-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="results-heading" className="text-xl font-semibold tabular">
-            {total === 1 ? "1 coupon" : `${total} coupons`}
+            {total === 1 ? "1 deal found" : `${total} deals found`}
+            {where}
           </h2>
           {(options.usingLocation || query.place) && (
             <Link href="/search" className="font-medium text-ink underline underline-offset-4">
@@ -79,18 +84,14 @@ async function SearchContent({ searchParams }: { searchParams: PageProps<"/searc
         ))}
 
         {coupons.length === 0 ? (
-          <EmptyState title="No coupons match that search.">
-            <p>
-              {options.usingLocation
-                ? "Nothing within 25 miles yet. Try a city or ZIP, or browse every shop."
-                : "Try fewer words, a different shop, or clear the filters."}
-            </p>
+          <EmptyState title="No deals matched that search just yet.">
+            <p>Try a nearby ZIP code, choose a different category or explore all of Coupersville. New offers are added regularly.</p>
             <div className="flex flex-wrap gap-3">
               <Link href="/search" className="btn btn-secondary">
                 Clear filters
               </Link>
-              <Link href="/#main-street" className="btn btn-secondary">
-                Browse Main Street
+              <Link href="/#categories" className="btn btn-secondary">
+                Explore all deals
               </Link>
             </div>
           </EmptyState>

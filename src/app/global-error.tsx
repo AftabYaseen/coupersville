@@ -15,7 +15,7 @@ export default function GlobalError({ error, retry }: { error: Error & { digest?
         <main style={{ maxWidth: "28rem", margin: "0 auto", padding: "3rem 1rem" }}>
           <div style={{ background: "#FBEBB0", border: "1.5px solid #1B2A8F", borderRadius: 6, padding: "1.25rem" }}>
             <h1 style={{ margin: 0, fontSize: "2rem", lineHeight: 1.1, color: "#1B2A8F" }}>Something went wrong</h1>
-            <p style={{ margin: "0.75rem 0 0", lineHeight: 1.5 }}>Coupersville did not load. Try again in a moment.</p>
+            <p style={{ margin: "0.75rem 0 0", lineHeight: 1.5 }}>Something did not go as planned. Please try again. If the problem continues, contact Coupersville support.</p>
             {error.digest && <p style={{ margin: "0.5rem 0 0", fontSize: 14 }}>Reference: {error.digest}</p>}
           </div>
           <button

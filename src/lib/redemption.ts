@@ -68,7 +68,7 @@ export const VERIFY_FAILURES: Record<VerifyFailure, { title: string; body: strin
   },
   already_used: {
     title: "Already redeemed",
-    body: "This code has been used. Each code works once.",
+    body: "This coupon has already been redeemed and cannot be used again.",
   },
   user_limit_reached: {
     title: "Limit reached for this customer",
@@ -84,11 +84,11 @@ export const VERIFY_FAILURES: Record<VerifyFailure, { title: string; body: strin
   },
   location_not_eligible: {
     title: "Not valid at this store",
-    body: "This coupon only works at some of your stores, and this is not one of them.",
+    body: "This offer is not valid at this location. The coupon page lists its participating locations.",
   },
   coupon_not_live: {
     title: "Coupon no longer live",
-    body: "This coupon is paused, has ended, was removed by Coupersville, or your plan is not active. It cannot be redeemed right now.",
+    body: "This coupon is paused, has ended, was removed by Coupersville, or your membership is not active. It cannot be redeemed right now.",
   },
   not_found: {
     title: "Code not found",

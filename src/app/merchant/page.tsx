@@ -25,6 +25,10 @@ export default function MerchantPage() {
   );
 }
 
+function clockNow() {
+  return Date.now();
+}
+
 function summarise(
   coupons: Parameters<typeof couponView>[0][],
   subscription: Parameters<typeof subscriptionIsActive>[0],
@@ -71,24 +75,60 @@ async function MerchantHome() {
   if (!business) redirect("/merchant/onboarding");
 
   const { counts, planActive, plan } = summarise(coupons ?? [], subscription);
+  const now = clockNow();
   const stats = parseStats(rawStats);
   const byCoupon = (coupons ?? [])
     .map((c) => ({ ...c, redeemed: stats.byCoupon[c.id] ?? 0 }))
     .filter((c) => c.redeemed > 0)
     .sort((a, b) => b.redeemed - a.redeemed);
 
+  const endingSoon = (coupons ?? []).filter(
+    (c) => couponView(c, now) === "live" && new Date(c.expires_at).getTime() - now <= 7 * 86_400_000,
+  ).length;
+  const summary = [
+    { label: "Active coupons", value: counts.live, href: "/merchant/coupons?view=live" },
+    { label: "Draft coupons", value: counts.draft, href: "/merchant/coupons?view=draft" },
+    { label: "Ending soon", value: endingSoon, href: "/merchant/coupons?view=live" },
+    { label: "Total redemptions", value: stats.total, href: null },
+  ];
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="grid gap-4">
         <div>
-          <h1 className="wordmark text-4xl text-ink">{business.name}</h1>
-          <p className="mt-1">Signed in as {user.fullName ?? user.email}.</p>
+          <h1 className="wordmark text-4xl text-ink">Welcome back, {business.name}.</h1>
+          <p className="mt-2">Manage your offers, locations and Coupersville membership from one place.</p>
+          <p className="mt-1 text-sm">Signed in as {user.fullName ?? user.email}.</p>
         </div>
-        <Link href="/merchant/coupons/new" className="btn">
-          <Plus aria-hidden size={18} strokeWidth={1.5} />
-          Create coupon
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link href="/merchant/coupons/new" className="btn">
+            <Plus aria-hidden size={18} strokeWidth={1.5} />
+            Create a coupon
+          </Link>
+          <Link href="/merchant/scan" className="btn btn-secondary">
+            <ScanLine aria-hidden size={18} strokeWidth={1.5} />
+            Scan a coupon
+          </Link>
+        </div>
       </div>
+
+      {(coupons ?? []).length === 0 ? (
+        <div className="panel mt-6 grid gap-4 p-5">
+          <p>Your counter is ready, but there are no offers on display yet. Create your first coupon and invite customers in.</p>
+          <Link href="/merchant/coupons/new" className="btn justify-self-start">
+            Create my first coupon
+          </Link>
+        </div>
+      ) : (
+        <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {summary.map((s) => (
+            <div key={s.label} className="panel p-4">
+              <dt className="font-medium">{s.href ? <Link href={s.href} className="text-ink underline-offset-4 hover:underline">{s.label}</Link> : s.label}</dt>
+              <dd className="text-3xl font-semibold tabular">{s.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
 
       {business.status === "suspended" && (
         <p className="mt-6 rounded-sm border-[1.5px] border-signal bg-white p-4 text-signal">
@@ -107,15 +147,9 @@ async function MerchantHome() {
       </div>
 
       <section className="mt-6" aria-labelledby="redemptions-heading">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 id="redemptions-heading" className="text-xl font-semibold">
-            Redemptions
-          </h2>
-          <Link href="/merchant/scan" className="btn btn-secondary">
-            <ScanLine aria-hidden size={18} strokeWidth={1.5} />
-            Open scanner
-          </Link>
-        </div>
+        <h2 id="redemptions-heading" className="text-xl font-semibold">
+          Redemptions
+        </h2>
         <dl className="mt-3 grid grid-cols-3 gap-3">
           {[
             { label: "Today", value: stats.today },
@@ -181,7 +215,7 @@ async function MerchantHome() {
           ))}
         </ul>
         {counts.live > 0 && !planActive && (
-          <p className="mt-3 text-sm text-signal">Live coupons stay hidden from shoppers until your plan is active.</p>
+          <p className="mt-3 text-sm text-signal">Active coupons stay hidden from shoppers until your membership is active.</p>
         )}
       </section>
 

@@ -12,7 +12,7 @@ const TINT_BG = { mint: "bg-stock-mint", pink: "bg-stock-pink", sky: "bg-stock-s
 
 type Props = {
   categoryId?: string;
-  defaults?: { name: string; slug: string; shopLabel: string; tint: (typeof STOCK_TINTS)[number] };
+  defaults?: { name: string; slug: string; description: string; tint: (typeof STOCK_TINTS)[number] };
   onDone?: () => void;
 };
 
@@ -28,7 +28,7 @@ export function CategoryForm({ categoryId, defaults, onDone }: Props) {
     formState: { errors },
   } = useForm<CategoryInput, unknown, CategoryOutput>({
     resolver: zodResolver(categorySchema),
-    defaultValues: defaults ?? { name: "", slug: "", shopLabel: "", tint: "mint" },
+    defaultValues: defaults ?? { name: "", slug: "", description: "", tint: "mint" },
   });
   const name = useWatch({ control, name: "name" });
   const tint = useWatch({ control, name: "tint" });
@@ -48,8 +48,8 @@ export function CategoryForm({ categoryId, defaults, onDone }: Props) {
       <Field id={`${prefix}-name`} label="Name" error={errors.name?.message}>
         <input id={`${prefix}-name`} className="field-input" aria-invalid={Boolean(errors.name)} {...register("name")} />
       </Field>
-      <Field id={`${prefix}-shop`} label="On Main Street" hint='For example "The bakery".' error={errors.shopLabel?.message}>
-        <input id={`${prefix}-shop`} className="field-input" aria-invalid={Boolean(errors.shopLabel)} {...register("shopLabel")} />
+      <Field id={`${prefix}-description`} label="Description" hint="One sentence for category cards and pages. Optional." error={errors.description?.message}>
+        <input id={`${prefix}-description`} className="field-input" aria-invalid={Boolean(errors.description)} {...register("description")} />
       </Field>
       <Field
         id={`${prefix}-slug`}

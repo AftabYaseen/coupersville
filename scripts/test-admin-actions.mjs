@@ -381,18 +381,18 @@ async function main() {
   console.log("\nCategories");
   if (PRODUCTION_MODE) {
     console.log("  skip  adding, renaming, reordering, deactivating and deleting a category (shoppers would see it)");
-    const dupeP = await act(boss, "admin/categories/actions.ts", "createCategory", { name: "Bakeries again", slug: "bakeries", shopLabel: "x", tint: "mint" });
+    const dupeP = await act(boss, "admin/categories/actions.ts", "createCategory", { name: "Bakeries again", slug: "bakeries", description: "x", tint: "mint" });
     check("a taken web address name is refused", dupeP.ok === false && /already uses/.test(dupeP.error), dupeP);
-    const badSlugP = await act(boss, "admin/categories/actions.ts", "createCategory", { name: "Bad", slug: "Not OK!", shopLabel: "x", tint: "mint" });
+    const badSlugP = await act(boss, "admin/categories/actions.ts", "createCategory", { name: "Bad", slug: "Not OK!", description: "x", tint: "mint" });
     check("an invalid web address name is refused", badSlugP.ok === false, badSlugP);
-    const ownerCatP = await callAction(base, owner.cookie, A("admin/categories/actions.ts"), "createCategory", [{ name: "Sneaky", slug: "", shopLabel: "x", tint: "mint" }]);
+    const ownerCatP = await callAction(base, owner.cookie, A("admin/categories/actions.ts"), "createCategory", [{ name: "Sneaky", slug: "", description: "x", tint: "mint" }]);
     check("merchant cannot add categories", ownerCatP.blocked === true, ownerCatP);
   } else {
   const before = must(await admin.from("categories").select("id"), "count").length;
   const create = await act(boss, "admin/categories/actions.ts", "createCategory", {
     name: `Test Market ${run}`,
     slug: "",
-    shopLabel: "The test market",
+    description: "The test market",
     tint: "sky",
   });
   check("add a category", create.ok === true, create);
@@ -401,19 +401,19 @@ async function main() {
   check("web address name made from the name", cat.slug === `test-market-${run}`, cat.slug);
   const maxOrder = Math.max(...must(await admin.from("categories").select("sort_order"), "o").map((c) => c.sort_order));
   check("added at the end", cat.sort_order === maxOrder, { sort: cat.sort_order, maxOrder, before });
-  const dupe = await act(boss, "admin/categories/actions.ts", "createCategory", { name: "Bakeries again", slug: "bakeries", shopLabel: "x", tint: "mint" });
+  const dupe = await act(boss, "admin/categories/actions.ts", "createCategory", { name: "Bakeries again", slug: "bakeries", description: "x", tint: "mint" });
   check("a taken web address name is refused", dupe.ok === false && /already uses/.test(dupe.error), dupe);
-  const badSlug = await act(boss, "admin/categories/actions.ts", "createCategory", { name: "Bad", slug: "Not OK!", shopLabel: "x", tint: "mint" });
+  const badSlug = await act(boss, "admin/categories/actions.ts", "createCategory", { name: "Bad", slug: "Not OK!", description: "x", tint: "mint" });
   check("an invalid web address name is refused", badSlug.ok === false, badSlug);
   const rename = await act(boss, "admin/categories/actions.ts", "updateCategory", cat.id, {
     name: `Test Bazaar ${run}`,
     slug: `test-bazaar-${run}`,
-    shopLabel: "The bazaar",
+    description: "The bazaar",
     tint: "butter",
   });
   check("rename, relabel and retint", rename.ok === true, rename);
   const renamed = must(await admin.from("categories").select("*").eq("id", cat.id).single(), "cat");
-  check("saved", renamed.name === `Test Bazaar ${run}` && renamed.shop_label === "The bazaar" && renamed.stock_tint === "butter");
+  check("saved", renamed.name === `Test Bazaar ${run}` && renamed.description === "The bazaar" && renamed.stock_tint === "butter");
   const ordered = () => admin.from("categories").select("id").order("sort_order").order("name").then((r) => r.data.map((c) => c.id));
   const beforeMove = await ordered();
   const up = await act(boss, "admin/categories/actions.ts", "moveCategory", cat.id, "up");
@@ -457,7 +457,7 @@ async function main() {
   check("an unused category can be deleted", del.ok === true, del);
   check("gone", (await admin.from("categories").select("id").eq("id", cat.id)).data.length === 0);
   const ownerCat = await callAction(base, owner.cookie, A("admin/categories/actions.ts"), "createCategory", [
-    { name: "Sneaky", slug: "", shopLabel: "x", tint: "mint" },
+    { name: "Sneaky", slug: "", description: "x", tint: "mint" },
   ]);
   check("merchant cannot add categories", ownerCat.blocked === true, ownerCat);
   }

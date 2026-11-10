@@ -180,7 +180,7 @@ export async function saveCoupon(couponId: unknown, input: unknown, intentInput:
   }
 
   const view = couponView({ status, starts_at: row.starts_at, expires_at: row.expires_at, admin_hold: existing?.admin_hold }, now);
-  redirect(`/merchant/coupons?view=${view}`);
+  redirect(`/merchant/coupons?view=${view}${view === "live" && status === "published" && existing?.status !== "published" ? "&published=1" : ""}`);
 }
 
 export async function setCouponStatus(couponId: unknown, statusInput: unknown): Promise<ActionResult> {

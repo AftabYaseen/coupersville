@@ -5,10 +5,10 @@ import type { LiveCoupon } from "@/lib/consumer";
 
 export function CouponTicketLink({ coupon }: { coupon: LiveCoupon }) {
   return (
-    <Link href={`/coupon/${coupon.id}`} className="block rounded-md" aria-label={`${coupon.title} at ${coupon.businessName}`}>
+    <Link href={`/coupon/${coupon.id}`} className="block rounded-md" aria-label={`${coupon.title} from ${coupon.businessName}`}>
       <Ticket
         tint={coupon.tint}
-        merchant={coupon.businessName}
+        merchant={`From ${coupon.businessName}`}
         offer={formatOffer(coupon.discountType, coupon.discountValue)}
         title={coupon.title}
         expiresAt={coupon.expiresAt}
@@ -16,6 +16,7 @@ export function CouponTicketLink({ coupon }: { coupon: LiveCoupon }) {
         timeZone={coupon.timeZone}
         limits={coupon.limits || undefined}
         store={coupon.storeText}
+        stubActions={<span className="font-semibold text-ink underline underline-offset-4">View deal</span>}
       />
     </Link>
   );

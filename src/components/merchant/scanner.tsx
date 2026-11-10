@@ -254,9 +254,9 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
     ].filter((c): c is string => Boolean(c));
 
     return (
-      <FullScreen label="Check before you confirm">
+      <FullScreen label="Coupon valid">
         <div className="mx-auto grid w-full max-w-md gap-5 px-4 py-6">
-          <p className="font-medium">Check the order, then confirm. Nothing is recorded until you do.</p>
+          <p className="font-medium">Review the purchase requirements below before applying the discount. Nothing is recorded until you confirm.</p>
           <section className={`rounded-sm border-[1.5px] border-ink p-5 ${TINT_BG[offer.stock_tint]}`}>
             <p className="offer-text inline-block bg-marigold px-2 pt-1.5 pb-1 text-5xl tabular">
               {formatOffer(offer.discount_type, offer.discount_value)}
@@ -303,10 +303,10 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
     const { response } = phase;
     if (response.result === "ok") {
       return (
-        <FullScreen label="Redeemed" tone="success">
+        <FullScreen label="Redemption confirmed" tone="success">
           <div className="mx-auto grid w-full max-w-md justify-items-center gap-4 px-4 py-10 text-center">
             <CheckCircle2 aria-hidden size={96} strokeWidth={1.5} className="text-ink" />
-            <h2 className="wordmark text-5xl text-ink">Redeemed</h2>
+            <h2 className="wordmark text-5xl text-ink">Redemption confirmed</h2>
             {response.offer && (
               <p className="text-xl">
                 <span className="font-semibold tabular">{formatOffer(response.offer.discount_type, response.offer.discount_value)}</span>
@@ -317,7 +317,11 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
               {store.label}
               {response.redeemed_at ? `, ${clock(response.redeemed_at)}` : ""}
             </p>
-            <p>{response.offer?.discount_type === "free" ? "Hand over the free item at the till." : "Apply the offer at the till."}</p>
+            <p>
+              {response.offer?.discount_type === "free"
+                ? "Hand over the free item with the customer's purchase."
+                : "Apply the eligible discount to the customer's purchase."}
+            </p>
             <button type="button" className="btn mt-4 min-h-14 w-full text-lg" onClick={backToScan}>
               Scan next customer
             </button>
@@ -327,10 +331,11 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
     }
     const failure = verifyFailureText(response.result, response.offer);
     return (
-      <FullScreen label={failure.title} tone="failure">
+      <FullScreen label={`Coupon not valid: ${failure.title}`} tone="failure">
         <div className="mx-auto grid w-full max-w-md justify-items-center gap-4 px-4 py-10 text-center">
           <XCircle aria-hidden size={96} strokeWidth={1.5} className="text-signal" />
-          <h2 className="wordmark text-4xl text-signal">{failure.title}</h2>
+          <h2 className="wordmark text-4xl text-signal">Coupon not valid</h2>
+          <p className="text-xl font-semibold">{failure.title}</p>
           <p className="text-lg">
             {failure.body}
             {response.result === "already_used" && response.used_at ? ` It was redeemed at ${clock(response.used_at)}.` : ""}
@@ -341,7 +346,7 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
               , {response.offer.title}
             </p>
           )}
-          <p className="font-medium">Do not apply the offer.</p>
+          <p className="font-medium">Do not apply the discount unless an authorized manager approves an exception.</p>
           <button type="button" className="btn mt-4 min-h-14 w-full text-lg" onClick={backToScan}>
             Scan again
           </button>
@@ -369,7 +374,7 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
     <div className="mx-auto grid max-w-md gap-5 px-4 py-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="wordmark text-3xl text-ink">Scanner</h1>
+          <h1 className="wordmark text-3xl text-ink">Scan a Coupersville coupon</h1>
           <p className="text-sm">At {store.label}</p>
         </div>
         {stores.length > 1 && (
@@ -392,7 +397,11 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
           className="aspect-square w-full overflow-hidden rounded-sm border-[1.5px] border-ink bg-ink-deep [&_video]:h-full [&_video]:w-full [&_video]:object-cover"
         />
         <p className="text-sm" role="status">
-          {checking ? "Checking the code" : camera === "on" ? "Point the camera at the customer's QR code." : "Starting the camera"}
+          {checking
+            ? "Checking the code"
+            : camera === "on"
+              ? "Position the customer's QR code inside the frame. The coupon will be checked automatically."
+              : "Starting the camera"}
         </p>
       </div>
 
@@ -403,7 +412,7 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
         }}
         noValidate className="panel grid gap-3 p-4">
         <label htmlFor="short-code" className="font-semibold">
-          {cameraNote ? "Customer's 6-digit code" : "Or type the 6-digit code"}
+          {cameraNote ? "Enter code manually: the customer's 6-digit code" : "Enter code manually"}
         </label>
         <input
           id="short-code"

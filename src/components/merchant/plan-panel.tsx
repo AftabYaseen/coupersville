@@ -14,9 +14,9 @@ type Props = {
 
 const day = (iso: string | null, tz: string) => (iso ? formatDay(iso, tz) : null);
 
-const SUPPORT = "To change or cancel it, contact Coupersville support.";
-
-// The plan in plain words. Payments are not open yet, so there are no payment buttons.
+// The membership in plain words, using the copy deck's system messages (2026-11-10).
+// Coupons are hidden while a membership has lapsed and come back by themselves on renewal, as long
+// as they have not ended.
 export function PlanPanel({ state, timeZone: tz, foundingSeat, billingLink }: Props) {
   const link = billingLink ? (
     <Link href="/merchant/billing" className="btn btn-secondary w-fit">
@@ -27,54 +27,62 @@ export function PlanPanel({ state, timeZone: tz, foundingSeat, billingLink }: Pr
   switch (state.kind) {
     case "none":
       return (
-        <Panel title="No plan yet" tone="warn">
-          <p>Your coupons cannot go live until you have a plan. You can build them and save drafts now.</p>
+        <Panel title="No membership yet" tone="warn">
+          <p>Your coupons cannot go live until you have a membership. You can build them and save drafts now.</p>
           {link}
         </Panel>
       );
     case "complimentary":
       return (
-        <Panel title={foundingSeat ? "Founding Merchant, free seat" : "Complimentary plan"}>
+        <Panel title={foundingSeat ? "Founding Merchant, complimentary year" : "Complimentary membership"}>
           <p>
-            {foundingSeat ? "Your first 12 months are free" : "Coupersville gave you a free plan"},{" "}
-            active {state.endsAt ? `until ${day(state.endsAt, tz)}` : "with no end date"}. Your coupons are live for shoppers.
+            {state.endsAt
+              ? `Your Coupersville membership is active through ${day(state.endsAt, tz)}.`
+              : "Your Coupersville membership is active, with no end date."}{" "}
+            Your published coupons are live for shoppers.
           </p>
         </Panel>
       );
     case "active":
       return (
-        <Panel title="Annual plan, active">
+        <Panel title="Membership active">
           <p>
-            {state.renewsAt ? `Renews on ${day(state.renewsAt, tz)}.` : "Active."} Your coupons are live for shoppers. {SUPPORT}
+            {state.renewsAt
+              ? `Your Coupersville membership renews on ${day(state.renewsAt, tz)}. Review your billing information to avoid interruption.`
+              : "Your Coupersville membership is active."}
           </p>
+          {link}
         </Panel>
       );
     case "cancelling":
       return (
-        <Panel title="Annual plan, cancelled" tone="warn">
+        <Panel title="Renewal turned off" tone="warn">
           <p>
-            It stays active until {day(state.endsAt, tz) ?? "the end of this period"}, then your coupons are hidden from
-            shoppers. To keep it, contact Coupersville support.
+            Your Coupersville membership is active through {day(state.endsAt, tz) ?? "the end of this period"}. After that, your
+            published coupons are removed from public view.
           </p>
+          {link}
         </Panel>
       );
     case "past_due":
       return (
         <Panel title="Payment failed" tone="alert">
           <p>
-            We could not take the payment for your plan. Your coupons stay live until {day(state.graceEndsAt, tz)}. Contact
-            Coupersville support before then to keep them live.
+            We could not process your membership payment. Update your payment method to keep your coupons published. They stay
+            live until {day(state.graceEndsAt, tz)}.
           </p>
+          {link}
         </Panel>
       );
     case "expired":
       return (
-        <Panel title={state.source === "complimentary" ? "Complimentary plan ended" : "Plan ended"} tone="alert">
+        <Panel title="Membership expired" tone="alert">
           <p>
             {state.paymentFailed
               ? `Your payment failed and the ${PAST_DUE_GRACE_DAYS}-day grace period ended${state.endedAt ? ` on ${day(state.endedAt, tz)}` : ""}. `
-              : `Your plan ended${state.endedAt ? ` on ${day(state.endedAt, tz)}` : ""}. `}
-            Your coupons are hidden from shoppers until you have a plan again.
+              : ""}
+            Your membership has expired, and your published coupons have been removed from public view. Renew your membership and
+            your eligible offers go back on display.
           </p>
           {link}
         </Panel>

@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { describeLimits, rulesOf } from "@/lib/coupons";
 import { formatWhen, isWithinSchedule, nextOpening } from "@/lib/rules";
 import { EXPIRING_SOON_MS } from "@/lib/dates";
@@ -99,8 +100,8 @@ export async function searchLiveCoupons(options: SearchOptions): Promise<{ coupo
         distance !== null && row.nearest_store
           ? `${row.nearest_store}, ${miles(distance)} away`
           : storeCount === 1
-            ? "1 store"
-            : `${storeCount} stores`,
+            ? "Available at 1 location"
+            : `Available at ${storeCount} locations`,
     };
   });
   return { coupons, total: data?.length ? Number(data[0].total_count) : 0 };
@@ -199,7 +200,7 @@ export async function listSaved() {
 export async function listShops() {
   const supabase = await createClient();
   const [{ data: categories }, { data: live }] = await Promise.all([
-    supabase.from("categories").select("id, slug, name, shop_label, stock_tint").eq("active", true).order("sort_order"),
+    supabase.from("categories").select("id, slug, name, description, stock_tint").eq("active", true).order("sort_order"),
     supabase.from("live_coupons").select("category_id"),
   ]);
   const counts = new Map<string, number>();
@@ -213,7 +214,7 @@ export async function getShop(slug: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("categories")
-    .select("id, slug, name, shop_label, stock_tint")
+    .select("id, slug, name, description, stock_tint")
     .eq("slug", slug)
     .eq("active", true)
     .maybeSingle();
@@ -221,6 +222,20 @@ export async function getShop(slug: string) {
 }
 
 // Title and description for a live coupon's page and link previews. Null when it is not live.
+// A coupon that was published and has passed its end date, for the "This deal has ended" page.
+// Only the title and business are read, and only for an active business. Anything else (a draft,
+// a paused or removed coupon) stays a plain not found.
+export async function getEndedCoupon(id: string) {
+  const { data } = await createAdminClient()
+    .from("coupons")
+    .select("title, status, admin_hold, expires_at, businesses(name, status)")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data || data.status !== "published" || data.admin_hold || data.businesses?.status !== "active") return null;
+  if (new Date(data.expires_at).getTime() > Date.now()) return null;
+  return { title: data.title, businessName: data.businesses.name };
+}
+
 export async function getCouponMeta(id: string) {
   const supabase = await createClient();
   const { data } = await supabase

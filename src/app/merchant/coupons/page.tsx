@@ -8,6 +8,7 @@ import { formatDay } from "@/lib/dates";
 import { parseStats } from "@/lib/redemption-stats";
 import { formatOffer } from "@/components/ticket";
 import { PageLoading } from "@/components/page-loading";
+import { FormMessage } from "@/components/field";
 
 export const metadata: Metadata = { title: "Coupons" };
 
@@ -46,7 +47,7 @@ function withViews<T extends Parameters<typeof couponView>[0]>(coupons: T[]) {
 }
 
 async function CouponsContent({ searchParams }: { searchParams: PageProps<"/merchant/coupons">["searchParams"] }) {
-  const { view: viewParam } = await searchParams;
+  const { view: viewParam, published } = await searchParams;
   const { business, supabase } = await requireManagedBusiness("/merchant/coupons");
   const [{ data: coupons }, { data: rawStats }] = await Promise.all([
     supabase
@@ -74,9 +75,14 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/merc
         <h1 className="wordmark text-4xl text-ink">Coupons</h1>
         <Link href="/merchant/coupons/new" className="btn">
           <Plus aria-hidden size={18} strokeWidth={1.5} />
-          Create coupon
+          Create a coupon
         </Link>
       </div>
+      {published === "1" && view === "live" && (
+        <div className="mt-6">
+          <FormMessage tone="success">Your offer is live in Coupersville.</FormMessage>
+        </div>
+      )}
 
       <nav aria-label="Coupon status" className="mt-6 overflow-x-auto">
         <ul className="flex gap-2">

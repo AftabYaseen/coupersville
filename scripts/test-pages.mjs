@@ -122,16 +122,21 @@ async function main() {
 
   console.log("\nCoupon detail");
   const detailAnon = await get(`/coupon/${coupon.id}`);
-  check("signed out: Redeem now opens the sign-in sheet on the page", detailAnon.body.includes("Redeem now") && !detailAnon.body.includes("/login?next="));
+  check("signed out: Get my coupon opens the sign-in sheet on the page", detailAnon.body.includes("Get my coupon") && !detailAnon.body.includes("/login?next="));
+  check("signed out: the coupon page says how signing up works", detailAnon.body.includes("No password, no app, no printing. Just enter your email and a one-time code the first time you redeem."));
+  check(
+    "coupon page: Good to know gives the real limit and minimum purchase, and Where to use it",
+    ["Good to know", "Redemption limit", "One per customer", "Minimum purchase", "$10", "Where to use it"].every((t) => detailAnon.body.includes(t)),
+  );
   const detailShopper = await get(`/coupon/${coupon.id}`, shopper);
-  check("shopper: Redeem now", detailShopper.body.includes("Redeem now"));
+  check("shopper: Get my coupon, and no sign-up line", detailShopper.body.includes("Get my coupon") && !detailShopper.body.includes("No password, no app"));
 
   console.log("\nRedeem screen");
   const token = must(await shopper.client.rpc("create_redemption_token", { p_coupon_id: coupon.id }), "token");
   const redeem = await get(`/redeem/${token.token_id}`, shopper);
   check("shows the 6-digit code", redeem.body.includes(`${token.short_code.slice(0, 3)} ${token.short_code.slice(3)}`));
   check("shows a QR code", redeem.body.includes("<svg") && redeem.body.includes("QR code for staff to scan"));
-  check("shows the countdown", /Expires in [45]:\d\d/.test(redeem.body));
+  check("shows the countdown", /Coupon expires in [45]:\d\d/.test(redeem.body) && redeem.body.includes("Show this code to the business."));
   check("shows the ticket", redeem.body.includes("$3 OFF") && redeem.body.includes("Minimum spend $10"));
   const redeemOther = await get(`/redeem/${token.token_id}`, staff);
   check("someone else's code is a 404", redeemOther.status === 404 || redeemOther.body.includes("NEXT_HTTP_ERROR_FALLBACK;404"));
@@ -161,7 +166,7 @@ async function main() {
   const verified = must(await staff.client.rpc("verify_redemption", { p_token_or_code: token.short_code, p_location_id: storeA.id }), "verify");
   check("verify ok", verified.result === "ok", JSON.stringify(verified));
   const redeemed = await get(`/redeem/${token.token_id}`, shopper);
-  check("redeem screen shows the stamp", redeemed.body.includes("stamp") && redeemed.body.includes("Enjoy your savings"));
+  check("redeem screen shows the stamp", redeemed.body.includes("stamp") && redeemed.body.includes("Coupon accepted."));
   check("QR is gone after redemption", !redeemed.body.includes("QR code for staff to scan"));
   const history = await get("/history", shopper);
   check("history lists it with business and store", history.body.includes(`Page test shop ${run}`) && history.body.includes("North store"));
@@ -207,14 +212,14 @@ async function main() {
   // The schedule day is tomorrow's weekday, so it opens tomorrow at 11am.
   check(
     "Redeem is greyed out with when it is next available",
-    /<button[^>]*disabled[^>]*>(?:(?!<\/button>).)*Redeem now/s.test(sched.body) && sched.body.includes("Available tomorrow at 11am"),
+    /<button[^>]*disabled[^>]*>(?:(?!<\/button>).)*Get my coupon/s.test(sched.body) && sched.body.includes("Available tomorrow at 11am"),
   );
   const free = await insertCoupon({ title: "Free cookie", discount_type: "free", discount_value: null });
   const fixed = await insertCoupon({ title: "Regular coffee", discount_type: "fixed_price", discount_value: 1 });
   check("a free offer reads FREE", (await get(`/coupon/${free.id}`)).body.includes(">FREE<"));
   check("a fixed price offer reads ONLY $1", (await get(`/coupon/${fixed.id}`)).body.includes("ONLY $1"));
   const signedOut = await get(`/coupon/${free.id}`);
-  check("signed out, Redeem now and Save coupon are buttons that open the sign-in sheet", signedOut.body.includes("Redeem now") && signedOut.body.includes("Save coupon") && !signedOut.body.includes("Sign in to redeem"));
+  check("signed out, Get my coupon and Save for later are buttons that open the sign-in sheet", signedOut.body.includes("Get my coupon") && signedOut.body.includes("Save for later") && !signedOut.body.includes("Sign in to redeem"));
 
   console.log("\nNear me: location in a short-lived cookie, never in the address");
   const near = await callAction(base, null, "src/app/search/actions.ts", "setNearMe", [{ lat: 47.60621, lng: -122.33207 }]);
@@ -225,7 +230,7 @@ async function main() {
   check("an impossible location is refused and sets no cookie", bad.value?.ok === false && !(bad.rawCookies ?? []).some((c) => c.startsWith("cpv_near=")), bad);
   const nearPage = await fetch(`${base}/search?near=1&sort=nearest`, { headers: { cookie: near.setCookies.find((c) => c.startsWith("cpv_near=")) ?? "" } });
   const nearBody = (await nearPage.text()).replaceAll("<!-- -->", "");
-  check("search uses it: within 25 miles, sorted nearest", nearBody.includes("Showing coupons within 25 miles of you."));
+  check("search uses it: within 25 miles, sorted nearest", nearBody.includes("Showing deals within 25 miles of you."));
   check("and no coordinates appear in the page or its links", !/[?&;](lat|lng)=/.test(nearBody) && !nearBody.includes("47.606") && !nearBody.includes("-122.332"));
   const expired = await get("/search?near=1&sort=nearest");
   check("without the cookie (after 30 minutes), search asks to tap Near me again", expired.body.includes("Your location has expired") && !expired.body.includes("within 25 miles"));

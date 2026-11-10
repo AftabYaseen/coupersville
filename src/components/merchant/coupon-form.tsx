@@ -17,8 +17,8 @@ import { Ticket, formatOffer } from "@/components/ticket";
 import { ImageUpload } from "@/components/merchant/image-upload";
 
 const OFFER_KINDS = [
-  { value: "percent", label: "Percent off" },
-  { value: "amount", label: "Amount off" },
+  { value: "percent", label: "Percentage off" },
+  { value: "amount", label: "Dollar amount off" },
   { value: "fixed_price", label: "Fixed price" },
   { value: "free", label: "Free" },
 ] as const;
@@ -75,7 +75,8 @@ export function CouponForm(props: Props) {
   const isDraft = (status === null || status === "draft") && !props.held;
 
   function submit(intent: CouponIntent) {
-    return form.handleSubmit((data) => {
+    return form.handleSubmit(
+      (data) => {
       setServerError(null);
       setPendingIntent(intent);
       startTransition(async () => {
@@ -83,7 +84,13 @@ export function CouponForm(props: Props) {
         if (!result.ok) setServerError(result.error);
         setPendingIntent(null);
       });
-    });
+      },
+      () => setServerError(
+        intent === "publish"
+          ? "Please complete the highlighted fields before publishing this coupon."
+          : "Please complete the highlighted fields before saving this coupon.",
+      ),
+    );
   }
 
   const category = categories.find((c) => c.id === values.categoryId);
@@ -122,12 +129,12 @@ export function CouponForm(props: Props) {
 
           <section className="panel grid gap-5 p-5 sm:p-6">
             <h2 className="text-xl font-semibold">The offer</h2>
-            <Field id="title" label="Title" hint="Short and specific, like Any loaf of sourdough." error={err("title")}>
+            <Field id="title" label="Offer title" hint="Example: 20% off Tuesday lunch." error={err("title")}>
               <input id="title" className="field-input" aria-invalid={Boolean(err("title"))} {...register("title")} />
             </Field>
 
             <fieldset>
-              <legend className="field-label">Kind of offer</legend>
+              <legend className="field-label">Discount type</legend>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {OFFER_KINDS.map((kind) => (
                   <label
@@ -142,15 +149,18 @@ export function CouponForm(props: Props) {
                 ))}
               </div>
               {values.discountType === "free" ? (
-                <p className="mt-2 text-sm">Say what is free in the title, for example Free coffee with any pastry.</p>
+                <p className="mt-2 text-sm">
+                  Say what is free in the title, for example Free coffee with any pastry. If a purchase is required, say so in the title
+                  or the minimum purchase.
+                </p>
               ) : (
                 <div className="mt-3">
                   <label htmlFor="discountValue" className="field-label">
                     {values.discountType === "percent"
-                      ? "Percent off"
+                      ? "Discount value, percentage"
                       : values.discountType === "fixed_price"
                         ? "Price"
-                        : "Dollars off"}
+                        : "Discount value, dollars"}
                   </label>
                   <div className="flex items-center gap-2">
                     {values.discountType !== "percent" && <span className="font-semibold">$</span>}
@@ -163,6 +173,7 @@ export function CouponForm(props: Props) {
                     />
                     {values.discountType === "percent" && <span className="font-semibold">%</span>}
                   </div>
+                  {values.discountType !== "fixed_price" && <p className="mt-1.5 text-sm">Enter the percentage or dollar amount.</p>}
                   {values.discountType === "fixed_price" && (
                     <p className="mt-1.5 text-sm">What the customer pays. Name the item in the title, like Regular coffee.</p>
                   )}
@@ -171,7 +182,7 @@ export function CouponForm(props: Props) {
               )}
             </fieldset>
 
-            <Field id="categoryId" label="Category" error={err("categoryId")}>
+            <Field id="categoryId" label="Category" hint="Choose the category customers are most likely to browse." error={err("categoryId")}>
               <select id="categoryId" className="field-input" aria-invalid={Boolean(err("categoryId"))} {...register("categoryId")}>
                 <option value="">Choose a category</option>
                 {categories.map((c) => (
@@ -188,8 +199,8 @@ export function CouponForm(props: Props) {
 
             <Field
               id="includedProducts"
-              label="What it applies to"
-              hint="Optional. For example all bread and pastries."
+              label="Eligible products or services"
+              hint="Describe exactly what is included. Optional."
               error={err("includedProducts")}
             >
               <input id="includedProducts" className="field-input" {...register("includedProducts")} />
@@ -197,7 +208,7 @@ export function CouponForm(props: Props) {
 
             <ImageUpload
               label="Coupon image"
-              hint="Optional. JPG, PNG, or WebP up to 5 MB."
+              hint="Optional. Upload a clear image that represents the offer. JPG, PNG or WebP, up to 5 MB."
               bucket={COUPON_IMAGE_BUCKET}
               businessId={businessId}
               value={values.imagePath ?? null}
@@ -208,10 +219,10 @@ export function CouponForm(props: Props) {
           <section className="panel grid gap-5 p-5 sm:p-6">
             <h2 className="text-xl font-semibold">Dates</h2>
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field id="startsOn" label="Starts on" error={err("startsOn")}>
+              <Field id="startsOn" label="Start date" hint="Choose when the offer becomes visible and redeemable." error={err("startsOn")}>
                 <input id="startsOn" type="date" className="field-input tabular" {...register("startsOn")} />
               </Field>
-              <Field id="expiresOn" label="Ends on" hint="Valid through the end of this day." error={err("expiresOn")}>
+              <Field id="expiresOn" label="Expiration date" hint="Choose the last date the offer may be redeemed. Valid through the end of this day." error={err("expiresOn")}>
                 <input id="expiresOn" type="date" min={today} className="field-input tabular" {...register("expiresOn")} />
               </Field>
             </div>
@@ -221,20 +232,25 @@ export function CouponForm(props: Props) {
           <section className="panel grid gap-5 p-5 sm:p-6">
             <h2 className="text-xl font-semibold">Conditions</h2>
             <div className="grid gap-5 sm:grid-cols-3">
-              <Field id="minSpend" label="Minimum spend ($)" hint="Optional." error={err("minSpend")}>
+              <Field id="minSpend" label="Minimum purchase ($)" hint="Optional. Enter the minimum amount required." error={err("minSpend")}>
                 <input id="minSpend" inputMode="decimal" className="field-input tabular" {...register("minSpend")} />
               </Field>
-              <Field id="minQty" label="Minimum items" hint="Optional." error={err("minQty")}>
+              <Field id="minQty" label="Quantity" hint="Optional. Minimum items, for example 2." error={err("minQty")}>
                 <input id="minQty" inputMode="numeric" className="field-input tabular" {...register("minQty")} />
               </Field>
-              <Field id="maxPeople" label="Most people" hint="Optional." error={err("maxPeople")}>
+              <Field id="maxPeople" label="Party limit" hint="Optional. For example up to 4 people." error={err("maxPeople")}>
                 <input id="maxPeople" inputMode="numeric" className="field-input tabular" {...register("maxPeople")} />
               </Field>
             </div>
             <Field id="totalLimit" label="Total uses" hint="Optional. Leave blank for no cap." error={err("totalLimit")}>
               <input id="totalLimit" inputMode="numeric" className="field-input max-w-40 tabular" {...register("totalLimit")} />
             </Field>
-            <Field id="limitsText" label="Other fine print" hint="Optional. For example dine in only." error={err("limitsText")}>
+            <Field
+              id="limitsText"
+              label="Additional terms"
+              hint="Optional. Add exclusions and other important conditions. Set eligible days and times under How often."
+              error={err("limitsText")}
+            >
               <input id="limitsText" className="field-input" {...register("limitsText")} />
             </Field>
           </section>
@@ -327,11 +343,11 @@ export function CouponForm(props: Props) {
           </section>
 
           <section className="panel grid gap-4 p-5 sm:p-6">
-            <h2 className="text-xl font-semibold">Where it works</h2>
+            <h2 className="text-xl font-semibold">Participating locations</h2>
             <div className="flex flex-wrap gap-2">
               {[
-                { all: true, label: "All stores" },
-                { all: false, label: "Choose stores" },
+                { all: true, label: "All locations" },
+                { all: false, label: "Selected locations" },
               ].map((opt) => (
                 <label
                   key={opt.label}
@@ -377,9 +393,9 @@ export function CouponForm(props: Props) {
           <div className="grid gap-3">
             {isDraft && !planActive && (
               <p className="text-sm">
-                You need an active plan to publish. Save this as a draft for now, then{" "}
+                You need an active membership to publish. Save this as a draft for now, then{" "}
                 <Link href="/merchant/billing" className="font-medium text-ink underline underline-offset-4">
-                  start your annual plan
+                  see your membership options
                 </Link>
                 .
               </p>
@@ -393,7 +409,7 @@ export function CouponForm(props: Props) {
                     disabled={pending || !planActive}
                     onClick={() => void submit("publish")()}
                   >
-                    {pendingIntent === "publish" ? "Publishing" : "Publish coupon"}
+                    {pendingIntent === "publish" ? "Publishing" : "Publish now"}
                   </button>
                   <button type="submit" className="btn btn-secondary" disabled={pending}>
                     {pendingIntent === "draft" ? "Saving" : "Save draft"}

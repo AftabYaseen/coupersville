@@ -48,6 +48,10 @@ export function CouponStatusActions({
         {deletable &&
           (confirmingDelete ? (
             <>
+              <p className="w-full">
+                Delete this coupon permanently? This action cannot be undone.
+                {held ? "" : " If you may use it again, keep it as a draft instead."}
+              </p>
               <button
                 type="button"
                 className="btn border-signal bg-signal"

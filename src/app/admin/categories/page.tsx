@@ -22,7 +22,7 @@ export default function CategoriesPage() {
 async function CategoriesContent() {
   const { supabase } = await requireAdminPage("/admin/categories");
   const [{ data: categories }, { data: coupons }] = await Promise.all([
-    supabase.from("categories").select("id, name, slug, shop_label, stock_tint, sort_order, active").order("sort_order").order("name"),
+    supabase.from("categories").select("id, name, slug, description, stock_tint, sort_order, active").order("sort_order").order("name"),
     supabase.from("coupons").select("category_id"),
   ]);
   const counts = new Map<string, number>();
@@ -65,7 +65,8 @@ async function CategoriesContent() {
                         {!c.active && <span className="ml-2 text-sm font-medium text-signal">Inactive</span>}
                       </p>
                       <p className="text-sm">
-                        {c.shop_label}, /c/{c.slug}
+                        /c/{c.slug}
+                        {c.description ? `. ${c.description}` : ""}
                       </p>
                       <p className="text-sm tabular">
                         {used} {used === 1 ? "coupon" : "coupons"}
@@ -93,7 +94,7 @@ async function CategoriesContent() {
                       )}
                       <EditCategory
                         categoryId={c.id}
-                        defaults={{ name: c.name, slug: c.slug, shopLabel: c.shop_label, tint: c.stock_tint }}
+                        defaults={{ name: c.name, slug: c.slug, description: c.description ?? "", tint: c.stock_tint }}
                       />
                     </div>
                   </div>

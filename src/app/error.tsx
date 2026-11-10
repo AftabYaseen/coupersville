@@ -19,7 +19,7 @@ export default function Error({ error, retry }: { error: Error & { digest?: stri
         </>
       }
     >
-      <p>This page did not load. It is usually a short hiccup, so try again in a moment.</p>
+      <p>Something did not go as planned. Please try again. If the problem continues, contact Coupersville support.</p>
       {error.digest && <p className="text-sm tabular">If it keeps happening, tell us this reference: {error.digest}</p>}
     </ErrorTicket>
   );

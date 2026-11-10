@@ -8,7 +8,7 @@ export type CouponView = (typeof COUPON_VIEWS)[number];
 export const REMOVED_LABEL = "Removed by Coupersville";
 
 export const COUPON_VIEW_LABELS: Record<CouponView, string> = {
-  live: "Live",
+  live: "Active",
   scheduled: "Scheduled",
   draft: "Drafts",
   paused: "Paused",
@@ -17,7 +17,7 @@ export const COUPON_VIEW_LABELS: Record<CouponView, string> = {
 };
 
 export const COUPON_VIEW_STATUS: Record<CouponView, string> = {
-  live: "Live",
+  live: "Active",
   scheduled: "Scheduled",
   draft: "Draft",
   paused: "Paused",

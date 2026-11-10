@@ -39,27 +39,28 @@ export const TINT_BG: Record<Enums<"stock_tint">, string> = {
   butter: "bg-stock-butter",
 };
 
-type Shop = { slug: string; name: string; shop_label: string; stock_tint: Enums<"stock_tint">; liveCount: number };
+type Shop = { slug: string; name: string; description: string | null; stock_tint: Enums<"stock_tint">; liveCount: number };
+
+export const dealCount = (n: number) => (n === 1 ? "1 available deal" : `${n} available deals`);
 
 export function ShopCard({ shop }: { shop: Shop }) {
   const Icon = ICONS[shop.slug] ?? Store;
   return (
-    <Link href={`/c/${shop.slug}`} className="block overflow-hidden rounded-sm border-[1.5px] border-ink bg-white">
+    <Link href={`/c/${shop.slug}`} className="block h-full overflow-hidden rounded-sm border-[1.5px] border-ink bg-white">
       {/* Awning: alternating ink and stock stripes, drawn flat. */}
       <span aria-hidden className="flex h-3 border-b-[1.5px] border-ink">
         {Array.from({ length: 8 }, (_, i) => (
           <span key={i} className={`flex-1 ${i % 2 === 0 ? "bg-ink" : TINT_BG[shop.stock_tint]}`} />
         ))}
       </span>
-      <span className={`flex items-center gap-3 p-4 ${TINT_BG[shop.stock_tint]}`}>
+      <span className={`flex h-full items-start gap-3 p-4 ${TINT_BG[shop.stock_tint]}`}>
         <span className="flex size-11 shrink-0 items-center justify-center rounded-sm border-[1.5px] border-ink bg-white">
           <Icon aria-hidden size={22} strokeWidth={1.5} className="text-ink" />
         </span>
         <span className="min-w-0">
-          <span className="block font-semibold leading-tight">{shop.shop_label}</span>
-          <span className="block text-sm tabular">
-            {shop.liveCount === 0 ? "No coupons yet" : shop.liveCount === 1 ? "1 coupon" : `${shop.liveCount} coupons`}
-          </span>
+          <span className="block font-semibold leading-tight">{shop.name}</span>
+          {shop.description && <span className="mt-1 block text-sm">{shop.description}</span>}
+          <span className="mt-1 block text-sm font-medium tabular">{dealCount(shop.liveCount)}</span>
         </span>
       </span>
     </Link>

@@ -5,7 +5,7 @@ export type ImageBucket = typeof LOGO_BUCKET | typeof COUPON_IMAGE_BUCKET;
 export const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 export type ImageType = (typeof IMAGE_TYPES)[number];
 export const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
-export const IMAGE_ERROR = "Please upload a JPG, PNG or WebP image under 5 MB.";
+export const IMAGE_ERROR = "We could not upload that image. Use a JPG, PNG or WebP file no larger than 5 MB.";
 
 export const IMAGE_EXTENSIONS: Record<ImageType, string> = {
   "image/jpeg": "jpg",

@@ -60,7 +60,7 @@ export function SaveButton({ couponId, saved, signedIn, saveOnArrival }: Props) 
         ) : (
           <Bookmark aria-hidden size={18} strokeWidth={1.5} />
         )}
-        {saved ? "Saved" : "Save coupon"}
+        {saved ? "Saved" : "Save for later"}
       </button>
       <p role="status" className="text-center text-sm">
         {message}

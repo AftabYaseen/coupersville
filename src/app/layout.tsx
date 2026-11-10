@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ServiceWorker } from "@/components/service-worker";
 import { siteUrl } from "@/lib/site";
+import { SITE_DESCRIPTION } from "@/lib/site-copy";
 import "./globals.css";
 
 const archivo = Archivo({
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
   // Any absolute URL in page metadata (canonical links, Open Graph images) resolves against the live domain.
   metadataBase: new URL(siteUrl()),
   title: { default: "Coupersville", template: "%s | Coupersville" },
-  description: "Coupons from the shops in your town. Save them, then redeem them in store.",
+  description: SITE_DESCRIPTION,
   applicationName: "Coupersville",
   appleWebApp: { title: "Coupersville", capable: true, statusBarStyle: "default" },
   openGraph: { siteName: "Coupersville", type: "website", locale: "en_US" },

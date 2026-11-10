@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Coupersville",
     short_name: "Coupersville",
-    description: "Coupons from the shops in your town. Save them, then redeem them in store.",
+    description: "Discover digital coupons from businesses near you and beyond. Find a deal, get your one-time QR coupon and enjoy the savings.",
     start_url: "/",
     scope: "/",
     display: "standalone",

@@ -15,12 +15,12 @@ export default function NotFound() {
             Go to the home page
           </Link>
           <Link href="/search" className="btn btn-secondary">
-            Search coupons
+            Find a deal
           </Link>
         </>
       }
     >
-      <p>The link may be old, or the address may have a typo. The coupons are all still on Main Street.</p>
+      <p>The link may be old, or the address may have a typo. The deals are all still here.</p>
     </ErrorTicket>
   );
 }

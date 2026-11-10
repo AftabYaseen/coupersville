@@ -105,7 +105,7 @@ export function welcomeEmail({ role, name }: { role: "consumer" | "merchant"; na
     heading: "Welcome to Coupersville",
     blocks: [
       { kind: "p", text: hello },
-      { kind: "p", text: "Your shopper account is ready. Save coupons from the shops in town, then show the QR code at the counter to redeem them." },
+      { kind: "p", text: "Your shopper account is ready. Save deals from businesses near you, then show the QR code at the business to redeem them." },
       { kind: "button", label: "Browse coupons", href: absoluteUrl("/") },
       { kind: "note", text: "Next time, sign in with a code we email you. No password needed." },
     ],

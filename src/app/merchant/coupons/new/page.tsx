@@ -6,7 +6,7 @@ import { PageLoading } from "@/components/page-loading";
 import { CouponForm } from "@/components/merchant/coupon-form";
 import { CampaignUsage } from "@/components/merchant/usage";
 
-export const metadata: Metadata = { title: "Create coupon" };
+export const metadata: Metadata = { title: "Create a new offer" };
 
 export default function NewCouponPage() {
   return (
@@ -23,7 +23,8 @@ async function NewCouponContent() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="wordmark text-4xl text-ink">Create a coupon</h1>
+      <h1 className="wordmark text-4xl text-ink">Create a new offer</h1>
+      <p className="mt-2 max-w-2xl">Build a clear, compelling coupon that customers can understand and your staff can apply consistently.</p>
       <CampaignUsage usage={data.usage} className="mt-2 mb-8" />
       <CouponForm
         couponId={null}

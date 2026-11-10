@@ -5,7 +5,7 @@ import { z } from "zod";
 import { requireManagedBusiness } from "@/lib/merchant";
 import { loadCouponBuilderData } from "@/lib/merchant-coupons";
 import { COUPON_VIEW_STATUS, REMOVED_LABEL, couponView } from "@/lib/coupons";
-import { dayInZone } from "@/lib/dates";
+import { dayInZone, formatDay } from "@/lib/dates";
 import { couponRuleDefaults } from "@/lib/validation/merchant";
 import { PageLoading } from "@/components/page-loading";
 import { CouponForm } from "@/components/merchant/coupon-form";
@@ -49,6 +49,10 @@ async function EditCouponContent({ params }: { params: PageProps<"/merchant/coup
         <div>
           <h1 className="wordmark text-4xl text-ink">Edit coupon</h1>
           <p className="mt-1 font-medium">Status: {COUPON_VIEW_STATUS[view]}</p>
+          {view === "paused" && <p className="mt-1">This coupon is paused and is not visible to shoppers.</p>}
+          {view === "expired" && (
+            <p className="mt-1">This coupon ended on {formatDay(coupon.expires_at, tz)} and can no longer be redeemed.</p>
+          )}
           <CampaignUsage usage={data.usage} className="mt-2" />
         </div>
         <CouponStatusActions

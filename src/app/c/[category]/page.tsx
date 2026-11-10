@@ -6,19 +6,19 @@ import { getShop, searchLiveCoupons } from "@/lib/consumer";
 import { PAGE_SIZE } from "@/lib/validation/search";
 import { CouponGrid, EmptyState } from "@/components/consumer/coupon-ticket";
 import { TicketGridSkeleton } from "@/components/consumer/ticket-skeleton";
-import { TINT_BG } from "@/components/consumer/shop-card";
+import { TINT_BG, dealCount } from "@/components/consumer/shop-card";
 
 export async function generateMetadata({ params }: PageProps<"/c/[category]">): Promise<Metadata> {
   const { category } = await params;
   const shop = /^[a-z0-9-]{1,60}$/.test(category) ? await getShop(category) : null;
-  if (!shop) return { title: "Shop not found" };
+  if (!shop) return { title: "Category not found" };
   return {
-    title: `${shop.name} coupons`,
-    description: `Coupons from ${shop.name.toLowerCase()} on Main Street in Coupersville. Save them, then redeem them in store.`,
+    title: `${shop.name} deals`,
+    description: shop.description ?? `Explore current offers from ${shop.name} businesses in Coupersville.`,
   };
 }
 
-export default function ShopPage({ params }: PageProps<"/c/[category]">) {
+export default function CategoryPage({ params }: PageProps<"/c/[category]">) {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
       <Suspense
@@ -29,13 +29,13 @@ export default function ShopPage({ params }: PageProps<"/c/[category]">) {
           </div>
         }
       >
-        <ShopContent params={params} />
+        <CategoryContent params={params} />
       </Suspense>
     </div>
   );
 }
 
-async function ShopContent({ params }: { params: PageProps<"/c/[category]">["params"] }) {
+async function CategoryContent({ params }: { params: PageProps<"/c/[category]">["params"] }) {
   const { category } = await params;
   if (!/^[a-z0-9-]{1,60}$/.test(category)) notFound();
   const shop = await getShop(category);
@@ -51,27 +51,33 @@ async function ShopContent({ params }: { params: PageProps<"/c/[category]">["par
           ))}
         </span>
         <div className={`p-5 sm:p-6 ${TINT_BG[shop.stock_tint]}`}>
-          <h1 className="wordmark text-4xl text-ink">{shop.shop_label}</h1>
-          <p className="mt-1">
-            {shop.name} coupons on Main Street.{" "}
-            <span className="tabular">{total === 1 ? "1 coupon" : `${total} coupons`} today.</span>
+          <h1 className="wordmark text-4xl text-ink">{shop.name} deals</h1>
+          <p className="mt-2 max-w-2xl">
+            Explore current offers from {shop.name} businesses in Coupersville. Check each coupon for participating locations, limits
+            and expiration details.
           </p>
+          <p className="mt-2 font-medium tabular">{dealCount(total)}</p>
         </div>
       </header>
 
       {coupons.length === 0 ? (
-        <EmptyState title={`${shop.shop_label} has no coupons right now.`}>
-          <p>New coupons go up all the time. Have a look in the other shops on Main Street.</p>
-          <Link href="/#main-street" className="btn btn-secondary justify-self-start">
-            Browse Main Street
-          </Link>
+        <EmptyState title="Nothing on the shelf just yet.">
+          <p>There are no active {shop.name} deals at the moment, but new offers are always arriving in Coupersville.</p>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/#categories" className="btn btn-secondary">
+              Browse other categories
+            </Link>
+            <Link href="/search" className="btn btn-secondary">
+              See all deals
+            </Link>
+          </div>
         </EmptyState>
       ) : (
         <>
           <CouponGrid coupons={coupons} />
           {total > coupons.length && (
             <Link href={`/search?category=${shop.slug}&page=2`} className="btn btn-secondary justify-self-center">
-              See more from {shop.shop_label.replace(/^The /, "the ")}
+              See more {shop.name} deals
             </Link>
           )}
         </>

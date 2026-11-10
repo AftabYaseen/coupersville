@@ -83,17 +83,36 @@ const cron = (auth) => fetch(`${base}/api/cron/daily`, { headers: auth ? { autho
 
 async function pages() {
   console.log("\nPublic pages");
-  const how = await get("/how-it-works");
-  check("how it works loads with the four steps", how.status === 200 && ["Browse deals", "Sign up once", "Redeem with QR", "Save instantly"].every((t) => how.body.includes(t)));
-  check("how it works says over a dozen categories, not dozens", how.body.includes("Over a dozen categories") && !/\bdozens\b/i.test(how.body));
+  const how = await get("/how-to-save");
+  check(
+    "how to save loads with the four steps",
+    how.status === 200 && ["Find it. Get it. Scan it. Save.", "Find a deal", "Get your coupon", "Show the QR code", "Enjoy your savings"].every((t) => how.body.includes(t)),
+  );
+  check(
+    "how to save gives the confirmed sign-up wording",
+    how.body.includes("No password, no app, no printing. Just enter your email and a one-time code the first time you redeem.") && how.body.includes("Do I need an account?"),
+  );
+  const old = await fetch(`${base}/how-it-works`, { redirect: "manual" });
+  check("the old How it works address redirects to How to save", [301, 308].includes(old.status) && (old.headers.get("location") ?? "").endsWith("/how-to-save"), old.status);
   const biz = await get("/for-businesses");
-  check("for businesses loads with the promise line", biz.status === 200 && biz.body.includes("No approvals. No commissions. No complicated setup."));
-  check("for businesses ends with Create a business account", biz.body.includes('href="/signup?type=merchant"') && biz.body.includes("Create a business account"));
-  check("for businesses has the pricing spot and no price", biz.body.includes("Pricing is coming soon") && !/a year|per year|\/yr/i.test(biz.body));
+  check("for businesses loads with the deck headline", biz.status === 200 && biz.body.includes("Give customers another reason to choose your business."));
+  check("for businesses ends with Open your door in Coupersville", biz.body.includes('href="/signup?type=merchant"') && biz.body.includes("Open your door in Coupersville"));
+  const shown = (html) => html.replace(/<script[\s\S]*?<\/script>/g, "");
+  // The example tickets say $5 OFF and ONLY $1; a membership price would say a year or a month.
+  check("for businesses shows no membership price", !/\$\d+(\.\d\d)? (a|per) (year|month)|\/yr|\/mo\b/i.test(shown(biz.body)));
   const home = await get("/");
-  check("header and footer link both pages", (home.body.match(/href="\/how-it-works"/g) ?? []).length >= 2 && (home.body.match(/href="\/for-businesses"/g) ?? []).length >= 2);
+  check(
+    "header and footer link How to save and For businesses",
+    (home.body.match(/href="\/how-to-save"/g) ?? []).length >= 2 && (home.body.match(/href="\/for-businesses"/g) ?? []).length >= 2,
+  );
   check("footer links privacy and terms", home.body.includes('href="/privacy"') && home.body.includes('href="/terms"'));
-  check("home is still shopper-first: welcome and search come first", home.body.indexOf("Welcome to Coupersville") < home.body.indexOf("Main Street"));
+  check(
+    "home is still shopper-first: headline and search come before the categories",
+    home.body.indexOf("Where good deals live.") < home.body.indexOf("What kind of deal are you looking for?") &&
+      home.body.indexOf("What kind of deal are you looking for?") < home.body.indexOf("Stroll through Coupersville"),
+  );
+  check("no page says no account is needed", ![home, how, biz].some((p) => /no account|without (creating )?an account/i.test(shown(p.body))));
+  check("signed out header: Merchant sign in, Find a deal, Join Coupersville", ["Merchant sign in", "Find a deal", "Join Coupersville"].every((t) => home.body.includes(t)));
   check("a skip link jumps to the content", home.body.includes('href="#main"') && home.body.includes('id="main"'));
   // The client's privacy notice and terms, word for word, with the Phase 1 Launch Notice under the date.
   const visible = (html) =>
@@ -126,13 +145,16 @@ async function pages() {
   check("no em dashes on the new pages", !emDash);
 
   console.log("\nTitles, sitemap, robots, Open Graph");
-  check("pages have their own titles", /<title>How it works \| Coupersville<\/title>/.test(how.body) && /<title>For businesses \| Coupersville<\/title>/.test(biz.body));
-  check("pages have descriptions", /<meta name="description" content="Browse coupons/.test(how.body));
+  check(
+    "pages have their own titles",
+    /<title>How to use Coupersville coupons \| Coupersville<\/title>/.test(how.body) && /<title>Digital coupons for businesses \| Coupersville<\/title>/.test(biz.body),
+  );
+  check("pages have descriptions", /<meta name="description" content="Find a deal, get your one-time QR coupon/.test(how.body));
   check("Open Graph image is set from the town sign", /<meta property="og:image" content="[^"]*opengraph-image/.test(home.body) && home.body.includes("og:image:alt"));
   const og = await get(home.body.match(/<meta property="og:image" content="https?:\/\/[^/]+([^"]+)"/)?.[1] ?? "/opengraph-image.jpg");
   check("the Open Graph image is a 1200 x 630 JPEG", og.status === 200 && og.type.startsWith("image/jpeg") && og.body.length > 50_000);
   const sitemap = await get("/sitemap.xml");
-  check("sitemap lists public pages and categories", sitemap.status === 200 && sitemap.body.includes("/how-it-works") && sitemap.body.includes("/c/"));
+  check("sitemap lists public pages and categories", sitemap.status === 200 && sitemap.body.includes("/how-to-save") && sitemap.body.includes("/c/"));
   const live = (await admin.from("live_coupons").select("id").limit(1)).data?.[0];
   check("sitemap lists live coupons", !live || sitemap.body.includes(`/coupon/${live.id}`));
   const robots = await get("/robots.txt");
@@ -162,7 +184,7 @@ async function pages() {
   const missing = await get(`/no-such-page-${run}`);
   check("an unknown address gets a branded 404", missing.status === 404 && missing.body.includes("This page is not in town"));
   const badCoupon = await get("/coupon/00000000-0000-4000-8000-000000000000");
-  check("an unknown coupon says it is not available", badCoupon.body.includes("This coupon is not available"));
+  check("an unknown coupon says it is not available", badCoupon.body.includes("This deal is not available"));
 }
 
 async function emails() {
@@ -312,6 +334,8 @@ async function deletion() {
     const customer = await stripe.customers.create({ email: fakeInbox("paidowner"), payment_method: "pm_card_visa", invoice_settings: { default_payment_method: "pm_card_visa" } });
     created.stripe.push(customer.id);
     sub = await stripe.subscriptions.create({ customer: customer.id, items: [{ price: process.env.STRIPE_ANNUAL_PRICE_ID }] });
+    // Stripe's test-mode webhook reaches the site, which claims a plan started notice keyed by this id.
+    created.refs.push(sub.id);
     must(
       await admin.from("subscriptions").insert({
         business_id: paidShop.id,

@@ -44,10 +44,12 @@ export function NearMeButton({ placeInputId, keepParams = false }: { placeInputI
     <div>
       <button type="button" className="btn btn-secondary" onClick={locate} disabled={state === "locating"}>
         <LocateFixed aria-hidden size={18} strokeWidth={1.5} />
-        {state === "locating" ? "Finding you" : "Near me"}
+        {state === "locating" ? "Finding you" : "Use my location"}
       </button>
       <p role="status" className="mt-2 text-sm">
-        {state === "declined" ? "Location is off, so search by city or ZIP instead." : ""}
+        {state === "declined"
+          ? "Location is off, so search by city or ZIP code instead."
+          : "Allow location access to see deals closest to you. Coupersville uses your location only to improve nearby search results."}
       </p>
     </div>
   );

@@ -183,7 +183,7 @@ export function RedeemScreen({ tokenId, couponId, shortCode, qrSvg, expiresAt, s
       </div>
       {!redemption && (
         <p className="tabular font-medium" role="timer" aria-live="off">
-          Expires in {minutes}:{String(seconds).padStart(2, "0")}
+          Coupon expires in {minutes}:{String(seconds).padStart(2, "0")}
         </p>
       )}
     </div>
@@ -196,8 +196,14 @@ export function RedeemScreen({ tokenId, couponId, shortCode, qrSvg, expiresAt, s
   } else if (expired) {
     stub = (
       <div className="grid gap-3 rounded-sm border-[1.5px] border-ink bg-white p-4 text-center">
-        <p className="text-lg font-semibold">This code has expired</p>
-        <p className="text-sm">Codes last 5 minutes. Get a new one when you are at the counter.</p>
+        <p className="text-lg font-semibold">This QR code has expired</p>
+        <p className="text-sm">
+          Return to the{" "}
+          <Link href={`/coupon/${couponId}`} className="font-medium text-ink underline underline-offset-4">
+            coupon page
+          </Link>{" "}
+          to check whether the offer is still available, or get a new code if you are at the business now.
+        </p>
         <button type="button" className="btn w-full" disabled={renewing} onClick={renew}>
           <RefreshCw aria-hidden size={18} strokeWidth={1.5} />
           {renewing ? "Getting your code" : "Get a new code"}
@@ -212,10 +218,18 @@ export function RedeemScreen({ tokenId, couponId, shortCode, qrSvg, expiresAt, s
   return (
     <div className="grid gap-5">
       <h1 className="wordmark text-3xl text-ink">
-        {redemption ? "Enjoy your savings" : expired ? "Code expired" : "Show this at the counter"}
+        {redemption ? "Coupon accepted." : expired ? "Code expired" : "Show this code to the business."}
       </h1>
       {!redemption && !expired && (
-        <p className="-mt-3">Staff scan the QR code or type the 6 digits. Keep this screen open until they confirm.</p>
+        <p className="-mt-3">
+          Ask the business representative to scan this QR code before the timer reaches zero. Keep this screen open until they
+          confirm.
+        </p>
+      )}
+      {redemption && (
+        <p className="-mt-3">
+          Your Coupersville coupon has been redeemed. The business can now apply the eligible discount to your purchase.
+        </p>
       )}
 
       <Ticket
@@ -250,7 +264,7 @@ export function RedeemScreen({ tokenId, couponId, shortCode, qrSvg, expiresAt, s
             See your history
           </Link>
           <Link href="/search" className="btn btn-secondary">
-            Find more coupons
+            Find another deal
           </Link>
         </div>
       )}

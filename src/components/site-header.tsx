@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Bookmark, CircleUser, History, LayoutDashboard, ScanLine, Search, Store, type LucideIcon } from "lucide-react";
 import { getMemberships, getSessionUser } from "@/lib/auth";
 import { signOut } from "@/app/(auth)/actions";
+import { JOIN_HREF } from "@/lib/site-copy";
 
 function NavLink({ href, label, Icon }: { href: string; label: string; Icon: LucideIcon }) {
   return (
@@ -13,6 +14,12 @@ function NavLink({ href, label, Icon }: { href: string; label: string; Icon: Luc
   );
 }
 
+const SITE_LINKS = [
+  { href: "/search", label: "Find deals" },
+  { href: "/how-to-save", label: "How to save" },
+  { href: "/for-businesses", label: "For businesses" },
+];
+
 export function SiteHeader() {
   return (
     <header className="border-b-[1.5px] border-ink bg-white">
@@ -21,31 +28,34 @@ export function SiteHeader() {
           Coupersville
         </Link>
         <div className="flex items-center gap-1">
-          <AboutLinks className="hidden lg:flex" />
-          <NavLink href="/search" label="Search" Icon={Search} />
           <Suspense fallback={<div className="h-11 w-11" aria-hidden />}>
             <UserNav />
           </Suspense>
         </div>
       </div>
-      <div className="border-t-[1.5px] border-ink lg:hidden">
-        <AboutLinks className="mx-auto flex max-w-5xl px-2" />
+      <div className="border-t-[1.5px] border-ink">
+        <nav aria-label="Coupersville" className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-1 px-2">
+          {SITE_LINKS.map((l) => (
+            <Link key={l.href} href={l.href} className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-ink">
+              {l.label}
+            </Link>
+          ))}
+          <Suspense fallback={null}>
+            <MerchantSignIn />
+          </Suspense>
+        </nav>
       </div>
     </header>
   );
 }
 
-// The two pages that explain Coupersville. Their own row on small screens, inline on wide ones.
-function AboutLinks({ className }: { className: string }) {
+// Shoppers never need to sign in from the header: saving or redeeming asks for their email.
+async function MerchantSignIn() {
+  if (await getSessionUser()) return null;
   return (
-    <nav aria-label="About Coupersville" className={`${className} items-center gap-1`}>
-      <Link href="/how-it-works" className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-ink">
-        How it works
-      </Link>
-      <Link href="/for-businesses" className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-ink">
-        For businesses
-      </Link>
-    </nav>
+    <Link href="/login" className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-ink">
+      Merchant sign in
+    </Link>
   );
 }
 
@@ -54,9 +64,14 @@ async function UserNav() {
 
   if (!user) {
     return (
-      <Link href="/login" className="btn btn-secondary ml-1 px-3">
-        Sign in
-      </Link>
+      <nav className="flex items-center gap-2" aria-label="Get started">
+        <Link href={JOIN_HREF} className="btn btn-secondary hidden px-3 sm:inline-flex">
+          Join Coupersville
+        </Link>
+        <Link href="/search" className="btn px-3">
+          Find a deal
+        </Link>
+      </nav>
     );
   }
 
@@ -74,6 +89,7 @@ async function UserNav() {
   return (
     <nav className="flex items-center gap-1" aria-label="Account">
       {portal && <NavLink {...portal} />}
+      {!portal && <NavLink href="/search" label="Find deals" Icon={Search} />}
       <NavLink href="/saved" label="Saved" Icon={Bookmark} />
       {!portal && <NavLink href="/history" label="History" Icon={History} />}
       <NavLink href="/account" label="Account" Icon={CircleUser} />

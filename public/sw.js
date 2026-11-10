@@ -2,7 +2,7 @@
 // show the offline page instead of the browser's error. Nothing else is cached, so shoppers
 // always see live coupons and redemption codes straight from the server.
 
-const CACHE = "coupersville-offline-v1";
+const CACHE = "coupersville-offline-v2";
 const OFFLINE_URL = "/offline.html";
 
 self.addEventListener("install", (event) => {

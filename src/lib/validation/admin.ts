@@ -30,7 +30,10 @@ export const categorySchema = z
           error: "Use lowercase letters, numbers and single hyphens.",
         }),
     ),
-    shopLabel: z.string().trim().min(1, { error: "Enter how it appears on Main Street." }).max(60, { error: "Use 60 characters or fewer." }),
+    description: z.preprocess(
+      nullToEmpty,
+      z.string().trim().max(200, { error: "Use 200 characters or fewer." }).transform((v) => v || null),
+    ),
     tint: z.enum(STOCK_TINTS, { error: "Choose a tint." }),
   })
   .transform((v) => ({ ...v, slug: v.slug || slugify(v.name) }))

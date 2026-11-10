@@ -75,7 +75,7 @@ Store these in a single-row `platform_settings` table so they can be changed wit
 All tables have `id uuid` primary keys, `created_at`, and `updated_at` where it makes sense. Enable RLS on every table.
 
 - **profiles**: `id` (matches `auth.users.id`), `role` (`consumer` | `merchant` | `admin`), `full_name` (optional), `status` (`active` | `suspended`). Created by a trigger on signup.
-- **categories**: `name`, `slug`, `shop_label` (how the category appears on Main Street, such as "The bakery"), `stock_tint` (`mint` | `pink` | `sky` | `butter`), `sort_order`, `active`. Seed: Restaurants, Grocery, Bakeries, Toys, Jewelry, Clothes, Shoes, Household Supplies, Pharmacy, Luggage/Bags/Wallets, Millinery, Beauty, Other. Rotate the four tints across them.
+- **categories**: `name`, `slug`, `description` (one sentence for category cards and pages), `shop_label` (no longer shown to shoppers; new categories copy the name), `stock_tint` (`mint` | `pink` | `sky` | `butter`), `sort_order`, `active`. Names from the client's copy deck (2026-11-10), in sentence case: Eat & drink, Groceries & markets, Bakeries & sweets, Toys & gifts, Jewelry, Fashion & clothing, Shoes, Home & household, Pharmacy & wellness, Bags & luggage, Hats & millinery, Beauty & grooming, More around town. Slugs never change, so links keep working. Rotate the four tints across them.
 - **businesses**: `owner_id`, `name`, `description`, `primary_category_id`, `logo_path`, `cover_path`, `contact_email`, `contact_phone`, `website_url`, `status` (`draft` | `active` | `suspended`), `timezone` (IANA name; coupon dates are calendar days in this zone). Onboarding creates the business as `draft`; server code sets it `active` once the profile and first store are saved. `owner_id` is empty once the owner has deleted their account; the business is then suspended.
 - **business_members**: `business_id`, `user_id`, `role` (`owner` | `manager` | `staff`). Staff can only use the scanner.
 - **locations**: `business_id`, `store_name`, `store_number`, `address_line1`, `address_line2`, `city`, `state`, `postal_code`, `geo` (PostGIS `geography(Point)`), `phone`, `active`.
@@ -173,7 +173,7 @@ Prices appear only on signed-in merchant and admin screens (`/merchant/billing`,
 /redeem/[tokenId]       QR + short code with countdown
 /saved  /history  /account  /account-deleted
 /login  /signup  /reset-password
-/how-it-works  /for-businesses   marketing pages, linked in header and footer
+/how-to-save  /for-businesses    marketing pages, linked in header and footer (/how-it-works redirects to /how-to-save)
 /privacy  /terms        drafts for the client's lawyer, linked in footer, sign-in sheet, signup
 
 /merchant               dashboard and stats
@@ -257,6 +257,9 @@ When a redemption is verified, the consumer's redeem screen shows an ink stamp r
 - Em dashes anywhere in UI copy or docs
 
 ### Copy
+
+Public and merchant wording follows the client's copy deck (`docs/Coupersville_Website_Copy_Deck.pdf`, 2026-11-10), in sentence case, with no all-caps eyebrows. Shared lines live in `src/lib/site-copy.ts`. Shoppers browse freely but sign up with their email before saving or redeeming: never write that no account is needed; use `ACCOUNT_LINE` ("No password, no app, no printing. Just enter your email and a one-time code the first time you redeem."). Coupon pages show each coupon's real rules, never a fixed "One per customer". The Founding Merchant callout reads its dates and free seats from `offers` (`src/lib/founding-callout.ts`).
+
 
 Plain, short, sentence case. Buttons say what happens: "Save coupon", "Redeem now", "Publish coupon". The same action keeps the same name across the flow. Light town flavour in a few headings only ("Welcome to Coupersville", "New on Main Street"). Errors say what went wrong and what to do next. Empty screens invite an action.
 

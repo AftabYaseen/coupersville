@@ -39,13 +39,13 @@ async function SavedContent() {
     return (
       <div className="mt-6">
         <EmptyState title="Nothing saved yet.">
-          <p>Find a coupon you like and tap Save coupon. It will wait for you here.</p>
+          <p>Find a deal you like and tap Save for later. It will wait for you here.</p>
           <div className="flex flex-wrap gap-3">
-            <Link href="/#main-street" className="btn">
-              Browse Main Street
+            <Link href="/search" className="btn">
+              Find a deal
             </Link>
-            <Link href="/search" className="btn btn-secondary">
-              Search coupons
+            <Link href="/#categories" className="btn btn-secondary">
+              Browse categories
             </Link>
           </div>
         </EmptyState>

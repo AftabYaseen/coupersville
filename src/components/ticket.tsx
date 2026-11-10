@@ -74,7 +74,7 @@ export function Ticket({
             <li className={`flex items-center gap-2 tabular ${expiringSoon ? "font-semibold text-signal" : ""}`}>
               <CalendarClock aria-hidden size={16} strokeWidth={1.5} className={expiringSoon ? "text-signal" : "text-ink"} />
               <span>
-                {expiringSoon ? "Expiring soon, " : "Expires "}
+                {expiringSoon ? "Ending soon, ends " : "Ends "}
                 <time dateTime={expires.toISOString()}>{formatDay(expires, timeZone)}</time>
               </span>
             </li>

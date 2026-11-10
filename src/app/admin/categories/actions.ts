@@ -28,14 +28,15 @@ export async function createCategory(input: unknown): Promise<ActionResult> {
     .order("sort_order", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const { name, slug, shopLabel, tint } = parsed.data;
+  const { name, slug, description, tint } = parsed.data;
+  // shop_label is no longer shown to shoppers; it keeps the name so the column stays filled.
   const { error } = await ctx.supabase
     .from("categories")
-    .insert({ name, slug, shop_label: shopLabel, stock_tint: tint, sort_order: (last?.sort_order ?? 0) + 1 });
+    .insert({ name, slug, description, shop_label: name, stock_tint: tint, sort_order: (last?.sort_order ?? 0) + 1 });
   if (error) return writeError(error);
 
   refresh();
-  return { ok: true, message: `${name} is added to the end of Main Street.` };
+  return { ok: true, message: `${name} is added at the end of the list.` };
 }
 
 export async function updateCategory(categoryId: unknown, input: unknown): Promise<ActionResult> {
@@ -47,10 +48,10 @@ export async function updateCategory(categoryId: unknown, input: unknown): Promi
   const ctx = await requireAdminAction();
   if (!ctx) return NOT_ADMIN;
 
-  const { name, slug, shopLabel, tint } = parsed.data;
+  const { name, slug, description, tint } = parsed.data;
   const { data, error } = await ctx.supabase
     .from("categories")
-    .update({ name, slug, shop_label: shopLabel, stock_tint: tint })
+    .update({ name, slug, description, stock_tint: tint })
     .eq("id", id.data)
     .select("id");
   if (error) return writeError(error);
