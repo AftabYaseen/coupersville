@@ -424,6 +424,7 @@ export type Database = {
           description: string | null
           discount_type: Database["public"]["Enums"]["discount_type"]
           discount_value: number | null
+          exclusions: string | null
           expires_at: string
           featured: boolean
           held_at: string | null
@@ -457,6 +458,7 @@ export type Database = {
           description?: string | null
           discount_type: Database["public"]["Enums"]["discount_type"]
           discount_value?: number | null
+          exclusions?: string | null
           expires_at: string
           featured?: boolean
           held_at?: string | null
@@ -490,6 +492,7 @@ export type Database = {
           description?: string | null
           discount_type?: Database["public"]["Enums"]["discount_type"]
           discount_value?: number | null
+          exclusions?: string | null
           expires_at?: string
           featured?: boolean
           held_at?: string | null
@@ -612,6 +615,7 @@ export type Database = {
           address_line2: string | null
           business_id: string
           city: string
+          country: string | null
           created_at: string
           geo: unknown
           id: string
@@ -630,6 +634,7 @@ export type Database = {
           address_line2?: string | null
           business_id: string
           city: string
+          country?: string | null
           created_at?: string
           geo?: unknown
           id?: string
@@ -646,6 +651,7 @@ export type Database = {
           address_line2?: string | null
           business_id?: string
           city?: string
+          country?: string | null
           created_at?: string
           geo?: unknown
           id?: string
@@ -1394,6 +1400,7 @@ export type Database = {
           description: string | null
           discount_type: Database["public"]["Enums"]["discount_type"] | null
           discount_value: number | null
+          exclusions: string | null
           expires_at: string | null
           featured: boolean | null
           held_at: string | null
@@ -1427,6 +1434,7 @@ export type Database = {
           description?: string | null
           discount_type?: Database["public"]["Enums"]["discount_type"] | null
           discount_value?: number | null
+          exclusions?: string | null
           expires_at?: string | null
           featured?: boolean | null
           held_at?: string | null
@@ -1460,6 +1468,7 @@ export type Database = {
           description?: string | null
           discount_type?: Database["public"]["Enums"]["discount_type"] | null
           discount_value?: number | null
+          exclusions?: string | null
           expires_at?: string | null
           featured?: boolean | null
           held_at?: string | null
@@ -1786,6 +1795,8 @@ export type Database = {
       }
       search_live_coupons: {
         Args: {
+          p_available_now?: boolean
+          p_business?: string
           p_category?: string
           p_discount_type?: Database["public"]["Enums"]["discount_type"]
           p_ending_within_days?: number

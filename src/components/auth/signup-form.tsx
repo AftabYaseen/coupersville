@@ -2,38 +2,27 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signUp } from "@/app/(auth)/actions";
 import { signupSchema, type SignupInput } from "@/lib/validation/auth";
+import { JOIN_HREF } from "@/lib/site-copy";
 import { Field, FormMessage } from "@/components/field";
 import { PasswordInput } from "@/components/auth/password-input";
 
-const ACCOUNT_TYPES = [
-  { value: "consumer", title: "I'm a shopper", body: "Save and redeem coupons from local shops." },
-  { value: "merchant", title: "I run a business", body: "Publish coupons for your stores." },
-] as const;
-
-export function SignupForm({
-  defaultType = "consumer",
-  next,
-}: {
-  defaultType?: SignupInput["accountType"];
-  next?: string;
-}) {
+// A shopper account with a password. Businesses join through the merchant sign-up (JOIN_HREF).
+export function SignupForm({ next }: { next?: string }) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const {
     register,
     handleSubmit,
-    control,
     formState: { errors },
   } = useForm<SignupInput>({
     resolver: zodResolver(signupSchema),
-    defaultValues: { fullName: "", email: "", password: "", accountType: defaultType, next },
+    defaultValues: { fullName: "", email: "", password: "", accountType: "consumer", next },
   });
-  const accountType = useWatch({ control, name: "accountType" });
 
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
@@ -58,27 +47,6 @@ export function SignupForm({
   return (
     <form onSubmit={onSubmit} noValidate className="grid gap-5">
       {serverError && <FormMessage tone="error">{serverError}</FormMessage>}
-
-      <fieldset>
-        <legend className="field-label">Account type</legend>
-        <div className="grid gap-2">
-          {ACCOUNT_TYPES.map((type) => (
-            <label
-              key={type.value}
-              className={`flex min-h-11 cursor-pointer gap-3 rounded-sm border-[1.5px] border-ink p-3 ${
-                accountType === type.value ? "bg-stock-sky" : "bg-white"
-              }`}
-            >
-              <input type="radio" value={type.value} className="mt-1 size-4 accent-ink" {...register("accountType")} />
-              <span>
-                <span className="block font-semibold">{type.title}</span>
-                <span className="block text-sm">{type.body}</span>
-              </span>
-            </label>
-          ))}
-        </div>
-        {errors.accountType && <p className="field-error">{errors.accountType.message}</p>}
-      </fieldset>
 
       <Field id="fullName" label="Your name" error={errors.fullName?.message}>
         <input
@@ -114,8 +82,8 @@ export function SignupForm({
         By creating an account you agree to the{" "}
         <Link href="/terms" className="font-medium text-ink underline underline-offset-4">
           terms
-        </Link>
-        {accountType === "merchant" ? ", including the terms for businesses," : ""} and confirm you have read how we handle your{" "}
+        </Link>{" "}
+        and confirm you have read how we handle your{" "}
         <Link href="/privacy" className="font-medium text-ink underline underline-offset-4">
           privacy
         </Link>
@@ -130,6 +98,12 @@ export function SignupForm({
         Already have an account?{" "}
         <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-medium text-ink underline underline-offset-4">
           Sign in
+        </Link>
+      </p>
+      <p className="text-sm">
+        Running a business?{" "}
+        <Link href={JOIN_HREF} className="font-medium text-ink underline underline-offset-4">
+          Join Coupersville as a business
         </Link>
       </p>
     </form>

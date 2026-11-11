@@ -7,6 +7,7 @@ import { notifyWelcome } from "@/lib/email/notices";
 import { homePathFor, safeNextPath } from "@/lib/roles";
 import {
   loginSchema,
+  merchantSignupSchema,
   newPasswordSchema,
   resetRequestSchema,
   signupSchema,
@@ -46,7 +47,7 @@ export async function signIn(input: unknown): Promise<ActionResult> {
     if (error.code === "email_not_confirmed") {
       return { ok: false, error: "Confirm your email first. Open the link we sent you, then sign in." };
     }
-    return { ok: false, error: "That email and password do not match. Check them and try again." };
+    return { ok: false, error: "We could not sign you in with those details. Check your email address and password, then try again." };
   }
 
   const { data: profile } = await supabase
@@ -92,6 +93,62 @@ export async function signUp(input: unknown): Promise<ActionResult> {
   }
 
   return { ok: true, message: `We sent a confirmation link to ${email}. Open it to finish signing up.` };
+}
+
+// The business sign-up. The details go into the account's metadata and fill in the setup form once
+// the email is confirmed, so an unconfirmed address never creates a business.
+export async function signUpMerchant(input: unknown): Promise<ActionResult> {
+  const parsed = merchantSignupSchema.safeParse(input);
+  if (!parsed.success) return INVALID_INPUT;
+  const v = parsed.data;
+
+  const supabase = await createClient();
+  const { data: category } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("id", v.primaryCategoryId)
+    .eq("active", true)
+    .maybeSingle();
+  if (!category) return { ok: false, error: "That category is no longer available. Choose another." };
+
+  const home = "/merchant/onboarding";
+  const { data, error } = await supabase.auth.signUp({
+    email: v.email,
+    password: v.password,
+    options: {
+      emailRedirectTo: absoluteUrl(`/auth/confirm?next=${encodeURIComponent(home)}`),
+      data: {
+        full_name: `${v.firstName} ${v.lastName}`,
+        role: "merchant",
+        business_signup: {
+          name: v.businessName,
+          primary_category_id: v.primaryCategoryId,
+          website_url: v.websiteUrl,
+          contact_phone: v.phone,
+          address_line1: v.addressLine1,
+          city: v.city,
+          state: v.state,
+          postal_code: v.postalCode,
+          country: v.country,
+        },
+      },
+    },
+  });
+
+  if (error) {
+    console.error(`merchant sign up failed: ${error.status ?? "no status"} ${error.code ?? "no code"} ${error.message}`);
+    return { ok: false, error: signUpErrorMessage(error) };
+  }
+
+  if (data.session && data.user) {
+    await notifyWelcome(data.user);
+    redirect(home);
+  }
+
+  return {
+    ok: true,
+    message: `Your business account has been created. We sent a confirmation link to ${v.email}. Open it, then complete your business profile, add your locations and create your first offer.`,
+  };
 }
 
 export async function requestPasswordReset(input: unknown): Promise<ActionResult> {

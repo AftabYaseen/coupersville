@@ -78,16 +78,43 @@ export function SearchForm({
             </label>
             <select id="sort" name="sort" defaultValue={query.sort} className="field-input">
               <option value="newest">Newest offers</option>
-              <option value="ending_soon">Ending soon</option>
               <option value="nearest">Nearest</option>
+              <option value="ending_soon">Ending soon</option>
+              <option value="savings">Biggest savings</option>
             </select>
           </div>
         </div>
 
-        <label className="flex min-h-11 cursor-pointer items-center gap-3">
-          <input type="checkbox" name="ending" value="1" defaultChecked={query.ending === "1"} className="size-5 accent-ink" />
-          Ending soon: only deals ending in the next 7 days
-        </label>
+        <div>
+          <label htmlFor="business" className="field-label">
+            Business name
+          </label>
+          <input
+            id="business"
+            name="business"
+            type="search"
+            defaultValue={query.business ?? ""}
+            placeholder="Any business"
+            className="field-input"
+          />
+        </div>
+
+        <div className="grid gap-1 sm:grid-cols-2">
+          <label className="flex min-h-11 cursor-pointer items-center gap-3">
+            <input type="checkbox" name="available" value="1" defaultChecked={query.available === "1"} className="size-5 accent-ink" />
+            Available now: only deals you can use at this time
+          </label>
+          <label className="flex min-h-11 cursor-pointer items-center gap-3">
+            <input type="checkbox" name="ending" value="1" defaultChecked={query.ending === "1"} className="size-5 accent-ink" />
+            Ending soon: only deals ending in the next 7 days
+          </label>
+        </div>
+        {query.sort === "savings" && (
+          <p className="text-sm">
+            Biggest savings lists free offers first, then percentage off and dollar amount off from the largest, then fixed prices from
+            the lowest.
+          </p>
+        )}
 
         {usingLocation && <input type="hidden" name="near" value="1" />}
 

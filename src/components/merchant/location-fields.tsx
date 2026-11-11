@@ -24,6 +24,7 @@ export function LocationFields({ prefix = "" }: { prefix?: string }) {
     city: useFieldError(n("city")),
     state: useFieldError(n("state")),
     postalCode: useFieldError(n("postalCode")),
+    country: useFieldError(n("country")),
     phone: useFieldError(n("phone")),
     lat: useFieldError(n("lat")),
   };
@@ -109,7 +110,7 @@ export function LocationFields({ prefix = "" }: { prefix?: string }) {
             {...register(n("state"))}
           />
         </Field>
-        <Field id={id("postalCode")} label="Postal code" error={err.postalCode}>
+        <Field id={id("postalCode")} label="ZIP or postal code" error={err.postalCode}>
           <input
             id={id("postalCode")}
             autoComplete="postal-code"
@@ -119,6 +120,16 @@ export function LocationFields({ prefix = "" }: { prefix?: string }) {
           />
         </Field>
       </div>
+
+      <Field id={id("country")} label="Country" hint="Optional." error={err.country}>
+        <input
+          id={id("country")}
+          autoComplete="country-name"
+          className="field-input"
+          aria-invalid={Boolean(err.country)}
+          {...register(n("country"))}
+        />
+      </Field>
 
       <Field id={id("phone")} label="Store phone" hint="Optional." error={err.phone}>
         <input id={id("phone")} type="tel" className="field-input" aria-invalid={Boolean(err.phone)} {...register(n("phone"))} />

@@ -9,7 +9,9 @@ import { loginSchema, type LoginInput } from "@/lib/validation/auth";
 import { Field, FormMessage } from "@/components/field";
 import { PasswordInput } from "@/components/auth/password-input";
 
-export function LoginForm({ next, notice }: { next?: string; notice?: string }) {
+// business: the merchant sign-in wording from the copy deck. Otherwise plain wording for a shopper
+// who chose the password option in the sign-in sheet.
+export function LoginForm({ next, notice, business = true }: { next?: string; notice?: string; business?: boolean }) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const {
@@ -30,47 +32,69 @@ export function LoginForm({ next, notice }: { next?: string; notice?: string }) 
   });
 
   return (
-    <form onSubmit={onSubmit} noValidate className="grid gap-5">
-      {notice && !serverError && <FormMessage tone="error">{notice}</FormMessage>}
-      {serverError && <FormMessage tone="error">{serverError}</FormMessage>}
+    <>
+      <h1 className="wordmark text-3xl text-ink">{business ? "Welcome back." : "Sign in"}</h1>
+      <p className="mt-2 mb-6">
+        {business
+          ? "Sign in to manage your business, create offers, scan coupons and review redemption activity."
+          : "Sign in with your email and password."}
+      </p>
 
-      <Field id="email" label="Email" error={errors.email?.message}>
-        <input
-          id="email"
-          type="email"
-          autoComplete="email"
-          className="field-input"
-          aria-invalid={Boolean(errors.email)}
-          aria-describedby={errors.email ? "email-error" : undefined}
-          {...register("email")}
-        />
-      </Field>
+      <form onSubmit={onSubmit} noValidate className="grid gap-5">
+        {notice && !serverError && <FormMessage tone="error">{notice}</FormMessage>}
+        {serverError && <FormMessage tone="error">{serverError}</FormMessage>}
 
-      <Field id="password" label="Password" error={errors.password?.message}>
-        <PasswordInput
-          id="password"
-          autoComplete="current-password"
-          aria-invalid={Boolean(errors.password)}
-          aria-describedby={errors.password ? "password-error" : undefined}
-          {...register("password")}
-        />
-      </Field>
+        <Field id="email" label={business ? "Business email" : "Email"} error={errors.email?.message}>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            className="field-input"
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? "email-error" : undefined}
+            {...register("email")}
+          />
+        </Field>
 
-      <button type="submit" className="btn w-full" disabled={pending}>
-        {pending ? "Signing in" : "Sign in"}
-      </button>
+        <Field id="password" label="Password" error={errors.password?.message}>
+          <PasswordInput
+            id="password"
+            autoComplete="current-password"
+            aria-invalid={Boolean(errors.password)}
+            aria-describedby={errors.password ? "password-error" : undefined}
+            {...register("password")}
+          />
+        </Field>
 
-      <div className="grid gap-1 text-sm">
-        <Link href="/reset-password" className="min-h-11 content-center font-medium text-ink underline underline-offset-4">
-          Forgot your password?
+        <Link href="/reset-password" className="-mt-2 min-h-11 content-center justify-self-start text-sm font-medium text-ink underline underline-offset-4">
+          Forgot password?
         </Link>
-        <p>
-          New here?{" "}
-          <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="font-medium text-ink underline underline-offset-4">
-            Create an account
-          </Link>
+
+        <button type="submit" className="btn w-full" disabled={pending}>
+          {pending ? "Signing in" : "Sign in"}
+        </button>
+
+        <p className="text-sm">
+          {business ? (
+            <>
+              Not yet a Coupersville business?{" "}
+              <Link href="/business-membership" className="font-medium text-ink underline underline-offset-4">
+                View business membership
+              </Link>
+            </>
+          ) : (
+            <>
+              New here?{" "}
+              <Link
+                href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}
+                className="font-medium text-ink underline underline-offset-4"
+              >
+                Create an account
+              </Link>
+            </>
+          )}
         </p>
-      </div>
-    </form>
+      </form>
+    </>
   );
 }

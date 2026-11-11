@@ -46,7 +46,7 @@ export function ResetRequestForm() {
       </Field>
 
       <button type="submit" className="btn w-full" disabled={pending}>
-        {pending ? "Sending link" : "Send reset link"}
+        {pending ? "Sending instructions" : "Send reset instructions"}
       </button>
 
       <Link href="/login" className="min-h-11 content-center text-sm font-medium text-ink underline underline-offset-4">

@@ -90,6 +90,7 @@ async function MerchantHome() {
     { label: "Draft coupons", value: counts.draft, href: "/merchant/coupons?view=draft" },
     { label: "Ending soon", value: endingSoon, href: "/merchant/coupons?view=live" },
     { label: "Total redemptions", value: stats.total, href: null },
+    { label: "Redemptions this month", value: stats.thisMonth, href: null },
   ];
 
   return (
@@ -120,7 +121,7 @@ async function MerchantHome() {
           </Link>
         </div>
       ) : (
-        <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {summary.map((s) => (
             <div key={s.label} className="panel p-4">
               <dt className="font-medium">{s.href ? <Link href={s.href} className="text-ink underline-offset-4 hover:underline">{s.label}</Link> : s.label}</dt>
@@ -150,10 +151,11 @@ async function MerchantHome() {
         <h2 id="redemptions-heading" className="text-xl font-semibold">
           Redemptions
         </h2>
-        <dl className="mt-3 grid grid-cols-3 gap-3">
+        <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
             { label: "Today", value: stats.today },
             { label: "Last 7 days", value: stats.last7Days },
+            { label: "This month", value: stats.thisMonth },
             { label: "All time", value: stats.total },
           ].map((s) => (
             <div key={s.label} className="panel p-4">
@@ -162,7 +164,7 @@ async function MerchantHome() {
             </div>
           ))}
         </dl>
-        <p className="mt-2 text-sm">Today follows your business timezone.</p>
+        <p className="mt-2 text-sm">Today and this month follow your business timezone. The month starts on the 1st.</p>
         {byCoupon.length > 0 ? (
           <div className="panel mt-3 overflow-x-auto">
             <table className="w-full text-left">

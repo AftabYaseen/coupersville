@@ -29,6 +29,7 @@ async function NewLocationContent() {
           city: "",
           state: "",
           postalCode: "",
+          country: "",
           phone: "",
           lat: "",
           lng: "",

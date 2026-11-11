@@ -133,6 +133,7 @@ export async function saveCoupon(couponId: unknown, input: unknown, intentInput:
     discount_type: v.discountType,
     included_products: v.includedProducts,
     limits_text: v.limitsText,
+    exclusions: v.exclusions,
     min_spend: v.minSpend ?? null,
     min_qty: v.minQty ?? null,
     max_people: v.maxPeople ?? null,

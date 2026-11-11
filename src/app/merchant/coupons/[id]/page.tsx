@@ -91,6 +91,7 @@ async function EditCouponContent({ params }: { params: PageProps<"/merchant/coup
           discountValue: coupon.discount_value === null ? "" : Number(coupon.discount_value),
           includedProducts: coupon.included_products ?? "",
           limitsText: coupon.limits_text ?? "",
+          exclusions: coupon.exclusions ?? "",
           minSpend: coupon.min_spend === null ? "" : Number(coupon.min_spend),
           minQty: num(coupon.min_qty),
           maxPeople: num(coupon.max_people),

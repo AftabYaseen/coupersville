@@ -3,19 +3,19 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Globe, MapPin, Phone } from "lucide-react";
+import { ChevronRight, Globe, MapPin, Phone } from "lucide-react";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth";
 import { getCouponMeta, getEndedCoupon, getLiveCouponDetail, isSaved } from "@/lib/consumer";
-import { rulesOf } from "@/lib/coupons";
-import { describePerCustomer, describeSchedule } from "@/lib/rules";
-import { formatDay, safeTimeZone } from "@/lib/dates";
+import { goodToKnow } from "@/lib/good-to-know";
+import { storeAddress } from "@/lib/address";
 import { ACCOUNT_LINE } from "@/lib/site-copy";
 import { COUPON_IMAGE_BUCKET, LOGO_BUCKET, publicImageUrl } from "@/lib/storage";
 import { Ticket, describeOffer, formatOffer } from "@/components/ticket";
 import { TicketSkeleton } from "@/components/consumer/ticket-skeleton";
 import { SaveButton } from "@/components/consumer/save-button";
 import { RedeemButton } from "@/components/consumer/redeem-button";
+import { DirectionsLink } from "@/components/consumer/directions-link";
 import type { Enums } from "@/lib/supabase/database.types";
 
 export async function generateMetadata({ params }: PageProps<"/coupon/[id]">): Promise<Metadata> {
@@ -44,10 +44,6 @@ export default function CouponPage({ params, searchParams }: PageProps<"/coupon/
       </Suspense>
     </div>
   );
-}
-
-function money(value: number) {
-  return Number.isInteger(value) ? `$${value}` : `$${value.toFixed(2)}`;
 }
 
 // "Enjoy 20% off on all bread. Review the details below, ..." in words that fit each kind of offer.
@@ -93,8 +89,6 @@ async function CouponContent({
   const { coupon, business, shop, stores, expiringSoon, limits } = detail;
   const signedIn = Boolean(user && user.status === "active");
   const saved = signedIn && user ? await isSaved(user.id, id) : false;
-  const tz = safeTimeZone(business.timezone);
-
   const storeText = coupon.all_locations
     ? stores.length === 1
       ? stores[0].store_name
@@ -103,29 +97,50 @@ async function CouponContent({
       ? stores[0].store_name
       : `${stores.length} selected locations`;
 
-  const rules = rulesOf({ ...coupon, per_user_limit: coupon.per_user_limit ?? null });
-  const endsAt = new Date(coupon.expires_at!);
-  const endsTime = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(endsAt);
-  const validFor = [
-    coupon.min_qty && coupon.min_qty > 1 ? `At least ${coupon.min_qty} items` : null,
-    coupon.max_people ? (coupon.max_people === 1 ? "1 person" : `Up to ${coupon.max_people} people`) : null,
-  ].filter(Boolean);
-  const facts: [string, string][] = [
-    ["Minimum purchase", coupon.min_spend ? money(Number(coupon.min_spend)) : "None"],
-    ...(validFor.length ? [["Valid for", validFor.join(", ")] as [string, string]] : []),
-    ["Redemption limit", describePerCustomer(rules)],
-    ...(coupon.total_limit ? [["Total available", `${coupon.total_limit}, while they last`] as [string, string]] : []),
-    ["Available", describeSchedule(rules) ?? "Any day and time while the offer runs"],
-    ...(coupon.limits_text ? [["Additional terms", coupon.limits_text] as [string, string]] : []),
-    ["Ends", `${formatDay(endsAt, tz)} at ${endsTime}`],
-  ];
+  const facts = goodToKnow(
+    {
+      min_spend: coupon.min_spend,
+      min_qty: coupon.min_qty,
+      max_people: coupon.max_people,
+      per_user_limit: coupon.per_user_limit ?? null,
+      redeem_frequency: coupon.redeem_frequency,
+      schedule_days: coupon.schedule_days,
+      schedule_start: coupon.schedule_start,
+      schedule_end: coupon.schedule_end,
+      total_limit: coupon.total_limit,
+      limits_text: coupon.limits_text,
+      exclusions: coupon.exclusions,
+      expires_at: coupon.expires_at,
+    },
+    business.timezone,
+  );
+  // One store: Get directions sits with Get my coupon. Several: each store has its own link below.
+  const onlyStore = stores.length === 1 ? stores[0] : null;
 
   return (
     <div className="grid gap-8">
-      <Link href={`/c/${shop.slug}`} className="inline-flex min-h-11 items-center gap-2 justify-self-start font-medium text-ink">
-        <ArrowLeft aria-hidden size={18} strokeWidth={1.5} />
-        Back to {shop.name} deals
-      </Link>
+      <nav aria-label="Breadcrumb">
+        <ol className="flex flex-wrap items-center gap-x-1 text-sm">
+          <li className="flex items-center gap-1">
+            <Link href="/" className="inline-flex min-h-11 items-center font-medium text-ink underline-offset-4 hover:underline">
+              Coupersville
+            </Link>
+            <ChevronRight aria-hidden size={16} strokeWidth={1.5} className="text-ink" />
+          </li>
+          <li className="flex items-center gap-1">
+            <Link
+              href={`/c/${shop.slug}`}
+              className="inline-flex min-h-11 items-center font-medium text-ink underline-offset-4 hover:underline"
+            >
+              {shop.name}
+            </Link>
+            <ChevronRight aria-hidden size={16} strokeWidth={1.5} className="text-ink" />
+          </li>
+          <li aria-current="page" className="inline-flex min-h-11 items-center">
+            {business.name}
+          </li>
+        </ol>
+      </nav>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,26rem)_1fr] lg:items-start">
         <Ticket
@@ -146,6 +161,7 @@ async function CouponContent({
               </p>
               <RedeemButton couponId={id} signedIn={signedIn} label="Get my coupon" unavailable={detail.availability} />
               <SaveButton couponId={id} saved={saved} signedIn={signedIn} saveOnArrival={sp.save === "1"} />
+              {onlyStore && <DirectionsLink address={storeAddress(onlyStore)} variant="button" />}
               {!signedIn && <p className="text-sm">{ACCOUNT_LINE}</p>}
             </div>
           }
@@ -210,8 +226,15 @@ async function CouponContent({
                           {[s.address_line1, s.address_line2].filter(Boolean).join(", ")}
                           <br />
                           {[s.city, s.state, s.postal_code].filter(Boolean).join(", ")}
+                          {s.country && (
+                            <>
+                              <br />
+                              {s.country}
+                            </>
+                          )}
                         </p>
                         {s.phone && <p className="tabular">{s.phone}</p>}
+                        {!onlyStore && <DirectionsLink address={storeAddress(s)} />}
                       </div>
                     </li>
                   ))}

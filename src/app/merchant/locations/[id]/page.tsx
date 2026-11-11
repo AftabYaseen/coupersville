@@ -42,6 +42,7 @@ async function EditLocationContent({ params }: { params: PageProps<"/merchant/lo
           city: loc.city,
           state: loc.state ?? "",
           postalCode: loc.postal_code ?? "",
+          country: loc.country ?? "",
           phone: loc.phone ?? "",
           lat: loc.lat ?? "",
           lng: loc.lng ?? "",

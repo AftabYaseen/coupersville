@@ -221,6 +221,138 @@ async function main() {
   const signedOut = await get(`/coupon/${free.id}`);
   check("signed out, Get my coupon and Save for later are buttons that open the sign-in sheet", signedOut.body.includes("Get my coupon") && signedOut.body.includes("Save for later") && !signedOut.body.includes("Sign in to redeem"));
 
+  await phaseThree({ shop, owner, categoryId, insertCoupon, storeA, pastry: coupon });
+  await nearMe();
+}
+
+// Copy deck phase 3 (2026-11-12): breadcrumb, Get directions, Exclusions, the generate step, search
+// sort and filters, Redemptions this month, the merchant sign-in, sign-up and setup pages, builder.
+async function phaseThree({ shop, owner, categoryId, insertCoupon, storeA, pastry }) {
+  console.log("\nCopy deck phase 3");
+  const category = must(await admin.from("categories").select("slug, name").eq("id", categoryId).single(), "category name");
+  const text = (html) => html.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#x27;/g, "'").replace(/\s+/g, " ");
+
+  // Coupon page: breadcrumb, Exclusions, directions per store (two stores).
+  const page = await get(`/coupon/${pastry.id}`);
+  const crumbs = page.body.match(/<nav aria-label="Breadcrumb">.*?<\/nav>/s)?.[0] ?? "";
+  check(
+    "breadcrumb: Coupersville > category > business, the business is the current page",
+    crumbs.includes('href="/"') && crumbs.includes(`href="/c/${category.slug}"`) && text(crumbs).includes(category.name.replace(/&/g, "&")) &&
+      /aria-current="page"[^>]*>Page test shop/.test(crumbs),
+    crumbs.slice(0, 300),
+  );
+  check("Good to know says Exclusions: None stated when there are none", /Exclusions<\/dt><dd[^>]*>None stated</.test(page.body));
+  const mapsLinks = page.body.match(/href="https:\/\/www\.google\.com\/maps\/dir\/\?api=1&amp;destination=[^"]+"/g) ?? [];
+  check("two stores: a Get directions link for each, with the store address", mapsLinks.length === 2 && mapsLinks[0].includes("1%20Main%20St%2C%20Coupersville"), mapsLinks.join(" "));
+  check("nothing is loaded from a maps service until a link is tapped", !/<(script|iframe|img|link)[^>]+(google\.com\/maps|maps\.googleapis|maps\.apple\.com|mapkit)/i.test(page.body));
+  check("the generate step stays closed until Get my coupon is tapped", !page.body.includes("Ready to use this deal?"));
+
+  // One store and an exclusion: Get directions sits with Get my coupon.
+  const single = await insertCoupon({ title: "Exclusion test", discount_type: "percent", discount_value: 10, all_locations: false, exclusions: "Gift cards and alcohol" });
+  must(await admin.from("coupon_locations").insert({ coupon_id: single.id, location_id: storeA.id }), "single store");
+  const singlePage = await get(`/coupon/${single.id}`);
+  check("an exclusion is shown under Good to know", /Exclusions<\/dt><dd[^>]*>Gift cards and alcohol</.test(singlePage.body));
+  check("one store: one Get directions button", (singlePage.body.match(/google\.com\/maps\/dir/g) ?? []).length === 1 && singlePage.body.includes("Get directions"));
+
+  // Search: business name filter, Biggest savings, Available now.
+  const name = encodeURIComponent(`Page test shop ${run}`);
+  const titles = ["Free cookie", "Lunch special", "Exclusion test", "Page test pastry", "Regular coffee"];
+  const bySavings = await get(`/search?business=${name}&sort=savings`);
+  const order = titles.map((t) => bySavings.body.indexOf(`>${t}<`));
+  check("business name filter: only this business, all 5 of its deals", bySavings.body.includes("5 deals found"), text(bySavings.body).match(/\d+ deals? found/)?.[0]);
+  check("Biggest savings: free, then percent (20, 10), then dollars off, then fixed price", order.every((p, i) => p > 0 && (i === 0 || p > order[i - 1])), order.join(","));
+  const nowOnly = await get(`/search?business=${name}&available=1`);
+  check("Available now leaves out the deal that opens on another day", nowOnly.body.includes("4 deals found") && !nowOnly.body.includes(">Lunch special<"));
+  const nobody = await get(`/search?business=${encodeURIComponent(`No such shop ${run}`)}`);
+  check("a business name with no deals finds nothing", nobody.body.includes("No deals matched that search just yet."));
+  check("the sort menu offers Biggest savings, and the filters Business name and Available now", bySavings.body.includes(">Biggest savings<") && bySavings.body.includes(">Business name<") && bySavings.body.includes("Available now"));
+
+  // Dashboard: one redemption so far, this month (business timezone).
+  const dash = await get("/merchant", owner);
+  check("dashboard shows Redemptions this month", /Redemptions this month<\/dt><dd[^>]*>1</.test(dash.body), text(dash.body).match(/Redemptions this month \d+/)?.[0]);
+  const stats = must(await owner.client.rpc("business_redemption_stats", { p_business_id: shop.id }), "stats");
+  check("the stats function counts this month", stats.this_month === 1 && stats.total === 1, JSON.stringify(stats));
+
+  // Builder: Exclusions, Save draft, Preview coupon and Publish now; exclusions are saved.
+  const builder = await get("/merchant/coupons/new", owner);
+  check("builder has Exclusions, Save draft, Preview coupon and Publish now", ["Exclusions", "Save draft", "Preview coupon", "Publish now"].every((t) => builder.body.includes(t)));
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());
+  const draftInput = {
+    title: `Draft ${run}`, description: "", categoryId, discountType: "percent", discountValue: 15, includedProducts: "", limitsText: "",
+    exclusions: "Sale items", minSpend: "", minQty: "", maxPeople: "", startsOn: today, expiresOn: today, imagePath: null, allLocations: true,
+    locationIds: [], perUserMode: "once", perUserLimit: "", redeemFrequency: "none", scheduleOn: false, scheduleDays: [], scheduleStart: "",
+    scheduleEnd: "", totalLimit: "",
+  };
+  const saved = await callAction(base, owner.cookie, "src/app/merchant/coupons/actions.ts", "saveCoupon", [null, draftInput, "draft"]);
+  const draft = must(await admin.from("coupons").select("id, status, exclusions").eq("business_id", shop.id).eq("title", `Draft ${run}`).maybeSingle(), "draft");
+  check("Save draft keeps the exclusions and does not publish", Boolean(saved.redirect) && draft?.status === "draft" && draft.exclusions === "Sale items", JSON.stringify({ saved, draft }));
+  const edit = await get(`/merchant/coupons/${draft?.id}`, owner);
+  // The form fills its inputs in the browser from props sent with the page, so look for the value there.
+  check("the coupon editor loads the saved exclusions", edit.status === 200 && edit.body.includes("Sale items"));
+
+  // Sign in (deck page 18).
+  const login = await get("/login");
+  check(
+    "merchant sign in: Welcome back, Business email, Forgot password and View business membership",
+    ["Welcome back.", "Sign in to manage your business, create offers, scan coupons and review redemption activity.", "Business email", "Forgot password?", 'href="/business-membership"', "View business membership"].every((t) => login.body.includes(t)) &&
+      !login.body.includes("Remember me"),
+  );
+  const shopperLogin = await get(`/login?next=${encodeURIComponent(`/coupon/${pastry.id}`)}`);
+  check("a shopper coming back from the sign-in sheet gets plain wording", shopperLogin.body.includes(">Email<") && !shopperLogin.body.includes("Business email"));
+  const wrong = await callAction(base, null, "src/app/(auth)/actions.ts", "signIn", [{ email: owner.email, password: "not-the-password" }]);
+  check("wrong password: the deck's security error", wrong.value?.error === "We could not sign you in with those details. Check your email address and password, then try again.", JSON.stringify(wrong));
+  const reset = await get("/reset-password");
+  check("reset password: deck copy and Send reset instructions", reset.body.includes("Enter the email address connected to your business account.") && reset.body.includes("Send reset instructions"));
+
+  // Sign up (deck page 16). Only refusals are sent, so no account is made and no email goes out.
+  const join = await get("/signup?type=merchant");
+  check(
+    "merchant sign-up: the deck's sections and fields, no number of locations",
+    ["Open your door in Coupersville.", "About you", "First name", "Last name", "Business email", "Phone number", "Create password", "Confirm password", "About your business", "Business name", "Primary category", "Business website", "Street address", "City", "State or region", "ZIP or postal code", "Country", "authorized to represent this business", "Create my business account", "Already have a Coupersville business account?"].every((t) => join.body.includes(t)) &&
+      !/number of locations/i.test(join.body),
+  );
+  const mismatch = await callAction(base, null, "src/app/(auth)/actions.ts", "signUpMerchant", [{
+    firstName: "Test", lastName: "Merchant", email: `cpv-test-${run}-join@example.com`, phone: "555 123 4567", password: "a-long-password", confirm: "different",
+    businessName: "Nope", primaryCategoryId: categoryId, websiteUrl: "", addressLine1: "1 Main St", city: "Coupersville", state: "", postalCode: "", country: "United States",
+  }]);
+  const joined = (await admin.auth.admin.listUsers({ perPage: 1000 })).data.users.some((u) => u.email === `cpv-test-${run}-join@example.com`);
+  check("sign-up with passwords that do not match is refused and makes no account", mismatch.value?.ok === false && !joined, JSON.stringify(mismatch));
+  const shopperJoin = await get("/signup");
+  check("the shopper sign-up has no account type choice and links to the business sign-up", !shopperJoin.body.includes("I run a business") && shopperJoin.body.includes('href="/signup?type=merchant"'));
+
+  // Setup after confirming: the sign-up details fill in the form.
+  const fresh = await makeUser("fresh", "merchant");
+  must(
+    await admin.auth.admin.updateUserById(fresh.id, {
+      user_metadata: {
+        role: "merchant", full_name: "Test fresh",
+        business_signup: { name: `Prefill shop ${run}`, primary_category_id: categoryId, website_url: "https://example.com", contact_phone: "555 222 3333", address_line1: "9 Elm Street", city: "Coupersville", state: "IL", postal_code: "62701", country: "United States" },
+      },
+    }),
+    "metadata",
+  );
+  const freshAgain = await reSignIn(fresh);
+  const setup = await get("/merchant/onboarding", freshAgain);
+  check(
+    "setup page: Welcome to Coupersville, the sign-up details filled in, Set up my business",
+    ["Welcome to Coupersville.", `Prefill shop ${run}`, "9 Elm Street", "62701", "United States", "555 222 3333", "https://example.com", "Set up my business"].every((t) => setup.body.includes(t)),
+  );
+}
+
+// Signs a user in again so the session carries metadata changed after the first sign-in.
+async function reSignIn(who) {
+  const jar = new Map();
+  const ssr = createServerClient(url, publishable, {
+    cookies: {
+      getAll: () => [...jar].map(([name, value]) => ({ name, value })),
+      setAll: (list) => list.forEach(({ name, value }) => (value ? jar.set(name, value) : jar.delete(name))),
+    },
+  });
+  must(await ssr.auth.signInWithPassword({ email: who.email, password }), "sign in again");
+  return { ...who, cookie: [...jar].map(([n, v]) => `${n}=${v}`).join("; ") };
+}
+
+async function nearMe() {
   console.log("\nNear me: location in a short-lived cookie, never in the address");
   const near = await callAction(base, null, "src/app/search/actions.ts", "setNearMe", [{ lat: 47.60621, lng: -122.33207 }]);
   const nearCookie = (near.rawCookies ?? []).find((c) => c.startsWith("cpv_near=")) ?? "";

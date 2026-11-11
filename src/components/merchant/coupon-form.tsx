@@ -3,11 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { Eye } from "lucide-react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { saveCoupon } from "@/app/merchant/coupons/actions";
 import { couponSchema, type CouponInput, type CouponIntent } from "@/lib/validation/merchant";
 import { describeLimits } from "@/lib/coupons";
+import { goodToKnow } from "@/lib/good-to-know";
 import { DAY_PATTERN, endOfDayInZone } from "@/lib/dates";
 import { WEEKDAYS } from "@/lib/rules";
 import { COUPON_IMAGE_BUCKET, publicImageUrl } from "@/lib/storage";
@@ -15,6 +17,7 @@ import type { Enums } from "@/lib/supabase/database.types";
 import { Field, FormMessage } from "@/components/field";
 import { Ticket, formatOffer } from "@/components/ticket";
 import { ImageUpload } from "@/components/merchant/image-upload";
+import { Dialog } from "@/components/dialog";
 
 const OFFER_KINDS = [
   { value: "percent", label: "Percentage off" },
@@ -62,6 +65,8 @@ export function CouponForm(props: Props) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [pendingIntent, setPendingIntent] = useState<CouponIntent | null>(null);
   const [pending, startTransition] = useTransition();
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const form = useForm({ resolver: zodResolver(couponSchema), defaultValues: defaults });
   const {
@@ -120,6 +125,53 @@ export function CouponForm(props: Props) {
   }
 
   const err = (name: keyof typeof errors) => errors[name]?.message as string | undefined;
+
+  // Publish now checks the form first, then asks before anything goes live.
+  async function askToPublish() {
+    setServerError(null);
+    const valid = await form.trigger();
+    if (valid) setConfirmOpen(true);
+    else setServerError("Please complete the highlighted fields before publishing this coupon.");
+  }
+
+  const perUserLimit =
+    values.perUserMode === "once" ? 1 : values.perUserMode === "limited" ? toNumber(values.perUserLimit) : null;
+  const ruleValues = {
+    per_user_limit: perUserLimit,
+    redeem_frequency: values.perUserMode === "once" || values.redeemFrequency === "none" ? null : (values.redeemFrequency ?? null),
+    schedule_days:
+      values.scheduleOn && values.scheduleDays && values.scheduleDays.length < 7 ? (values.scheduleDays as number[]) : null,
+    schedule_start: values.scheduleOn && values.scheduleStart && values.scheduleEnd ? text(values.scheduleStart) : null,
+    schedule_end: values.scheduleOn && values.scheduleStart && values.scheduleEnd ? text(values.scheduleEnd) : null,
+  };
+
+  const ticket = (
+    <Ticket
+      tint={category?.tint ?? "sky"}
+      merchant={businessName}
+      offer={formatOffer(values.discountType ?? "percent", values.discountType === "free" ? null : discountValue)}
+      title={values.title || "Your coupon title"}
+      description={text(values.description) || undefined}
+      expiresAt={previewExpires}
+      timeZone={timeZone}
+      limits={
+        describeLimits({
+          min_spend: toNumber(values.minSpend),
+          min_qty: toNumber(values.minQty),
+          max_people: toNumber(values.maxPeople),
+          ...ruleValues,
+          limits_text: text(values.limitsText) || null,
+        }) || undefined
+      }
+      store={storeText}
+    >
+      {values.imagePath && (
+        <div className="relative mt-4 aspect-[16/9] overflow-hidden rounded-sm border-[1.5px] border-ink">
+          <Image src={publicImageUrl(COUPON_IMAGE_BUCKET, values.imagePath)} alt="" fill sizes="300px" className="object-cover" />
+        </div>
+      )}
+    </Ticket>
+  );
 
   return (
     <FormProvider {...form}>
@@ -248,10 +300,18 @@ export function CouponForm(props: Props) {
             <Field
               id="limitsText"
               label="Additional terms"
-              hint="Optional. Add exclusions and other important conditions. Set eligible days and times under How often."
+              hint="Optional. Other important conditions. Set eligible days and times under How often."
               error={err("limitsText")}
             >
               <input id="limitsText" className="field-input" {...register("limitsText")} />
+            </Field>
+            <Field
+              id="exclusions"
+              label="Exclusions"
+              hint="Optional. What the offer does not cover, for example alcohol, gift cards or sale items. Shoppers see None stated when this is empty."
+              error={err("exclusions")}
+            >
+              <input id="exclusions" className="field-input" {...register("exclusions")} />
             </Field>
           </section>
 
@@ -403,22 +463,27 @@ export function CouponForm(props: Props) {
             <div className="flex flex-wrap gap-3">
               {isDraft ? (
                 <>
-                  <button
-                    type="button"
-                    className="btn"
-                    disabled={pending || !planActive}
-                    onClick={() => void submit("publish")()}
-                  >
-                    {pendingIntent === "publish" ? "Publishing" : "Publish now"}
-                  </button>
                   <button type="submit" className="btn btn-secondary" disabled={pending}>
                     {pendingIntent === "draft" ? "Saving" : "Save draft"}
                   </button>
+                  <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => setPreviewOpen(true)}>
+                    <Eye aria-hidden size={18} strokeWidth={1.5} />
+                    Preview coupon
+                  </button>
+                  <button type="button" className="btn" disabled={pending || !planActive} onClick={() => void askToPublish()}>
+                    {pendingIntent === "publish" ? "Publishing" : "Publish now"}
+                  </button>
                 </>
               ) : (
-                <button type="submit" className="btn" disabled={pending}>
-                  {pendingIntent === "save" ? "Saving" : "Save changes"}
-                </button>
+                <>
+                  <button type="submit" className="btn" disabled={pending}>
+                    {pendingIntent === "save" ? "Saving" : "Save changes"}
+                  </button>
+                  <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => setPreviewOpen(true)}>
+                    <Eye aria-hidden size={18} strokeWidth={1.5} />
+                    Preview coupon
+                  </button>
+                </>
               )}
               <Link href="/merchant/coupons" className="btn btn-secondary">
                 Cancel
@@ -429,47 +494,75 @@ export function CouponForm(props: Props) {
 
         <aside className="lg:sticky lg:top-6" aria-label="Preview">
           <p className="mb-3 font-medium">Preview</p>
-          <Ticket
-            tint={category?.tint ?? "sky"}
-            merchant={businessName}
-            offer={formatOffer(values.discountType ?? "percent", values.discountType === "free" ? null : discountValue)}
-            title={values.title || "Your coupon title"}
-            description={text(values.description) || undefined}
-            expiresAt={previewExpires}
-            timeZone={timeZone}
-            limits={
-              describeLimits({
-                min_spend: toNumber(values.minSpend),
-                min_qty: toNumber(values.minQty),
-                max_people: toNumber(values.maxPeople),
-                per_user_limit:
-                  values.perUserMode === "once" ? 1 : values.perUserMode === "limited" ? toNumber(values.perUserLimit) : null,
-                redeem_frequency: values.perUserMode === "once" || values.redeemFrequency === "none" ? null : values.redeemFrequency,
-                schedule_days:
-                  values.scheduleOn && values.scheduleDays && values.scheduleDays.length < 7
-                    ? (values.scheduleDays as number[])
-                    : null,
-                schedule_start: values.scheduleOn && values.scheduleStart && values.scheduleEnd ? text(values.scheduleStart) : null,
-                schedule_end: values.scheduleOn && values.scheduleStart && values.scheduleEnd ? text(values.scheduleEnd) : null,
-                limits_text: text(values.limitsText) || null,
-              }) || undefined
-            }
-            store={storeText}
-          >
-            {values.imagePath && (
-              <div className="relative mt-4 aspect-[16/9] overflow-hidden rounded-sm border-[1.5px] border-ink">
-                <Image
-                  src={publicImageUrl(COUPON_IMAGE_BUCKET, values.imagePath)}
-                  alt=""
-                  fill
-                  sizes="300px"
-                  className="object-cover"
-                />
-              </div>
-            )}
-          </Ticket>
+          {ticket}
         </aside>
       </div>
+
+      {previewOpen && (
+        <Dialog title="Preview coupon" wide onClose={() => setPreviewOpen(false)}>
+          <p className="text-sm">This is how shoppers will see your coupon. Nothing is saved or published from here.</p>
+          <div className="grid gap-6 md:grid-cols-[minmax(0,20rem)_1fr] md:items-start">
+            {ticket}
+            <section aria-label="Good to know">
+              {values.includedProducts && (
+                <p className="mb-3">
+                  <span className="font-semibold">Includes:</span> {text(values.includedProducts)}
+                </p>
+              )}
+              <h3 className="text-lg font-semibold">Good to know</h3>
+              <dl className="mt-2 grid gap-2">
+                {goodToKnow(
+                  {
+                    min_spend: toNumber(values.minSpend),
+                    min_qty: toNumber(values.minQty),
+                    max_people: toNumber(values.maxPeople),
+                    ...ruleValues,
+                    total_limit: toNumber(values.totalLimit),
+                    limits_text: text(values.limitsText) || null,
+                    exclusions: text(values.exclusions) || null,
+                    expires_at: previewExpires ?? null,
+                  },
+                  timeZone,
+                ).map(([label, value]) => (
+                  <div key={label} className="grid gap-x-3 sm:grid-cols-[9rem_1fr]">
+                    <dt className="font-semibold">{label}</dt>
+                    <dd className="tabular">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          </div>
+          <button type="button" className="btn btn-secondary justify-self-start" data-autofocus onClick={() => setPreviewOpen(false)}>
+            Keep editing
+          </button>
+        </Dialog>
+      )}
+
+      {confirmOpen && (
+        <Dialog title="Publish this coupon now?" busy={pending} onClose={() => setConfirmOpen(false)}>
+          <p>
+            It will become visible in Coupersville immediately and may be redeemed until it is paused, expires or your membership
+            ends.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              className="btn"
+              data-autofocus
+              disabled={pending}
+              onClick={() => {
+                setConfirmOpen(false);
+                void submit("publish")();
+              }}
+            >
+              Publish coupon
+            </button>
+            <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => setConfirmOpen(false)}>
+              Keep editing
+            </button>
+          </div>
+        </Dialog>
+      )}
     </FormProvider>
   );
 }

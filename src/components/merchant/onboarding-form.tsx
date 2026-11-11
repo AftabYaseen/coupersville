@@ -14,10 +14,12 @@ export function OnboardingForm({
   categories,
   timezones,
   defaults,
+  locationDefaults,
 }: {
   categories: CategoryOption[];
   timezones: string[];
   defaults: OnboardingInput["business"];
+  locationDefaults: OnboardingInput["location"];
 }) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -25,18 +27,7 @@ export function OnboardingForm({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
       business: defaults,
-      location: {
-        storeName: "",
-        storeNumber: "",
-        addressLine1: "",
-        addressLine2: "",
-        city: "",
-        state: "",
-        postalCode: "",
-        phone: "",
-        lat: "",
-        lng: "",
-      },
+      location: locationDefaults,
     },
   });
 
@@ -74,7 +65,7 @@ export function OnboardingForm({
         </section>
 
         <button type="submit" className="btn w-full sm:w-auto sm:justify-self-start" disabled={pending}>
-          {pending ? "Opening your shop" : "Open my shop"}
+          {pending ? "Setting up your business" : "Set up my business"}
         </button>
       </form>
     </FormProvider>

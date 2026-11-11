@@ -21,7 +21,7 @@ async function LocationsContent() {
   const { business, supabase } = await requireManagedBusiness("/merchant/locations");
   const { data: locations } = await supabase
     .from("locations")
-    .select("id, store_name, store_number, address_line1, address_line2, city, state, postal_code, active, lat, lng")
+    .select("id, store_name, store_number, address_line1, address_line2, city, state, postal_code, country, active, lat, lng")
     .eq("business_id", business.id)
     .order("active", { ascending: false })
     .order("store_name");
@@ -60,7 +60,7 @@ async function LocationsContent() {
                   <p className="mt-1">
                     {[loc.address_line1, loc.address_line2].filter(Boolean).join(", ")}
                     <br />
-                    {[loc.city, loc.state, loc.postal_code].filter(Boolean).join(", ")}
+                    {[loc.city, loc.state, loc.postal_code, loc.country].filter(Boolean).join(", ")}
                   </p>
                   <p className="mt-2 flex items-center gap-1.5 text-sm">
                     <MapPin aria-hidden size={16} strokeWidth={1.5} className="text-ink" />

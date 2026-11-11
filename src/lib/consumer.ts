@@ -5,7 +5,7 @@ import { describeLimits, rulesOf } from "@/lib/coupons";
 import { formatWhen, isWithinSchedule, nextOpening } from "@/lib/rules";
 import { EXPIRING_SOON_MS } from "@/lib/dates";
 import type { Enums } from "@/lib/supabase/database.types";
-import { NEAR_ME_RADIUS_M, PAGE_SIZE, type SearchQuery } from "@/lib/validation/search";
+import { NEAR_ME_RADIUS_M, PAGE_SIZE, type SearchQuery, type Sort } from "@/lib/validation/search";
 import type { NearLocation } from "@/lib/near-me";
 
 export type LiveCoupon = {
@@ -31,7 +31,9 @@ type SearchOptions = {
   category?: string;
   discountType?: Enums<"discount_type">;
   endingWithinDays?: number;
-  sort?: "newest" | "ending_soon" | "nearest";
+  sort?: Sort;
+  business?: string;
+  availableNow?: boolean;
   lat?: number;
   lng?: number;
   radiusM?: number;
@@ -63,6 +65,8 @@ export async function searchLiveCoupons(options: SearchOptions): Promise<{ coupo
     p_featured_only: options.featuredOnly ?? false,
     p_limit: options.limit ?? PAGE_SIZE,
     p_offset: options.offset ?? 0,
+    p_business: options.business,
+    p_available_now: options.availableNow ?? false,
   });
   if (error) throw new Error("Could not load coupons");
 
@@ -117,6 +121,8 @@ export function searchOptionsFrom(q: SearchQuery, near: NearLocation | null): Se
     category: q.category,
     discountType: q.type,
     endingWithinDays: q.ending ? 7 : undefined,
+    business: q.business,
+    availableNow: q.available === "1",
     sort,
     lat: usingLocation ? near?.lat : undefined,
     lng: usingLocation ? near?.lng : undefined,
@@ -141,7 +147,7 @@ export async function getLiveCouponDetail(id: string) {
 
   let storeQuery = supabase
     .from("locations")
-    .select("id, store_name, store_number, address_line1, address_line2, city, state, postal_code, phone")
+    .select("id, store_name, store_number, address_line1, address_line2, city, state, postal_code, country, phone")
     .eq("business_id", coupon.business_id)
     .eq("active", true)
     .order("store_name");

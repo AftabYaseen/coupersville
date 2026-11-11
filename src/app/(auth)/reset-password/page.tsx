@@ -31,7 +31,9 @@ async function ResetPasswordContent() {
   return (
     <>
       <h1 className="wordmark text-3xl text-ink">Reset your password</h1>
-      <p className="mt-2 mb-6">Enter your email and we will send you a link to choose a new one.</p>
+      <p className="mt-2 mb-6">
+        Enter the email address connected to your business account. We will send instructions for creating a new password.
+      </p>
       <ResetRequestForm />
     </>
   );

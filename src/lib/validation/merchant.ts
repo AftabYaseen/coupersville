@@ -36,7 +36,7 @@ const optionalEmail = z.preprocess(
     .transform((v) => (v === "" ? null : v)),
 );
 
-const optionalWebsite = z.preprocess(
+export const optionalWebsite = z.preprocess(
   nullToEmpty,
   z
     .string()
@@ -68,6 +68,7 @@ export const locationSchema = z
     city: requiredText(100, "Enter the city."),
     state: optionalText(100),
     postalCode: optionalText(20),
+    country: optionalText(60),
     phone: optionalText(30),
     lat: optionalNumber(z.number().min(-90).max(90)),
     lng: optionalNumber(z.number().min(-180).max(180)),
@@ -98,6 +99,7 @@ export const couponSchema = z
     ),
     includedProducts: optionalText(500),
     limitsText: optionalText(500),
+    exclusions: optionalText(500),
     minSpend: optionalNumber(z.number().min(0, { error: "Use 0 or more." }).max(1000000)),
     minQty: optionalNumber(z.number().int({ error: "Use a whole number." }).min(1, { error: "Use 1 or more." })),
     maxPeople: optionalNumber(z.number().int({ error: "Use a whole number." }).min(1, { error: "Use 1 or more." })),

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const SORTS = ["newest", "ending_soon", "nearest"] as const;
+export const SORTS = ["newest", "ending_soon", "nearest", "savings"] as const;
 export type Sort = (typeof SORTS)[number];
 
 const first = (v: unknown) => (Array.isArray(v) ? v[0] : v);
@@ -14,6 +14,10 @@ export const searchParamsSchema = z.object({
   category: z.preprocess(blank, z.string().regex(/^[a-z0-9-]{1,60}$/).optional()).catch(undefined),
   type: z.preprocess(blank, z.enum(["percent", "amount", "fixed_price", "free"]).optional()).catch(undefined),
   ending: z.preprocess(first, z.literal("1").optional()).catch(undefined),
+  // Business name contains this text.
+  business: z.preprocess(blank, z.string().trim().max(100).optional()).catch(undefined),
+  // Only deals inside their days and hours right now.
+  available: z.preprocess(first, z.literal("1").optional()).catch(undefined),
   sort: z.preprocess(blank, z.enum(SORTS).default("newest")).catch("newest"),
   // Near me: the location itself is in the cpv_near cookie, never in the address.
   near: z.preprocess(first, z.literal("1").optional()).catch(undefined),

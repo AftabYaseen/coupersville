@@ -251,6 +251,7 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
       offer.min_qty && offer.min_qty > 1 ? `Buy at least ${offer.min_qty}` : null,
       offer.max_people ? (offer.max_people === 1 ? "For 1 person" : `Up to ${offer.max_people} people`) : null,
       offer.limits_text,
+      offer.exclusions ? `Excludes: ${offer.exclusions}` : null,
     ].filter((c): c is string => Boolean(c));
 
     return (

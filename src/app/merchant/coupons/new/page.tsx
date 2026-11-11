@@ -44,6 +44,7 @@ async function NewCouponContent() {
           discountValue: "",
           includedProducts: "",
           limitsText: "",
+          exclusions: "",
           minSpend: "",
           minQty: "",
           maxPeople: "",

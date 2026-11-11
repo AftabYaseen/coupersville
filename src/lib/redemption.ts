@@ -118,6 +118,7 @@ export const offerSchema = z.object({
   discount_value: money.nullable(),
   included_products: z.string().nullable(),
   limits_text: z.string().nullable(),
+  exclusions: z.string().nullable().optional(),
   min_spend: money.nullable(),
   min_qty: z.number().nullable(),
   max_people: z.number().nullable(),

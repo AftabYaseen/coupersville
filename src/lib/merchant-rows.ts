@@ -26,6 +26,7 @@ export function locationRow(v: LocationValues) {
     city: v.city,
     state: v.state,
     postal_code: v.postalCode,
+    country: v.country,
     phone: v.phone,
     geo: v.lat !== undefined && v.lng !== undefined ? `SRID=4326;POINT(${v.lng} ${v.lat})` : null,
   } satisfies Partial<TablesInsert<"locations">>;
