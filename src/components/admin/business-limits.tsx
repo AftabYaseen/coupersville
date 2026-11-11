@@ -9,12 +9,14 @@ type Props = {
   businessId: string;
   maxLocations: string;
   campaignsPerMonth: string;
-  // A current paid plan cannot be replaced, and an Enterprise plan already has its grant.
+  // A current paid plan cannot be replaced, and an enterprise plan already has its grant.
   canGrantEnterprise: boolean;
+  // The enterprise offer's name from the offers table (Build Your Route).
+  enterpriseName: string;
   today: string;
 };
 
-export function BusinessLimits({ businessId, maxLocations, campaignsPerMonth, canGrantEnterprise, today }: Props) {
+export function BusinessLimits({ businessId, maxLocations, campaignsPerMonth, canGrantEnterprise, enterpriseName, today }: Props) {
   const [locations, setLocations] = useState(maxLocations);
   const [campaigns, setCampaigns] = useState(campaignsPerMonth);
   const [endsOn, setEndsOn] = useState("");
@@ -46,11 +48,11 @@ export function BusinessLimits({ businessId, maxLocations, campaignsPerMonth, ca
       </button>
       {canGrantEnterprise && (
         <div className="grid gap-3 border-t-[1.5px] border-ink pt-3">
-          <Field id={id("ends")} label="Enterprise until" hint="Uses the two limits above. Leave blank for no end date.">
+          <Field id={id("ends")} label={`${enterpriseName} until`} hint="Uses the two limits above. Leave blank for no end date.">
             <input id={id("ends")} type="date" min={today} className="field-input tabular" value={endsOn} onChange={(e) => setEndsOn(e.target.value)} />
           </Field>
           <button type="button" className="btn justify-self-start" disabled={pending} onClick={() => run(() => grantEnterprisePlan(businessId, { ...values, endsOn }))}>
-            Grant Enterprise (Custom)
+            Grant {enterpriseName}
           </button>
         </div>
       )}

@@ -507,14 +507,14 @@ async function main() {
     ["/admin/subscriptions", `No plan shop ${run}`],
     ["/admin/categories", "Main Street order"],
     ["/admin/settings", "When a plan ends"],
-    ["/admin/offers", "Founding Merchant"],
+    ["/admin/offers", "Pioneer Circle"],
   ]) {
     const r = await page(path, boss);
     check(`admin ${path}`, r.status === 200 && r.body.includes(text), `${r.status} ${r.location}`);
   }
   const settingsPage = await page("/admin/settings", boss);
   check("settings page leaves out the settings not built yet", !/Redemption method|Coupon moderation|Shopper sign-in|Region restriction|One annual plan/.test(settingsPage.body));
-  check("settings page has the Founders settings and the publishing date", /Founding Merchant qualifies/.test(settingsPage.body) && /Publishing opens on/.test(settingsPage.body));
+  check("settings page has the Founders settings and the publishing date", /Pioneer Circle merchant qualifies/.test(settingsPage.body) && /Publishing opens on/.test(settingsPage.body));
   const merchantAdmin = await page("/admin/merchants", owner);
   check("merchant is sent away from /admin", merchantAdmin.status === 307 && merchantAdmin.location.includes("/merchant"), merchantAdmin.location);
 

@@ -8,6 +8,7 @@ import { endOfDayInZone, formatDay } from "@/lib/dates";
 import { businessLimitsSchema, enterpriseGrantSchema, planEndSchema } from "@/lib/validation/admin";
 import { planIsCurrent } from "@/lib/billing";
 import { ENTERPRISE_OFFER } from "@/lib/offers";
+import { offerNames } from "@/lib/offer-names";
 import type { ActionResult } from "@/lib/validation/auth";
 
 const NOT_FOUND: ActionResult = { ok: false, error: "That business could not be found." };
@@ -53,7 +54,7 @@ export async function setComplimentaryPlan(businessId: unknown, endsOnInput: unk
     current_period_end: endsAt?.toISOString() ?? null,
     cancel_at_period_end: false,
     past_due_since: null,
-    // A new grant is not a Founding seat. Changing the end date of a running plan keeps its offer.
+    // A new grant is not a founding seat. Changing the end date of a running plan keeps its offer.
     ...(planIsCurrent(plan) ? {} : { offer_code: null }),
   };
   const { error } = plan
@@ -71,7 +72,7 @@ export async function setComplimentaryPlan(businessId: unknown, endsOnInput: unk
   return { ok: true, message: `${business.name} has a complimentary plan ${until}.` };
 }
 
-// Grants Enterprise (Custom): a complimentary plan on the enterprise offer, with its own limits.
+// Grants the enterprise offer (Build Your Route): a complimentary plan with its own limits.
 export async function grantEnterprisePlan(businessId: unknown, input: unknown): Promise<ActionResult> {
   const id = z.uuid().safeParse(businessId);
   const parsed = enterpriseGrantSchema.safeParse(input);
@@ -115,7 +116,7 @@ export async function grantEnterprisePlan(businessId: unknown, input: unknown): 
   }
 
   refresh();
-  return { ok: true, message: `${business.name} is on Enterprise (Custom).` };
+  return { ok: true, message: `${business.name} is on ${(await offerNames()).enterprise}.` };
 }
 
 // Limits for one business, over its plan's. Both blank removes the override.

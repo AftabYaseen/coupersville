@@ -8,15 +8,17 @@ import { updateSettings } from "@/app/admin/settings/actions";
 import { SETTING_OPTIONS, settingsSchema, type SettingsInput } from "@/lib/validation/admin";
 import { Field, FormMessage } from "@/components/field";
 
+// {founding} and {early} are the offer names from the offers table (Pioneer Circle, Early Bird).
 const FIELDS: { key: keyof typeof SETTING_OPTIONS; label: string }[] = [
   { key: "subscription_expiry", label: "When a plan ends" },
-  { key: "founders_rule", label: "A Founding Merchant qualifies for a free seat when" },
-  { key: "founders_full", label: "If Founding seats fill before the window ends" },
+  { key: "founders_rule", label: "A {founding} merchant qualifies for a free seat when" },
+  { key: "founders_full", label: "If {founding} seats fill before the window ends" },
   { key: "payments_open", label: "Payments" },
   { key: "renewals_enabled", label: "Renewals" },
 ];
 
-export function SettingsForm({ defaults }: { defaults: SettingsInput }) {
+export function SettingsForm({ defaults, names }: { defaults: SettingsInput; names: { founding: string; early: string } }) {
+  const named = (text: string) => text.replaceAll("{founding}", names.founding).replaceAll("{early}", names.early);
   const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const {
@@ -42,13 +44,13 @@ export function SettingsForm({ defaults }: { defaults: SettingsInput }) {
         <Field
           key={f.key}
           id={`setting-${f.key}`}
-          label={f.label}
+          label={named(f.label)}
           hint={SETTING_OPTIONS[f.key].length === 1 ? "This is the only option for now." : undefined}
         >
           <select id={`setting-${f.key}`} className="field-input" {...register(f.key)}>
             {SETTING_OPTIONS[f.key].map((o) => (
               <option key={o.value} value={o.value}>
-                {o.label}
+                {named(o.label)}
               </option>
             ))}
           </select>

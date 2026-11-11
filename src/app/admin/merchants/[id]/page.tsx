@@ -8,6 +8,7 @@ import { requireAdminPage } from "@/lib/admin";
 import { subscriptionIsActive } from "@/lib/merchant";
 import { planState, planSummary } from "@/lib/billing";
 import { ENTERPRISE_OFFER, FOUNDING_OFFER } from "@/lib/offers";
+import { offerNames } from "@/lib/offer-names";
 import { campaignsText, loadUsage, locationsText } from "@/lib/limits";
 import { BusinessLimits } from "@/components/admin/business-limits";
 import { COUPON_VIEW_STATUS, couponView } from "@/lib/coupons";
@@ -98,14 +99,15 @@ async function BusinessContent({
   const currentEnd = plan?.current_period_end ? dayInZone(plan.current_period_end, tz) : null;
   const owner = (team ?? []).find((m) => m.role === "owner");
   const deletion = await businessDeletionPlan(business.id).catch(() => null);
+  const names = await offerNames();
   const deletionLines =
     deletion?.mode === "delete"
       ? [
           "Everything is deleted: the business, its stores, coupons, team, staff invites, plan and images.",
-          "It has no payments, redemptions or Founding seat, so there is nothing to keep.",
+          `It has no payments, redemptions or ${names.founding} seat, so there is nothing to keep.`,
         ]
       : [
-          `It has ${deletion?.reasons.join(", ") ?? "records we may need"}, so the business name, store addresses, plan and payment records, any Founding seat, and the coupons that were redeemed are kept, so redemption counts stay right.`,
+          `It has ${deletion?.reasons.join(", ") ?? "records we may need"}, so the business name, store addresses, plan and payment records, any ${names.founding} seat, and the coupons that were redeemed are kept, so redemption counts stay right.`,
           "Removed: the description, contact email, phone and website, store phone numbers, images, coupons nobody redeemed, the team and staff invites.",
           "It stays suspended with no owner, hidden from shoppers, and its plan does not renew.",
         ];
@@ -193,7 +195,7 @@ async function BusinessContent({
         <p>
           {!plan
             ? "No plan. Coupons cannot go live until the business has one."
-            : `${plan.offer_code === ENTERPRISE_OFFER ? "Enterprise (Custom). " : ""}${plan.offer_code === FOUNDING_OFFER && plan.source === "complimentary" ? "Founding Merchant, free seat. " : ""}${planSummary(planState(plan, now), tz)}.${planActive ? "" : " Coupons are hidden from shoppers."}`}
+            : `${plan.offer_code === ENTERPRISE_OFFER ? `${names.enterprise}. ` : ""}${plan.offer_code === FOUNDING_OFFER && plan.source === "complimentary" ? `${names.founding}, free seat. ` : ""}${planSummary(planState(plan, now), tz)}.${planActive ? "" : " Coupons are hidden from shoppers."}`}
         </p>
         <PlanControls
           businessId={business.id}
@@ -219,6 +221,7 @@ async function BusinessContent({
           maxLocations={override?.max_locations?.toString() ?? ""}
           campaignsPerMonth={override?.campaigns_per_month?.toString() ?? ""}
           canGrantEnterprise={!(plan && plan.source !== "complimentary" && planActive) && !(planActive && plan?.offer_code === ENTERPRISE_OFFER)}
+          enterpriseName={names.enterprise}
           today={today}
         />
       </section>
@@ -231,7 +234,7 @@ async function BusinessContent({
           <p>
             Buys the $1.00 admin payment test for this business on Authorize.net&apos;s payment page
             {anetIsProduction() ? ", with a real card and real money." : " (sandbox: use a test card, nothing is charged)."} Merchants
-            never see this offer, and it claims no Founding seat. Use it on a test business only.
+            never see this offer, and it claims no {names.founding} seat. Use it on a test business only.
             {settings?.payments_open ? " Payments are open to merchants." : " Payments are closed to merchants."}
           </p>
           {checkoutResult && (

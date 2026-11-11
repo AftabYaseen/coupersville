@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ENTERPRISE_OFFER, FOUNDING_OFFER, OFFER_TIME_ZONE } from "@/lib/offers";
+import { namesFrom, type OfferNames } from "@/lib/offer-names";
 import type { Tables } from "@/lib/supabase/database.types";
 
 // The public Business membership page. Every price, date, seat and limit comes from the offers
@@ -50,7 +51,7 @@ function details(o: Offer, renewsInto: Offer | undefined, plus: Offer | undefine
     case "early_access":
       parts.push(window);
       parts.push(
-        `Promotional pricing applies to the initial 12-month term; renewal converts to the then-current ${renewsInto?.name ?? "General"} rate unless otherwise specified.`,
+        `Promotional pricing applies to the initial 12-month term; renewal converts to the then-current ${renewsInto?.name ?? "standard"} rate unless otherwise specified.`,
       );
       break;
     case "general":
@@ -80,9 +81,15 @@ function details(o: Offer, renewsInto: Offer | undefined, plus: Offer | undefine
   return parts.filter(Boolean).join(" ");
 }
 
-export async function membershipLevels(): Promise<{ levels: MembershipLevel[]; campaignsEach: number | null; plusLocations: number | null }> {
+export async function membershipLevels(): Promise<{
+  levels: MembershipLevel[];
+  campaignsEach: number | null;
+  plusLocations: number | null;
+  names: OfferNames;
+}> {
   const { data } = await createAdminClient().from("offers").select("*").order("sort_order");
   const offers = data ?? [];
+  const names = namesFrom(offers);
   const now = Date.now();
   const byCode = new Map(offers.map((o) => [o.code, o]));
   const plus = byCode.get("merchant_plus");
@@ -102,5 +109,6 @@ export async function membershipLevels(): Promise<{ levels: MembershipLevel[]; c
     levels,
     campaignsEach: counts.size === 1 ? ([...counts][0] ?? null) : null,
     plusLocations: plus?.max_locations ?? null,
+    names,
   };
 }

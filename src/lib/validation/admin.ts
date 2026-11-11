@@ -60,9 +60,10 @@ export const SETTING_OPTIONS = {
     { value: "profile_and_first_coupon", label: "Profile complete and first coupon published" },
     { value: "profile_complete", label: "Profile complete" },
   ],
+  // {early} is replaced with the early_access offer's name from the offers table (Early Bird).
   founders_full: [
-    { value: "early_access", label: "Early Access applies straight away" },
-    { value: "wait", label: "No offer until the Early Access window opens" },
+    { value: "early_access", label: "{early} applies straight away" },
+    { value: "wait", label: "No offer until the {early} window opens" },
   ],
   payments_open: [
     { value: "closed", label: "Closed: merchants see no payment buttons; admins can test checkout" },

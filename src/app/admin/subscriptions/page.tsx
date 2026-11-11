@@ -5,6 +5,7 @@ import { requireAdminPage } from "@/lib/admin";
 import { dayInZone, dayOneYearOn } from "@/lib/dates";
 import { planState, planSummary } from "@/lib/billing";
 import { FOUNDING_OFFER } from "@/lib/offers";
+import { offerNames } from "@/lib/offer-names";
 import { PageLoading } from "@/components/page-loading";
 import { PlanBadge, StatusBadge } from "@/components/admin/badges";
 import { PlanControls } from "@/components/admin/plan-controls";
@@ -47,6 +48,7 @@ async function SubscriptionsContent({ searchParams }: { searchParams: PageProps<
       .select("business_id, source, status, current_period_end, cancel_at_period_end, past_due_since, offer_code"),
   ]);
   const planBy = new Map((plans ?? []).map((p) => [p.business_id, p]));
+  const names = await offerNames();
   const now = clockNow();
   const rows = (data ?? []).filter((b) => b.status !== "draft");
   const endsSoon = (b: (typeof rows)[number]) =>
@@ -64,7 +66,7 @@ async function SubscriptionsContent({ searchParams }: { searchParams: PageProps<
       <h1 className="wordmark text-4xl text-ink">Subscriptions</h1>
       <p className="mt-2">
         Grant, extend or revoke complimentary plans. Paid plans are read-only here. Businesses still setting up are not listed.
-        Founding Merchant seats are on the <Link href="/admin/offers" className="font-medium text-ink underline underline-offset-4">Offers</Link> page.
+        {names.founding} seats are on the <Link href="/admin/offers" className="font-medium text-ink underline underline-offset-4">Offers</Link> page.
       </p>
 
       <nav aria-label="Plan filter" className="mt-6 overflow-x-auto">
@@ -106,7 +108,7 @@ async function SubscriptionsContent({ searchParams }: { searchParams: PageProps<
                     <PlanBadge source={b.plan_source} active={b.plan_active} />
                   </p>
                   <p className={`mt-2 text-sm tabular ${endsSoon(b) || plan.kind === "past_due" ? "font-semibold text-signal" : ""}`}>
-                    {foundingSeat ? "Founding Merchant, free seat. " : ""}
+                    {foundingSeat ? `${names.founding}, free seat. ` : ""}
                     {planSummary(plan, b.timezone)}
                   </p>
                   <p className="text-sm break-all">{b.owner_email ?? "Owner deleted their account"}</p>

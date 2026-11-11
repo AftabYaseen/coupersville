@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { absoluteUrl } from "@/lib/site";
 import { safeTimeZone } from "@/lib/dates";
 import { FOUNDING_OFFER, formatPrice, freeSeatsLeft, type Offer } from "@/lib/offers";
+import { namesFrom, offerNames } from "@/lib/offer-names";
 import {
   AnetError,
   captureAuthorization,
@@ -373,7 +374,8 @@ export async function refreshCard(businessId: string): Promise<{ last4: string |
       .maybeSingle();
     const contact = consent ? await businessContact(businessId) : null;
     if (consent && contact) {
-      await sendOnce("renewal_terms", consent.id, contact.email, renewalTermsEmail({ businessName: contact.name, terms: consent.wording, last4: card.last4 }));
+      const freeName = (await offerNames()).founding;
+      await sendOnce("renewal_terms", consent.id, contact.email, renewalTermsEmail({ businessName: contact.name, terms: consent.wording, last4: card.last4, freeName }));
     }
   }
   return { last4: card?.last4 ?? null };
@@ -466,7 +468,7 @@ async function renewOne(plan: Plan, offers: Map<string, Tables<"offers">>, now: 
   const admin = createAdminClient();
   const periodEnd = plan.current_period_end!;
   const end = new Date(periodEnd).getTime();
-  // Free seats continuing on General are charged up to a day early, so coupons never drop out.
+  // Free seats continuing on Main Street (general) are charged up to a day early, so coupons never drop out.
   const startAt = plan.source === "complimentary" ? end - DAY_MS : end;
   if (now < startAt) return "not_due";
 
@@ -672,18 +674,28 @@ export async function runRenewalReminders(now = Date.now(), onlyBusinessIds?: st
         ),
       );
     } else {
-      const general = offers.get("general");
-      const prices = general
-        ? general.monthly_price_cents
-          ? `${formatPrice(general.annual_price_cents)} a year or ${formatPrice(general.monthly_price_cents)} a month`
-          : `${formatPrice(general.annual_price_cents)} a year`
+      const founding = offers.get(FOUNDING_OFFER);
+      const next = offers.get(founding?.renews_into ?? "general");
+      const prices = next
+        ? next.monthly_price_cents
+          ? `${formatPrice(next.annual_price_cents)} a year or ${formatPrice(next.monthly_price_cents)} a month`
+          : `${formatPrice(next.annual_price_cents)} a year`
         : "See Billing";
+      const names = namesFrom([...offers.values()]);
       bump(
         await sendOnce(
           `add_card_reminder_${window}`,
           ref,
           contact.email,
-          addCardReminderEmail({ businessName: contact.name, endsOn: end, generalPrices: prices, hasCard: Boolean(plan.anet_payment_profile_id), timeZone: tz }),
+          addCardReminderEmail({
+            businessName: contact.name,
+            endsOn: end,
+            freeName: names.founding,
+            nextName: next?.name ?? names.general,
+            nextPrices: prices,
+            hasCard: Boolean(plan.anet_payment_profile_id),
+            timeZone: tz,
+          }),
         ),
       );
     }

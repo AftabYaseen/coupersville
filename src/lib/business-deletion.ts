@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { offerNames } from "@/lib/offer-names";
 
 // An admin deletes a business.
 //
@@ -40,7 +41,7 @@ export async function businessDeletionPlan(businessId: string): Promise<Business
   const reasons: string[] = [];
   if (redemptions) reasons.push(redemptions === 1 ? "1 redemption" : `${redemptions} redemptions`);
   if (payments || (plan && plan.source !== "complimentary")) reasons.push("payment records");
-  if (seats) reasons.push("a Founding Merchant seat");
+  if (seats) reasons.push(`a ${(await offerNames()).founding} seat`);
   return { mode: reasons.length ? "keep_records" : "delete", reasons };
 }
 

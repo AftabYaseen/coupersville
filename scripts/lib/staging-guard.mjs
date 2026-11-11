@@ -12,7 +12,7 @@
 // One exception, decided 2026-11-04 for billing Part B only: with ALLOW_PRODUCTION_TESTS=1, the
 // scripts in PRODUCTION_ALLOWED may run against production, and only with the Authorize.net sandbox
 // and a local build. They then run in PRODUCTION_MODE: they never change platform settings, the
-// publishing date, offers or categories, never claim a Founding seat, never run the daily job for
+// publishing date, offers or categories, never claim a Pioneer Circle seat, never run the daily job for
 // real businesses, and delete everything they create. Take a snapshot before and after
 // (scripts/production-snapshot.mjs) and check it matches.
 

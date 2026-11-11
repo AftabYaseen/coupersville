@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { requireAdminPage } from "@/lib/admin";
 import { dayInZone } from "@/lib/dates";
 import { OFFER_TIME_ZONE } from "@/lib/offers";
+import { offerNames } from "@/lib/offer-names";
 import { PageLoading } from "@/components/page-loading";
 import { SettingsForm } from "@/components/admin/settings-form";
 import { AnetConnectionCheck } from "@/components/admin/anet-connection-check";
@@ -19,7 +20,10 @@ export default function SettingsPage() {
 
 async function SettingsContent() {
   const { supabase } = await requireAdminPage("/admin/settings");
-  const { data } = await supabase.from("platform_settings").select("*").eq("singleton", true).maybeSingle();
+  const [{ data }, names] = await Promise.all([
+    supabase.from("platform_settings").select("*").eq("singleton", true).maybeSingle(),
+    offerNames(),
+  ]);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
@@ -30,6 +34,7 @@ async function SettingsContent() {
       ) : (
         <div className="panel p-5">
           <SettingsForm
+            names={{ founding: names.founding, early: names.earlyAccess }}
             defaults={{
               subscription_expiry: data.subscription_expiry,
               founders_rule: data.founders_rule,

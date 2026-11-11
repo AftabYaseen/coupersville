@@ -6,8 +6,8 @@ import { PAST_DUE_GRACE_DAYS, type PlanState } from "@/lib/billing";
 type Props = {
   state: PlanState;
   timeZone: string;
-  // The plan is a free Founding Merchant seat.
-  foundingSeat?: boolean;
+  // The founding offer's name (from the offers table) when the plan is a free seat on it.
+  seatName?: string | null;
   // On the dashboard, plans that need attention link to Billing.
   billingLink?: boolean;
 };
@@ -17,7 +17,7 @@ const day = (iso: string | null, tz: string) => (iso ? formatDay(iso, tz) : null
 // The membership in plain words, using the copy deck's system messages (2026-11-10).
 // Coupons are hidden while a membership has lapsed and come back by themselves on renewal, as long
 // as they have not ended.
-export function PlanPanel({ state, timeZone: tz, foundingSeat, billingLink }: Props) {
+export function PlanPanel({ state, timeZone: tz, seatName, billingLink }: Props) {
   const link = billingLink ? (
     <Link href="/merchant/billing" className="btn btn-secondary w-fit">
       See billing
@@ -34,7 +34,7 @@ export function PlanPanel({ state, timeZone: tz, foundingSeat, billingLink }: Pr
       );
     case "complimentary":
       return (
-        <Panel title={foundingSeat ? "Founding Merchant, complimentary year" : "Complimentary membership"}>
+        <Panel title={seatName ? `${seatName}, complimentary year` : "Complimentary membership"}>
           <p>
             {state.endsAt
               ? `Your Coupersville membership is active through ${day(state.endsAt, tz)}.`

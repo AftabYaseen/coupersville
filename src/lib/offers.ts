@@ -1,8 +1,11 @@
 import type { Database } from "@/lib/supabase/database.types";
 import { formatDay } from "@/lib/dates";
 
-// Offers (Founding Merchant, Early Access, General, ...) are rows in public.offers, read through
-// offer_overview() with the seats used. Windows are [starts, ends): the end is exclusive.
+// Offers (membership levels) are rows in public.offers, read through offer_overview() with the
+// seats used. Windows are [starts, ends): the end is exclusive. Codes never change; names do (Admin >
+// Offers), so wording reads names from the table (src/lib/offer-names.ts). Codes and their names on
+// 2026-11-12: founding_merchant Pioneer Circle, early_access Early Bird, general Main Street,
+// merchant_plus Boulevard, enterprise Build Your Route.
 
 type Overview = Database["public"]["Functions"]["offer_overview"]["Returns"][number];
 type Nullable = "window_starts_at" | "window_ends_at" | "seat_cap" | "term_months" | "monthly_price_cents" | "renews_into" | "max_locations" | "max_live_coupons" | "campaigns_per_month";

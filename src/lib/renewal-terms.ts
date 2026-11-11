@@ -60,14 +60,26 @@ export function purchaseTerms({ offer, next, cycle, now, timeZone }: { offer: Pr
   return `${text} ${CANCEL_TERMS}`;
 }
 
-// A free Founding seat adding a card, so the plan continues on `next` (General) when the free year ends.
-// Free seats are charged up to a day early, so coupons never drop out.
-export function continueTerms({ next, cycle, endsAt, timeZone }: { next: Priced; cycle: Cycle; endsAt: string; timeZone: string }): string {
+// A free founding seat (`free`, Pioneer Circle) adding a card, so the plan continues on `next` (Main
+// Street) when the free year ends. Free seats are charged up to a day early, so coupons never drop out.
+export function continueTerms({
+  free,
+  next,
+  cycle,
+  endsAt,
+  timeZone,
+}: {
+  free: Pick<Offer, "name">;
+  next: Priced;
+  cycle: Cycle;
+  endsAt: string;
+  timeZone: string;
+}): string {
   const p = price(next, cycle);
   const ends = formatDay(endsAt, timeZone);
   const charged = formatDay(new Date(new Date(endsAt).getTime() - DAY_MS), timeZone);
   return (
-    `Your free Founding Merchant year ends on ${ends}. Your plan then continues automatically as ${next.name} at ${renewalPrice(next, p.cycle)}, ` +
+    `Your free ${free.name} year ends on ${ends}. Your plan then continues automatically as ${next.name} at ${renewalPrice(next, p.cycle)}, ` +
     `charged to this card on ${charged} or ${ends}, and ${every(p.cycle)} after that until you cancel. Nothing is charged before then. ${CANCEL_TERMS}`
   );
 }

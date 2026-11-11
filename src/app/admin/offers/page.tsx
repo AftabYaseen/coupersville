@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { requireAdminPage } from "@/lib/admin";
 import { addDays, dayInZone } from "@/lib/dates";
-import { ENTERPRISE_OFFER, OFFER_TIME_ZONE, freeSeatsLeft, priceLine, termLabel, windowLabel, type Offer } from "@/lib/offers";
+import { ENTERPRISE_OFFER, FOUNDING_OFFER, OFFER_TIME_ZONE, freeSeatsLeft, priceLine, termLabel, windowLabel, type Offer } from "@/lib/offers";
 import { PageLoading } from "@/components/page-loading";
 import { OfferForm } from "@/components/admin/offer-form";
 
@@ -27,8 +27,9 @@ async function OffersContent() {
     <div className="mx-auto max-w-3xl px-4 py-10">
       <h1 className="wordmark text-4xl text-ink">Offers</h1>
       <p className="mt-2">
-        What a merchant signs up for, and when. Dates are Pacific time. Prices show only to signed-in merchants, never on
-        public pages. Payments are not open yet, so the only seats that can be taken are free Founding seats.
+        What a merchant signs up for, and when. Dates are Pacific time. Names and prices show on the Business membership page,
+        Billing and emails, so a change here appears everywhere. Payments are not open yet, so the only seats that can be taken
+        are free {offers.find((o) => o.code === FOUNDING_OFFER)?.name ?? "founding"} seats.
       </p>
 
       {offers.length === 0 ? (

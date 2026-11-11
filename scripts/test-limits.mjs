@@ -1,4 +1,4 @@
-// Campaign and location limits, Enterprise and per-business overrides (2026-11-09), through the real
+// Campaign and location limits, Build Your Route and per-business overrides (2026-11-09), through the real
 // server actions and database functions, against a local build.
 //
 //   node --env-file=.env.local scripts/production-snapshot.mjs save before.json
@@ -6,7 +6,7 @@
 //   node --env-file=.env.local scripts/production-snapshot.mjs save after.json
 //   node --env-file=.env.local scripts/production-snapshot.mjs compare before.json after.json
 //
-// Never changes platform settings, offers or categories, never claims a Founding seat, sends mail
+// Never changes platform settings, offers or categories, never claims a Pioneer Circle seat, sends mail
 // only to reserved test addresses (which are skipped), and deletes everything it creates.
 
 // Exits unless this run targets staging, or production with ALLOW_PRODUCTION_TESTS=1 (see the guard).
@@ -82,11 +82,11 @@ async function main() {
 
   console.log("\nOffers");
   const offers = Object.fromEntries(must(await admin.from("offers").select("*"), "offers").map((o) => [o.code, o]));
-  check("Founding: $99 a year, $12 a month, 200 seats, 50 free, 12 months, into General", offers.founding_merchant.annual_price_cents === 9900 && offers.founding_merchant.monthly_price_cents === 1200 && offers.founding_merchant.seat_cap === 200 && offers.founding_merchant.free_seats === 50 && offers.founding_merchant.term_months === 12 && offers.founding_merchant.renews_into === "general");
+  check("Founding: $99 a year, $12 a month, 200 seats, 50 free, 12 months, into Main Street", offers.founding_merchant.annual_price_cents === 9900 && offers.founding_merchant.monthly_price_cents === 1200 && offers.founding_merchant.seat_cap === 200 && offers.founding_merchant.free_seats === 50 && offers.founding_merchant.term_months === 12 && offers.founding_merchant.renews_into === "general");
   for (const [code, stores] of [["founding_merchant", 1], ["early_access", 1], ["general", 1], ["merchant_plus", 3]]) {
     check(`${code}: 4 campaigns, ${stores} location(s)`, offers[code].campaigns_per_month === 4 && offers[code].max_locations === stores, offers[code]);
   }
-  check("Enterprise: inactive, admin only", offers.enterprise?.active === false && offers.enterprise?.admin_only === true);
+  check("Build Your Route: inactive, admin only", offers.enterprise?.active === false && offers.enterprise?.admin_only === true);
 
   console.log("\nCampaigns");
   const m = await merchant("a");
@@ -168,11 +168,11 @@ async function main() {
   const plus = await merchant("plus", "merchant_plus");
   for (const n of ["two", "three"]) {
     const r = await act(plus.owner, "merchant/locations/actions.ts", "createLocation", [locationInput(n)]);
-    check(`Merchant Plus adds store ${n}`, Boolean(r.redirect), r);
+    check(`Boulevard adds store ${n}`, Boolean(r.redirect), r);
   }
-  check("Merchant Plus shows 3 of 3 locations", /3 of 3 locations/.test(await page("/merchant/locations", plus.owner)));
+  check("Boulevard shows 3 of 3 locations", /3 of 3 locations/.test(await page("/merchant/locations", plus.owner)));
   const fourth = await act(plus.owner, "merchant/locations/actions.ts", "createLocation", [locationInput("four")]);
-  check("Merchant Plus: a fourth is refused", fourth.value?.ok === false && /includes up to 3 locations/.test(fourth.value.error), fourth);
+  check("Boulevard: a fourth is refused", fourth.value?.ok === false && /includes up to 3 locations/.test(fourth.value.error), fourth);
 
   for (const [code, stores] of [["founding_merchant", 1], ["early_access", 1], [null, 1]]) {
     const x = await merchant(`limit-${code ?? "none"}`, code);
@@ -190,9 +190,9 @@ async function main() {
   const selfOverride = await m.owner.client.from("business_limit_overrides").insert({ business_id: biz, max_locations: 99 });
   check("a merchant cannot set their own limits", Boolean(selfOverride.error), selfOverride.error);
   const merchantOffers = must(await m.owner.client.rpc("offer_overview"), "overview");
-  check("merchants do not see Enterprise", !merchantOffers.some((o) => o.code === "enterprise"));
+  check("merchants do not see Build Your Route", !merchantOffers.some((o) => o.code === "enterprise"));
 
-  console.log("\nAdmin overrides and Enterprise");
+  console.log("\nAdmin overrides and Build Your Route");
   const boss = await user("boss", "admin");
   const adminAct = (name, args) => act(boss, "admin/subscriptions/actions.ts", name, args);
   const notAllowed = await act(m.owner, "admin/subscriptions/actions.ts", "setBusinessLimits", [biz, { maxLocations: 99, campaignsPerMonth: 99 }]);
@@ -203,7 +203,7 @@ async function main() {
   const reopenNow = await act(m.owner, "merchant/locations/actions.ts", "setLocationActive", [oldStore.id, true]);
   check("the extra store can reopen under the override", reopenNow.value?.ok === true, reopenNow);
   const adminPage = await page(`/admin/merchants/${biz}`, boss);
-  check("admin merchant page shows Limits and Grant Enterprise", /2 of 2 locations/.test(adminPage) && /Grant Enterprise \(Custom\)/.test(adminPage));
+  check("admin merchant page shows Limits and Grant Build Your Route", /2 of 2 locations/.test(adminPage) && /Grant Build Your Route/.test(adminPage));
   const cleared = await adminAct("setBusinessLimits", [biz, { maxLocations: "", campaignsPerMonth: "" }]);
   u = await usageOf(boss, biz);
   check("clearing the override returns to the plan's limits", cleared.value?.ok === true && u.locations_limit === 1 && u.campaigns_limit === 4, { cleared, u });
@@ -211,23 +211,23 @@ async function main() {
   const ent = await merchant("ent", null);
   must(await admin.from("subscriptions").delete().eq("business_id", ent.business.id), "remove plan");
   const noNumbers = await adminAct("grantEnterprisePlan", [ent.business.id, { maxLocations: "", campaignsPerMonth: "", endsOn: "" }]);
-  check("Enterprise needs its limits", noNumbers.value?.ok === false, noNumbers);
+  check("Build Your Route needs its limits", noNumbers.value?.ok === false, noNumbers);
   const granted = await adminAct("grantEnterprisePlan", [ent.business.id, { maxLocations: 5, campaignsPerMonth: 10, endsOn: day(200) }]);
   const entPlan = must(await admin.from("subscriptions").select("*").eq("business_id", ent.business.id).single(), "enterprise plan");
   u = await usageOf(ent.owner, ent.business.id);
-  check("Enterprise granted with custom limits", granted.value?.ok === true && entPlan.offer_code === "enterprise" && entPlan.source === "complimentary" && u.locations_limit === 5 && u.campaigns_limit === 10, { granted, u });
+  check("Build Your Route granted with custom limits", granted.value?.ok === true && entPlan.offer_code === "enterprise" && entPlan.source === "complimentary" && u.locations_limit === 5 && u.campaigns_limit === 10, { granted, u });
   const fifthStores = [];
   for (const n of ["b", "c", "d", "e", "f"]) fifthStores.push(await act(ent.owner, "merchant/locations/actions.ts", "createLocation", [locationInput(n)]));
-  check("Enterprise: four more stores fit, a sixth does not", fifthStores.slice(0, 4).every((r) => r.redirect) && fifthStores[4].value?.ok === false, fifthStores.map((r) => r.redirect ?? r.value));
+  check("Build Your Route: four more stores fit, a sixth does not", fifthStores.slice(0, 4).every((r) => r.redirect) && fifthStores[4].value?.ok === false, fifthStores.map((r) => r.redirect ?? r.value));
   const noCheckout = must(await admin.rpc("begin_paid_checkout", { p_business_id: ent.business.id, p_offer_code: "enterprise", p_cycle: "annual", p_amount_cents: 100, p_invoice: `T${run}`, p_created_by: ent.owner.id, p_hold_minutes: 1 }), "checkout");
-  check("Enterprise has no checkout", noCheckout.result === "no_offer", noCheckout);
+  check("Build Your Route has no checkout", noCheckout.result === "no_offer", noCheckout);
   const entBilling = await page("/merchant/billing", ent.owner);
-  check("Enterprise billing shows limits and no offer to buy", /of 5 locations/.test(entBilling) && /of 10 campaigns/.test(entBilling) && !/Founding Merchant: /.test(entBilling));
+  check("Build Your Route billing shows limits and no offer to buy", /of 5 locations/.test(entBilling) && /of 10 campaigns/.test(entBilling) && !/Pioneer Circle: /.test(entBilling));
 
   const paid = await merchant("paid");
   must(await admin.from("subscriptions").update({ source: "authorize_net", offer_code: "general" }).eq("business_id", paid.business.id), "paid");
   const overPaid = await adminAct("grantEnterprisePlan", [paid.business.id, { maxLocations: 5, campaignsPerMonth: 10, endsOn: "" }]);
-  check("Enterprise cannot replace a current paid plan", overPaid.value?.ok === false && /paid plan/.test(overPaid.value.error), overPaid);
+  check("Build Your Route cannot replace a current paid plan", overPaid.value?.ok === false && /paid plan/.test(overPaid.value.error), overPaid);
 
   console.log("\nBilling pages");
   const contact = settings.enterprise_contact_email;
@@ -238,7 +238,7 @@ async function main() {
   }
   const noPlan = await merchant("noplan");
   must(await admin.from("subscriptions").delete().eq("business_id", noPlan.business.id), "remove plan");
-  check("the Founding offer shows both prices", /Founding Merchant: \$99 a year or \$12 a month for your first year/.test(await page("/merchant/billing", noPlan.owner)));
+  check("the Pioneer Circle offer shows both prices", /Pioneer Circle: \$99 a year or \$12 a month for your first year/.test(await page("/merchant/billing", noPlan.owner)));
 }
 
 let crashed = null;

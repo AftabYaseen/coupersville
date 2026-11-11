@@ -218,7 +218,7 @@ async function phaseTwoPages() {
     );
   }
   check("Founding: 50 free, the next 150, and its window", memText.includes(`First ${by.founding_merchant.free_seats} qualifying merchants`) && memText.includes(`The next ${by.founding_merchant.seat_cap - by.founding_merchant.free_seats}`) && memText.includes("November 1, 2026 to January 31, 2027"));
-  check("Enterprise asks for a custom quote and links to Contact", memText.includes("Enterprise (Custom)") && memText.includes("Contact us for a custom quote") && mem.body.includes('href="/contact"'));
+  check("Build Your Route asks for a custom quote and links to Contact", memText.includes("Build Your Route") && memText.includes("Contact us for a custom quote") && mem.body.includes('href="/contact"'));
   check("the $1 admin test offer never shows", !memText.includes(by.admin_test?.name ?? "Admin payment test") && !memText.includes("$1.00"));
   check("Start my membership goes to sign-up", mem.body.includes('href="/signup?type=merchant"') && memText.includes("Start my membership"));
 

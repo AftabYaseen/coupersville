@@ -22,7 +22,7 @@ export default function BusinessMembershipPage() {
 }
 
 async function Levels() {
-  const { levels, campaignsEach, plusLocations } = await membershipLevels();
+  const { levels, campaignsEach, plusLocations, names } = await membershipLevels();
   const each = campaignsEach ? `up to ${campaignsEach} campaigns per month` : null;
 
   const faq: { q: string; a: ReactNode }[] = [
@@ -43,7 +43,7 @@ async function Levels() {
           <Link href="/contact" className="font-medium text-ink underline underline-offset-4">
             contact us
           </Link>{" "}
-          for an Enterprise custom quote.
+          for a {names.enterprise} custom quote.
         </>
       ),
     },
@@ -51,7 +51,7 @@ async function Levels() {
       q: "Can I include more than one location?",
       a: (
         <>
-          Yes. Merchant Plus includes up to {plusLocations ?? 3} locations, and you can choose whether each coupon applies everywhere or
+          Yes. {names.plus} includes up to {plusLocations ?? 3} locations, and you can choose whether each coupon applies everywhere or
           only at selected locations. For more than {plusLocations ?? 3} locations,{" "}
           <Link href="/contact" className="font-medium text-ink underline underline-offset-4">
             contact us
@@ -123,8 +123,8 @@ async function Levels() {
         <ul className="panel mt-4 grid list-disc gap-1.5 p-5 pl-10">
           {each && <li>{each[0].toUpperCase() + each.slice(1)} at every membership level</li>}
           <li>
-            Single-location support, up to {plusLocations ?? 3} locations with Merchant Plus and custom multi-location plans with
-            Enterprise
+            Single-location support, up to {plusLocations ?? 3} locations with {names.plus} and custom multi-location plans with{" "}
+            {names.enterprise}
           </li>
           <li>Instant coupon publishing</li>
           <li>Percentage, dollar amount, fixed price or free item offers</li>
@@ -142,8 +142,8 @@ async function Levels() {
 
       <p className="mt-8 text-sm">
         Memberships renew automatically (annually or monthly, depending on your billing choice) unless renewal is turned off before the
-        next billing date. Promotional pricing applies to the initial 12-month term where noted; Early Access renewals convert to the
-        then-current General rate unless otherwise specified. These are 2026/2027 introductory prices and are subject to change. If a
+        next billing date. Promotional pricing applies to the initial 12-month term where noted; {names.earlyAccess} renewals convert to
+        the then-current {names.general} rate unless otherwise specified. These are 2026/2027 introductory prices and are subject to change. If a
         membership expires, the business&apos;s published coupons are removed from public view. Coupon drafts and business information
         remain available if the membership is renewed, subject to the platform&apos;s retention policy.
       </p>

@@ -97,7 +97,7 @@ export async function startPlanCheckout(cycleInput: unknown, agreedInput: unknow
   return PROCESSOR;
 }
 
-// Opens the hosted card page. Paid plans: "Update card". Free Founding seats: "Add card", with the
+// Opens the hosted card page. Paid plans: "Update card". Free founding seats: "Add card", with the
 // cycle the plan continues on when the free year ends, after agreeing to those renewal terms.
 export async function startCardUpdate(cycleInput: unknown, agreedInput: unknown = null): Promise<HostedPage> {
   const { business, supabase, user } = await requireManagedBusiness("/merchant/billing");
@@ -114,10 +114,10 @@ export async function startCardUpdate(cycleInput: unknown, agreedInput: unknown 
     cycle = parsed.data;
     const agreed = agreedSchema.safeParse(agreedInput);
     if (!agreed.success || !agreed.data) return NOT_AGREED;
-    const { data: founding } = await supabase.from("offers").select("renews_into").eq("code", FOUNDING_OFFER).maybeSingle();
+    const { data: founding } = await supabase.from("offers").select("name, renews_into").eq("code", FOUNDING_OFFER).maybeSingle();
     const { data: next } = await supabase.from("offers").select("*").eq("code", founding?.renews_into ?? "general").maybeSingle();
-    if (!next || !plan.current_period_end) return PROCESSOR;
-    const wording = continueTerms({ next, cycle, endsAt: plan.current_period_end, timeZone: safeTimeZone(business.timezone) });
+    if (!founding || !next || !plan.current_period_end) return PROCESSOR;
+    const wording = continueTerms({ free: founding, next, cycle, endsAt: plan.current_period_end, timeZone: safeTimeZone(business.timezone) });
     if (agreed.data !== wording) return TERMS_CHANGED;
     if (!(await recordConsent({ business_id: business.id, user_id: user.id, context: "add_card", offer_code: next.code, billing_cycle: cycle, wording }))) return PROCESSOR;
   }

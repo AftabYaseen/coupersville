@@ -10,6 +10,7 @@ import { subscriptionIsActive } from "@/lib/merchant";
 import { COUPON_VIEWS, COUPON_VIEW_LABELS, couponView } from "@/lib/coupons";
 import { planState } from "@/lib/billing";
 import { FOUNDING_OFFER } from "@/lib/offers";
+import { offerNames } from "@/lib/offer-names";
 import { PageLoading } from "@/components/page-loading";
 import { PlanPanel } from "@/components/merchant/plan-panel";
 import { CampaignUsage } from "@/components/merchant/usage";
@@ -142,7 +143,7 @@ async function MerchantHome() {
         <PlanPanel
           state={plan}
           timeZone={business.timezone}
-          foundingSeat={subscription?.offer_code === FOUNDING_OFFER && subscription.source === "complimentary"}
+          seatName={subscription?.offer_code === FOUNDING_OFFER && subscription.source === "complimentary" ? (await offerNames()).founding : null}
           billingLink
         />
       </div>

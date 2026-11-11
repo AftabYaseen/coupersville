@@ -1,11 +1,11 @@
-// Billing Part A checks: offers, the publishing open date, and Founding Merchant free seats,
+// Billing Part A checks: offers, the publishing open date, and Pioneer Circle free seats,
 // through the real server actions and database functions, against a running build.
 //
 //   npm run staging:build && npm run staging:start
 //   BASE_URL=http://localhost:3100 node --env-file=.env.staging.local scripts/test-offers.mjs
 //
 // To test the Founders window before it opens, and the last free seat, the script moves the
-// publishing date and the Founding offer's window and free seats for a few seconds. It puts every
+// publishing date and the Pioneer Circle offer's window and free seats for a few seconds. It puts every
 // value back afterwards, and deletes its throwaway users and businesses (and so their seat claims).
 
 // Exits unless this run targets the staging project (never production).
@@ -128,18 +128,18 @@ async function main() {
   check("four offers, in order", offers.map((o) => o.code).join() === "founding_merchant,early_access,general,merchant_plus", offers.map((o) => o.code));
   const f = by.founding_merchant;
   check(
-    "Founding Merchant: Nov 1 to Jan 31 Pacific, 200 seats, 50 free, $99 a year only, 12 months, renews into General",
+    "Pioneer Circle: Nov 1 to Jan 31 Pacific, 200 seats, 50 free, $99 a year only, 12 months, renews into Main Street",
     f.window_starts_at.startsWith("2026-11-01T07:00:00") && f.window_ends_at.startsWith("2027-02-01T08:00:00") && f.seat_cap === 200 && f.free_seats === 50 &&
       f.annual_price_cents === 9900 && f.monthly_price_cents === null && f.term_months === 12 && f.renews_into === "general" && f.active,
     f,
   );
   const e = by.early_access;
-  check("Early Access: Feb 1 to Jun 30, $149 or $19, 12 months, renews into General", e.window_starts_at.startsWith("2027-02-01T08:00:00") && e.window_ends_at.startsWith("2027-07-01T07:00:00") && e.annual_price_cents === 14900 && e.monthly_price_cents === 1900 && e.term_months === 12 && e.renews_into === "general", e);
+  check("Early Bird: Feb 1 to Jun 30, $149 or $19, 12 months, renews into Main Street", e.window_starts_at.startsWith("2027-02-01T08:00:00") && e.window_ends_at.startsWith("2027-07-01T07:00:00") && e.annual_price_cents === 14900 && e.monthly_price_cents === 1900 && e.term_months === 12 && e.renews_into === "general", e);
   const g = by.general;
-  check("General: from Jul 1, $249 or $29, ongoing", g.window_starts_at.startsWith("2027-07-01T07:00:00") && !g.window_ends_at && g.annual_price_cents === 24900 && g.monthly_price_cents === 2900 && g.term_months === null && g.active, g);
+  check("Main Street: from Jul 1, $249 or $29, ongoing", g.window_starts_at.startsWith("2027-07-01T07:00:00") && !g.window_ends_at && g.annual_price_cents === 24900 && g.monthly_price_cents === 2900 && g.term_months === null && g.active, g);
   const p = by.merchant_plus;
-  check("Merchant Plus: $499 or $49, inactive, limits not set", p.annual_price_cents === 49900 && p.monthly_price_cents === 4900 && !p.active && p.max_locations === null && p.max_live_coupons === null, p);
-  check("defaults: publishing opens Nov 1 Pacific, first-coupon rule, Early Access when full", originalSettings.founders_rule === "profile_and_first_coupon" && originalSettings.founders_full_early_access === true);
+  check("Boulevard: $499 or $49, inactive, limits not set", p.annual_price_cents === 49900 && p.monthly_price_cents === 4900 && !p.active && p.max_locations === null && p.max_live_coupons === null, p);
+  check("defaults: publishing opens Nov 1 Pacific, first-coupon rule, Early Bird when full", originalSettings.founders_rule === "profile_and_first_coupon" && originalSettings.founders_full_early_access === true);
 
   const boss = await user("admin", "admin");
   const shopper = await user("shopper", "consumer");
@@ -171,7 +171,7 @@ async function main() {
   check("an admin can still publish", !bossPublish.error, bossPublish.error);
   check("live coupons stay live", await isLive(paidUp.coupon.id));
   const billingEarly = await page("/merchant/billing", a.owner);
-  check("billing page says when publishing opens and shows the Founding offer", /Publishing opens on/.test(billingEarly) && /Founding Merchant: \$99 a year or \$12 a month for your first year/.test(billingEarly), billingEarly.length);
+  check("billing page says when publishing opens and shows the Pioneer Circle offer", /Publishing opens on/.test(billingEarly) && /Pioneer Circle: \$99 a year or \$12 a month for your first year/.test(billingEarly), billingEarly.length);
 
   console.log("\nFounders window open: the race for the last free seat");
   must(await settings({ publishing_opens_at: iso(-1) }), "open publishing");
@@ -193,7 +193,7 @@ async function main() {
   const loserSave = (await callAction(base, loser.owner.cookie, A("merchant/coupons/actions.ts"), "saveCoupon", [loser.coupon.id, couponInput(`Loser ${run}`), "publish"])).value;
   check("Publish coupon says a membership is needed", loserSave?.ok === false && /active plan|active membership/.test(loserSave.error), loserSave);
   const loserBilling = await page("/merchant/billing", loser.owner);
-  check("billing: Founding Merchant: $99 a year or $12 a month for your first year, Payments open soon, 0 free seats left", /Founding Merchant: \$99 a year or \$12 a month for your first year/.test(loserBilling) && /Payments open soon/.test(loserBilling) && /0 of /.test(loserBilling));
+  check("billing: Pioneer Circle: $99 a year or $12 a month for your first year, Payments open soon, 0 free seats left", /Pioneer Circle: \$99 a year or \$12 a month for your first year/.test(loserBilling) && /Payments open soon/.test(loserBilling) && /0 of /.test(loserBilling));
   check("billing: no checkout while payments are closed", !/Continue to payment/.test(loserBilling));
 
   console.log("\nOne seat per business, and nothing for anyone else");
@@ -212,11 +212,11 @@ async function main() {
   const first = must(await admin.from("coupons").select("id, status").eq("title", `First coupon ${run}`).single(), "first coupon");
   check("that coupon is live", first.status === "published" && (await isLive(first.id)));
   const cBilling = await page("/merchant/billing?claim=claimed", c.owner);
-  check("billing shows the free seat", /Your free Founding Merchant seat is confirmed/.test(cBilling) && /Founding Merchant, complimentary year/.test(cBilling) && /Founding Merchant seat \d+/.test(cBilling));
+  check("billing shows the free seat", /Your free Pioneer Circle seat is confirmed/.test(cBilling) && /Pioneer Circle, complimentary year/.test(cBilling) && /Pioneer Circle seat \d+/.test(cBilling));
   const second = await callAction(base, c.owner.cookie, A("merchant/coupons/actions.ts"), "saveCoupon", [c.coupon.id, couponInput(`Second coupon ${run}`), "publish"]);
   check("with the plan, a second coupon publishes normally", second.redirect?.startsWith("/merchant/coupons"), second);
   const dash = await page("/merchant", c.owner);
-  check("dashboard shows the Founding plan", /Founding Merchant, complimentary year/.test(dash));
+  check("dashboard shows the Founding plan", /Pioneer Circle, complimentary year/.test(dash));
   const email = must(await admin.from("email_notices").select("kind").eq("kind", "plan_started").eq("ref", `founding:${c.business.id}`), "notice");
   check("the plan started email is claimed once (sending is skipped for test addresses)", email.length === 0 || email.length === 1, email);
 
@@ -234,11 +234,11 @@ async function main() {
   check("an admin can revoke a free seat plan", revoke.value?.ok === true, revoke);
   check("but the seat is not given back", (await claim(loser.owner, loser.business.id, null)) === "seats_gone");
   const regrant = await callAction(base, boss.cookie, A("admin/subscriptions/actions.ts"), "setComplimentaryPlan", [d.business.id, day(30)]);
-  check("a new admin grant is not a Founding seat", regrant.value?.ok === true && (await planOf(d.business.id))?.offer_code === null, await planOf(d.business.id));
+  check("a new admin grant is not a Pioneer Circle seat", regrant.value?.ok === true && (await planOf(d.business.id))?.offer_code === null, await planOf(d.business.id));
   const subsPage = await page("/admin/subscriptions", boss);
-  check("subscriptions page shows the Founding seat", /Founding Merchant, free seat/.test(subsPage));
+  check("subscriptions page shows the Pioneer Circle seat", /Pioneer Circle, free seat/.test(subsPage));
   const offersPage = await page("/admin/offers", boss);
-  check("offers page lists all four with seats taken", ["Founding Merchant", "Early Access", "General", "Merchant Plus"].every((n) => offersPage.includes(n)) && /Free seats taken/.test(offersPage));
+  check("offers page lists all four with seats taken", ["Pioneer Circle", "Early Bird", "Main Street", "Boulevard"].every((n) => offersPage.includes(n)) && /Free seats taken/.test(offersPage));
   const current = await founding();
   const formFor = (patch) => ({
     name: current.name,
@@ -279,7 +279,7 @@ async function cleanup() {
       .from("offers")
       .update({ name, window_starts_at, window_ends_at, seat_cap, free_seats, term_months, annual_price_cents, monthly_price_cents, renews_into, active, max_locations, max_live_coupons })
       .eq("code", "founding_merchant");
-    if (error) console.log(`  could not restore the Founding offer: ${error.message}`);
+    if (error) console.log(`  could not restore the Pioneer Circle offer: ${error.message}`);
   }
   if (originalSettings) {
     const { publishing_opens_at, founders_rule, founders_full_early_access } = originalSettings;
@@ -300,7 +300,7 @@ try {
   await cleanup();
   const restored = await founding().catch(() => null);
   check(
-    "Founding offer and settings are back as they were",
+    "Pioneer Circle offer and settings are back as they were",
     restored && originalOffer && restored.free_seats === originalOffer.free_seats && restored.window_starts_at === originalOffer.window_starts_at && restored.max_locations === originalOffer.max_locations,
     restored,
   );

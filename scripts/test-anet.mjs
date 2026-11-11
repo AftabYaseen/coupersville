@@ -7,7 +7,7 @@
 // step through the sandbox API with Authorize.net's test cards (the app itself never sees a card),
 // then checks the app through its real return pages, webhook, daily job and server actions.
 // The daily job runs with the test-only clock (?now=) and only for this script's businesses.
-// It moves the Founding offer's window, seats and the General price for a few seconds, puts them
+// It moves the Pioneer Circle offer's window, seats and the Main Street price for a few seconds, puts them
 // back, deletes its users and businesses (and so their seat claims), voids leftover authorisations
 // and deletes the sandbox customer profiles it made.
 
@@ -236,8 +236,8 @@ async function main() {
   renewOn.setUTCFullYear(renewOn.getUTCFullYear() + 1);
   const renewDay = renewOn.toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", year: "numeric" });
   check(
-    "next to the button: price, billing, renewal date, renewal price (General) and how to cancel",
-    Boolean(termsA) && /\$99 today/.test(termsA) && /billed once/.test(termsA) && termsA.includes(renewDay) && /as General at \$249 a year/.test(termsA) && /Cancel renewal/.test(termsA) && /cancel anytime online/i.test(termsA),
+    "next to the button: price, billing, renewal date, renewal price (Main Street) and how to cancel",
+    Boolean(termsA) && /\$99 today/.test(termsA) && /billed once/.test(termsA) && termsA.includes(renewDay) && /as Main Street at \$249 a year/.test(termsA) && /Cancel renewal/.test(termsA) && /cancel anytime online/i.test(termsA),
     { termsA, renewDay },
   );
   const box = openPage.match(/<input[^>]*type="checkbox"[^>]*>/)?.[0] ?? "";
@@ -272,7 +272,7 @@ async function main() {
     planA,
   );
   const seatA = must(await admin.from("offer_seat_claims").select("*").eq("business_id", a.business.id).maybeSingle(), "seat");
-  check("a paid Founding seat is claimed", seatA && seatA.free === false, seatA);
+  check("a paid Pioneer Circle seat is claimed", seatA && seatA.free === false, seatA);
   const payA = await paymentsOf(a.business.id);
   check("one payment row: $99, paid, last 4 only", payA.length === 1 && payA[0].status === "paid" && payA[0].amount_cents === 9900 && payA[0].card_last4 === "1111", payA);
   check("the coupon is live", await liveCoupon(a.coupon.id));
@@ -380,18 +380,18 @@ async function main() {
   const resume = await say(a.owner, "merchant/billing/actions.ts", "setRenewal", true);
   check("Resume renewals", resume?.ok === true && (await planOf(a.business.id)).cancel_at_period_end === false);
 
-  console.log("\nRenewal into General at today's General price, job run twice at once");
-  // Put A's period end just behind us and end its Founding term, then change General's price.
+  console.log("\nRenewal into Main Street at today's Main Street price, job run twice at once");
+  // Put A's period end just behind us and end its Founding term, then change Main Street's price.
   const pA = iso(Date.now() - 3_600_000);
   must(await admin.from("subscriptions").update({ current_period_end: pA, term_ends_at: pA }).eq("business_id", a.business.id), "due");
   must(await admin.from("offers").update({ annual_price_cents: 25100 }).eq("code", "general"), "price change");
   const [r1, r2] = await Promise.all([daily(Date.now(), [a.business.id]), daily(Date.now(), [a.business.id])]);
   const attA = await attemptsOf(a.business.id);
   check("two runs at once make one attempt", attA.length === 1 && attA[0].status === "paid", { attA, r1: r1.body, r2: r2.body });
-  check("charged the new General price, $251", attA[0]?.amount_cents === 25100 && attA[0].offer_code === "general");
+  check("charged the new Main Street price, $251", attA[0]?.amount_cents === 25100 && attA[0].offer_code === "general");
   const renewed = await planOf(a.business.id);
   const nextYear = (new Date(renewed.current_period_end) - new Date(pA)) / DAY;
-  check("plan moves on a year from the old end date, now General, ongoing", renewed.offer_code === "general" && nextYear > 364 && nextYear < 367 && renewed.term_ends_at === null && renewed.status === "active", renewed);
+  check("plan moves on a year from the old end date, now Main Street, ongoing", renewed.offer_code === "general" && nextYear > 364 && nextYear < 367 && renewed.term_ends_at === null && renewed.status === "active", renewed);
   const r3 = await daily(Date.now(), [a.business.id]);
   check("a third run charges nothing", (await attemptsOf(a.business.id)).length === 1 && (await paymentsOf(a.business.id)).filter((p) => p.kind === "renewal").length === 1, r3.body);
   must(await admin.from("offers").update({ annual_price_cents: originalOffers.general.annual_price_cents }).eq("code", "general"), "price back");
@@ -406,7 +406,7 @@ async function main() {
   const d0 = await daily(pF + 3_600_000, [g.business.id]);
   let pg = await planOf(g.business.id);
   check("day 0: declined, past due, coupons stay live", pg.status === "past_due" && pg.past_due_since && (await liveCoupon(g.coupon.id)), { pg, d0: d0.body });
-  check("charged at General monthly ($29)", (await attemptsOf(g.business.id))[0]?.amount_cents === 2900);
+  check("charged at Main Street monthly ($29)", (await attemptsOf(g.business.id))[0]?.amount_cents === 2900);
   const failedMail = must(await admin.from("email_notices").select("ref").eq("kind", "payment_failed").eq("ref", `${g.business.id}:${new Date(pF).toISOString()}`), "mail");
   check("the payment-failed email is claimed once for this period", failedMail.length === 1);
   await daily(pF + 2 * 3_600_000, [g.business.id]);
@@ -498,19 +498,19 @@ async function main() {
   const remR = must(await admin.from("email_notices").select("kind").eq("ref", refR), "rem");
   check("renewal reminders at 60 and 30 days, once each", remR.map((x) => x.kind).sort().join() === "renewal_reminder_30,renewal_reminder_60", remR);
 
-  console.log("\nFree seat: add a card, choose monthly, continue on General");
+  console.log("\nFree seat: add a card, choose monthly, continue on Main Street");
   const pJ = Date.now() + 40 * DAY;
   const j = await merchant("j", { source: "complimentary", status: "active", current_period_end: iso(pJ), term_ends_at: iso(pJ), offer_code: "founding_merchant" });
   await daily(Date.now(), [j.business.id]);
   const remJ = must(await admin.from("email_notices").select("kind").eq("ref", `${j.business.id}:${new Date(pJ).toISOString()}`), "remJ");
   check("the free seat gets the add-a-card reminder at 60 days", remJ.some((x) => x.kind === "add_card_reminder_60"), remJ);
   const freePage = await page("/merchant/billing", j.owner);
-  check("billing offers Add card with annual or monthly General", /Add card/.test(freePage) && /\$249 a year/.test(freePage) && /\$29 a month/.test(freePage));
+  check("billing offers Add card with annual or monthly Main Street", /Add card/.test(freePage) && /\$249 a year/.test(freePage) && /\$29 a month/.test(freePage));
   const termsJ = termsOn(freePage, "monthly");
   const endJ = new Date(pJ).toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", year: "numeric" });
   check(
-    "Add card shows the terms it continues on: end date, General at $29 a month, how to cancel",
-    Boolean(termsJ) && termsJ.includes(`ends on ${endJ}`) && /continues automatically as General at \$29 a month/.test(termsJ) && /Cancel renewal/.test(termsJ),
+    "Add card shows the terms it continues on: end date, Main Street at $29 a month, how to cancel",
+    Boolean(termsJ) && termsJ.includes(`ends on ${endJ}`) && /continues automatically as Main Street at \$29 a month/.test(termsJ) && /Cancel renewal/.test(termsJ),
     termsJ,
   );
   const noAgreeJ = await say(j.owner, "merchant/billing/actions.ts", "startCardUpdate", "monthly", null);
@@ -527,7 +527,7 @@ async function main() {
     validationMode: "none",
   });
   const backJ = await page("/merchant/billing?card=updated", j.owner);
-  check("card saved, ending in 0027, and the page says it continues on General", /ending in 0027/.test(backJ) && /Continues on/.test(backJ));
+  check("card saved, ending in 0027, and the page says it continues on Main Street", /ending in 0027/.test(backJ) && /Continues on/.test(backJ));
   await page("/merchant/billing?card=updated", j.owner);
   const termsMail = must(await admin.from("email_notices").select("ref").eq("kind", "renewal_terms").eq("ref", consentJ[0]?.id ?? "none"), "termsMail");
   check("a confirmation email repeating the terms is sent once", termsMail.length === 1, termsMail);
@@ -535,7 +535,7 @@ async function main() {
   await daily(Date.now(), [j.business.id]);
   const pj = await planOf(j.business.id);
   const attJ = await attemptsOf(j.business.id);
-  check("it continues on General monthly at $29, paid with the saved card", attJ[0]?.status === "paid" && attJ[0].amount_cents === 2900 && pj.source === "authorize_net" && pj.offer_code === "general" && pj.billing_cycle === "monthly", { pj, attJ });
+  check("it continues on Main Street monthly at $29, paid with the saved card", attJ[0]?.status === "paid" && attJ[0].amount_cents === 2900 && pj.source === "authorize_net" && pj.offer_code === "general" && pj.billing_cycle === "monthly", { pj, attJ });
   const freeNoCard = await merchant("k", { source: "complimentary", status: "active", current_period_end: iso(Date.now() - 3_600_000), term_ends_at: iso(Date.now() - 3_600_000), offer_code: "founding_merchant" });
   await daily(Date.now(), [freeNoCard.business.id]);
   check("a free seat without a card is never charged and simply ends", (await attemptsOf(freeNoCard.business.id)).length === 0 && !(await liveCoupon(freeNoCard.coupon.id)));
@@ -548,12 +548,12 @@ async function main() {
 // ---------------------------------------------------------------- Production mode
 //
 // Decided 2026-11-04 for billing Part B: run against the production database with the sandbox,
-// changing no platform setting, publishing date, offer or category, and claiming no Founding seat.
+// changing no platform setting, publishing date, offer or category, and claiming no Pioneer Circle seat.
 // Payments stay closed, and Founding is not buyable while its free seats remain, so each checkout
-// here is created directly for the General offer, which has no seat cap and holds no seat. Everything
+// here is created directly for the Main Street offer, which has no seat cap and holds no seat. Everything
 // after that (Accept Hosted payment, return page, webhook, sweep, capture, void, renewals) runs
-// through the real app. The seat race and the paid Founding seat are tested in a rolled-back SQL
-// transaction instead. A General price change at renewal is not tested here (it needs an offer edit).
+// through the real app. The seat race and the paid Pioneer Circle seat are tested in a rolled-back SQL
+// transaction instead. A Main Street price change at renewal is not tested here (it needs an offer edit).
 
 async function directCheckout(m, cycle = "annual", consentWording = null) {
   const general = offersNow.general;
@@ -595,7 +595,7 @@ async function mainProduction() {
   if (new Date(settings.publishing_opens_at).getTime() > Date.now()) throw new Error("publishing is not open yet in production");
   const generalAnnual = offersNow.general.annual_price_cents;
   const generalMonthly = offersNow.general.monthly_price_cents;
-  console.log(`\nRun ${run}: test businesses are named "Anet <label> ${run}"; payments closed; General $${generalAnnual / 100} a year or $${generalMonthly / 100} a month.`);
+  console.log(`\nRun ${run}: test businesses are named "Anet <label> ${run}"; payments closed; Main Street $${generalAnnual / 100} a year or $${generalMonthly / 100} a month.`);
 
   const boss = await user("admin", "admin");
 
@@ -608,11 +608,11 @@ async function mainProduction() {
   const closedTry = await say(a.owner, "merchant/billing/actions.ts", "startPlanCheckout", "annual", "I agree");
   check("and with payments closed the checkout action refuses", closedTry?.ok === false && /not open/.test(closedTry.error), closedTry);
   const adminTry = await say(boss, "admin/merchants/billing-actions.ts", "adminTestCheckout", a.business.id, "annual");
-  check("admin test checkout: nothing to buy while free Founding seats remain", adminTry?.ok === false && /free seats remain/.test(adminTry.error), adminTry);
+  check("admin test checkout: nothing to buy while free Pioneer Circle seats remain", adminTry?.ok === false && /free seats remain/.test(adminTry.error), adminTry);
   check("none of that opened a checkout or recorded an agreement", (await checkoutsOf(a.business.id)).length === 0 && must(await admin.from("renewal_consents").select("id").eq("business_id", a.business.id), "c").length === 0);
 
   console.log("\nSuccessful payment, confirmed on return");
-  const termsText = `You pay $${generalAnnual / 100} today for one year of General, billed yearly. Your plan renews automatically every year until you cancel. (test ${run})`;
+  const termsText = `You pay $${generalAnnual / 100} today for one year of Main Street, billed yearly. Your plan renews automatically every year until you cancel. (test ${run})`;
   const ca = await directCheckout(a, "annual", termsText);
   const paidA = await payOnHostedPage(ca);
   check("the card is authorised (not charged yet)", paidA.responseCode === "1" && (await txStatus(paidA.transId)) === "authorizedPendingCapture", paidA.raw?.transactionResponse ?? paidA.raw?.messages);
@@ -623,11 +623,11 @@ async function mainProduction() {
   const planA = await planOf(a.business.id);
   const yearOn = planA && (new Date(planA.current_period_end) - Date.now()) / DAY;
   check(
-    "plan: Authorize.net, active, General, annual, about a year, ongoing, card saved",
+    "plan: Authorize.net, active, Main Street, annual, about a year, ongoing, card saved",
     planA?.source === "authorize_net" && planA.status === "active" && planA.offer_code === "general" && planA.billing_cycle === "annual" && yearOn > 360 && yearOn < 370 && planA.term_ends_at === null && planA.anet_customer_profile_id && planA.anet_payment_profile_id && planA.card_last4 === "1111",
     planA,
   );
-  check("no Founding seat is claimed", must(await admin.from("offer_seat_claims").select("id").eq("business_id", a.business.id), "seat").length === 0);
+  check("no Pioneer Circle seat is claimed", must(await admin.from("offer_seat_claims").select("id").eq("business_id", a.business.id), "seat").length === 0);
   const payA = await paymentsOf(a.business.id);
   check(`one payment row: $${generalAnnual / 100}, paid, last 4 only`, payA.length === 1 && payA[0].status === "paid" && payA[0].amount_cents === generalAnnual && payA[0].card_last4 === "1111", payA);
   check("the coupon is live", await liveCoupon(a.coupon.id));
@@ -681,7 +681,7 @@ async function mainProduction() {
   check("billing history shows the declined payment with last 4", /Declined/.test(histD) && /Ending in 1111/.test(histD) && !/4111111111111111/.test(histD));
 
   console.log("\nPaid seat race at the last seat");
-  console.log("  skip  covered by the rolled-back SQL test (it needs the Founding seats filled)");
+  console.log("  skip  covered by the rolled-back SQL test (it needs the Pioneer Circle seats filled)");
 
   console.log("\nUpdate card");
   const upd = await say(a.owner, "merchant/billing/actions.ts", "startCardUpdate", null);
@@ -706,20 +706,20 @@ async function mainProduction() {
   const resume = await say(a.owner, "merchant/billing/actions.ts", "setRenewal", true);
   check("Resume renewals", resume?.ok === true && (await planOf(a.business.id)).cancel_at_period_end === false);
 
-  console.log("\nRenewal into General when a 12-month term ends, job run twice at once");
-  // A's plan becomes an Early Access year that has just ended, so it renews into General.
+  console.log("\nRenewal into Main Street when a 12-month term ends, job run twice at once");
+  // A's plan becomes an Early Bird year that has just ended, so it renews into Main Street.
   const pA = iso(Date.now() - 3_600_000);
   must(await admin.from("subscriptions").update({ offer_code: "early_access", current_period_end: pA, term_ends_at: pA }).eq("business_id", a.business.id), "due");
   const [r1, r2] = await Promise.all([daily(Date.now(), [a.business.id]), daily(Date.now(), [a.business.id])]);
   const attA = await attemptsOf(a.business.id);
   check("two runs at once make one attempt", attA.length === 1 && attA[0].status === "paid", { attA, r1: r1.body, r2: r2.body });
-  check(`charged today's General price from the offers table, $${generalAnnual / 100}`, attA[0]?.amount_cents === generalAnnual && attA[0].offer_code === "general");
+  check(`charged today's Main Street price from the offers table, $${generalAnnual / 100}`, attA[0]?.amount_cents === generalAnnual && attA[0].offer_code === "general");
   const renewed = await planOf(a.business.id);
   const nextYear = (new Date(renewed.current_period_end) - new Date(pA)) / DAY;
-  check("plan moves on a year from the old end date, now General, ongoing", renewed.offer_code === "general" && nextYear > 364 && nextYear < 367 && renewed.term_ends_at === null && renewed.status === "active", renewed);
+  check("plan moves on a year from the old end date, now Main Street, ongoing", renewed.offer_code === "general" && nextYear > 364 && nextYear < 367 && renewed.term_ends_at === null && renewed.status === "active", renewed);
   const r3 = await daily(Date.now(), [a.business.id]);
   check("a third run charges nothing", (await attemptsOf(a.business.id)).length === 1 && (await paymentsOf(a.business.id)).filter((p) => p.kind === "renewal").length === 1, r3.body);
-  console.log("  skip  a General price change applying to the next renewal (it needs an offer edit)");
+  console.log("  skip  a Main Street price change applying to the next renewal (it needs an offer edit)");
 
   console.log("\nFailed renewal: retries on days 1, 3 and 7, grace, then the plan ends");
   const bad = await savedProfile("bad", { zip: "46282" });
@@ -731,7 +731,7 @@ async function mainProduction() {
   const d0 = await daily(pF + 3_600_000, [g.business.id]);
   let pg = await planOf(g.business.id);
   check("day 0: declined, past due, coupons stay live", pg.status === "past_due" && pg.past_due_since && (await liveCoupon(g.coupon.id)), { pg, d0: d0.body });
-  check(`charged at General monthly ($${generalMonthly / 100})`, (await attemptsOf(g.business.id))[0]?.amount_cents === generalMonthly);
+  check(`charged at Main Street monthly ($${generalMonthly / 100})`, (await attemptsOf(g.business.id))[0]?.amount_cents === generalMonthly);
   const failedMail = must(await admin.from("email_notices").select("ref").eq("kind", "payment_failed").eq("ref", `${g.business.id}:${new Date(pF).toISOString()}`), "mail");
   check("the payment-failed email is claimed once for this period", failedMail.length === 1);
   await daily(pF + 2 * 3_600_000, [g.business.id]);
@@ -816,7 +816,7 @@ async function mainProduction() {
   const remR = must(await admin.from("email_notices").select("kind").eq("ref", `${rm.business.id}:${new Date(pR).toISOString()}`), "rem");
   check("renewal reminders at 60 and 30 days, once each", remR.map((x) => x.kind).sort().join() === "renewal_reminder_30,renewal_reminder_60", remR);
 
-  console.log("\nFree-seat plan: add-card reminder, card saved, continues on General");
+  console.log("\nFree-seat plan: add-card reminder, card saved, continues on Main Street");
   // A complimentary Founding plan row with a 12-month term, as a free seat has. No seat claim is made.
   const pJ = Date.now() + 40 * DAY;
   const j = await merchant("j", { source: "complimentary", status: "active", current_period_end: iso(pJ), term_ends_at: iso(pJ), offer_code: "founding_merchant" });
@@ -827,13 +827,13 @@ async function mainProduction() {
   check("with payments closed, billing does not offer Add card", !/Add card/.test(freePage) && !/data-renewal-terms/.test(freePage));
   const addClosed = await say(j.owner, "merchant/billing/actions.ts", "startCardUpdate", "monthly", "I agree");
   check("and the Add card action refuses", addClosed?.ok === false && /not open/.test(addClosed.error), addClosed);
-  // As if the card had been added on the hosted page, after agreeing to continue on General monthly.
+  // As if the card had been added on the hosted page, after agreeing to continue on Main Street monthly.
   const jCard = await savedProfile("j", { number: "4007000000027" });
   must(await admin.from("subscriptions").update({ anet_customer_profile_id: jCard.customer, billing_cycle: "monthly" }).eq("business_id", j.business.id), "card");
   const consentJ = must(
     await admin
       .from("renewal_consents")
-      .insert({ business_id: j.business.id, user_id: j.owner.id, context: "add_card", offer_code: "general", billing_cycle: "monthly", wording: `Your free Founding Merchant year ends soon. Your plan then continues automatically as General at $${generalMonthly / 100} a month. (test ${run})` })
+      .insert({ business_id: j.business.id, user_id: j.owner.id, context: "add_card", offer_code: "general", billing_cycle: "monthly", wording: `Your free Pioneer Circle year ends soon. Your plan then continues automatically as Main Street at $${generalMonthly / 100} a month. (test ${run})` })
       .select()
       .single(),
     "consent j",
@@ -847,7 +847,7 @@ async function mainProduction() {
   await daily(Date.now(), [j.business.id]);
   const pj = await planOf(j.business.id);
   const attJ = await attemptsOf(j.business.id);
-  check(`it continues on General monthly at $${generalMonthly / 100}, paid with the saved card`, attJ[0]?.status === "paid" && attJ[0].amount_cents === generalMonthly && pj.source === "authorize_net" && pj.offer_code === "general" && pj.billing_cycle === "monthly", { pj, attJ });
+  check(`it continues on Main Street monthly at $${generalMonthly / 100}, paid with the saved card`, attJ[0]?.status === "paid" && attJ[0].amount_cents === generalMonthly && pj.source === "authorize_net" && pj.offer_code === "general" && pj.billing_cycle === "monthly", { pj, attJ });
   const freeNoCard = await merchant("k", { source: "complimentary", status: "active", current_period_end: iso(Date.now() - 3_600_000), term_ends_at: iso(Date.now() - 3_600_000), offer_code: "founding_merchant" });
   await daily(Date.now(), [freeNoCard.business.id]);
   check("a free seat without a card is never charged and simply ends", (await attemptsOf(freeNoCard.business.id)).length === 0 && !(await liveCoupon(freeNoCard.coupon.id)));
@@ -916,7 +916,7 @@ try {
   const o = originalOffers.founding_merchant;
   const seats = await admin.rpc("offer_seats_in_use", { p_offer_code: "founding_merchant" });
   check(
-    "Founding offer, General price, settings and seat counts are back as they were",
+    "Pioneer Circle offer, Main Street price, settings and seat counts are back as they were",
     o && f.data.free_seats === o.free_seats && f.data.seat_cap === o.seat_cap && f.data.window_starts_at === o.window_starts_at && seats.data === usedBefore,
     { offer: f.data, seats: seats.data },
   );

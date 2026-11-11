@@ -20,6 +20,7 @@ import { startCardUpdate, startPlanCheckout } from "./actions";
 import { priceFor, priceText, purchasableOffer, refreshCard, renewalTerms, resolveCheckout, sweepCheckouts } from "@/lib/paid-billing";
 import { anetConfigured } from "@/lib/authorize-net";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { offerNames } from "@/lib/offer-names";
 import type { Tables } from "@/lib/supabase/database.types";
 
 export const metadata: Metadata = { title: "Billing" };
@@ -37,12 +38,13 @@ function clockNow() {
 }
 
 // After publishing a first coupon (or pressing Claim free seat), the action lands here with the result.
-const CLAIM_MESSAGES: Record<string, { tone: "error" | "success"; text: string }> = {
-  claimed: { tone: "success", text: "Your free Founding Merchant seat is confirmed. Any coupon you just published is live for shoppers." },
-  seats_gone: { tone: "error", text: "The last free Founding seat has just been taken, so your coupon is saved as a draft." },
+// `seat` is the founding offer's name from the offers table (Pioneer Circle).
+const claimMessages = (seat: string): Record<string, { tone: "error" | "success"; text: string }> => ({
+  claimed: { tone: "success", text: `Your free ${seat} seat is confirmed. Any coupon you just published is live for shoppers.` },
+  seats_gone: { tone: "error", text: `The last free ${seat} seat has just been taken, so your coupon is saved as a draft.` },
   not_open: { tone: "error", text: "Publishing has not opened yet, so your coupon is saved as a draft." },
-  already_claimed: { tone: "error", text: "This business has already used its Founding seat, so your coupon is saved as a draft." },
-  no_offer: { tone: "error", text: "Free Founding seats are not open right now, so your coupon is saved as a draft." },
+  already_claimed: { tone: "error", text: `This business has already used its ${seat} seat, so your coupon is saved as a draft.` },
+  no_offer: { tone: "error", text: `Free ${seat} seats are not open right now, so your coupon is saved as a draft.` },
   profile_incomplete: { tone: "error", text: "Finish your business profile and first store first. Your coupon is saved as a draft." },
   coupon_required: { tone: "error", text: "Publish your first coupon to claim your free seat." },
   coupon_invalid: { tone: "error", text: "That coupon cannot be published, so it is saved as a draft. Check its end date and try again." },
@@ -50,7 +52,7 @@ const CLAIM_MESSAGES: Record<string, { tone: "error" | "success"; text: string }
   has_plan: { tone: "success", text: "You already have a plan, so you can publish coupons." },
   not_allowed: { tone: "error", text: "Only the owner or a manager can claim a seat for this business." },
   failed: { tone: "error", text: "We could not claim a seat just now. Your coupon is saved as a draft. Try again in a moment." },
-};
+});
 
 // How long after a checkout starts a return with no payment found yet still means "confirming".
 // A hosted payment page token lasts 15 minutes.
@@ -73,8 +75,9 @@ async function BillingContent({ searchParams }: { searchParams: PageProps<"/merc
   const { claim, checkout, cancelled, card } = await searchParams;
   const { business, supabase } = await requireManagedBusiness("/merchant/billing");
   const now = clockNow();
+  const names = await offerNames();
 
-  let message = typeof claim === "string" ? CLAIM_MESSAGES[claim] : undefined;
+  let message = typeof claim === "string" ? claimMessages(names.founding)[claim] : undefined;
   let confirming = false;
   if (anetConfigured()) {
     if (cancelled === "1") {
@@ -118,11 +121,11 @@ async function BillingContent({ searchParams }: { searchParams: PageProps<"/merc
       <PlanPanel
         state={planState(billing.plan, now)}
         timeZone={business.timezone}
-        foundingSeat={billing.plan?.offer_code === FOUNDING_OFFER && billing.plan.source === "complimentary"}
+        seatName={billing.plan?.offer_code === FOUNDING_OFFER && billing.plan.source === "complimentary" ? names.founding : null}
       />
       {billing.claim && (
         <p className="text-sm tabular">
-          Founding Merchant seat {billing.claim.seat_number}, claimed on {formatDay(billing.claim.claimed_at, business.timezone)}.
+          {names.founding} seat {billing.claim.seat_number}, claimed on {formatDay(billing.claim.claimed_at, business.timezone)}.
         </p>
       )}
       <section className="panel grid gap-3 p-5" aria-labelledby="limits-heading">
@@ -234,15 +237,19 @@ async function PaymentPanel({ plan, billing, timeZone }: { plan: Tables<"subscri
     .eq("status", "pending")
     .not("anet_trans_id", "is", null);
   const terms = renewalTerms(plan, new Map((offerRows ?? []).map((o) => [o.code, o])));
-  const general = offerRows?.find((o) => o.code === "general");
+  // A free seat continues on the offer the founding offer renews into (Main Street).
+  const founding = offerRows?.find((o) => o.code === FOUNDING_OFFER);
+  const general = offerRows?.find((o) => o.code === (founding?.renews_into ?? "general"));
   const ends = plan.current_period_end ? formatDay(plan.current_period_end, timeZone) : "the end of this period";
   const cycles: [string, string][] = general
     ? ([["annual", priceText(general.annual_price_cents, "annual")], ...(general.monthly_price_cents ? [["monthly", priceText(general.monthly_price_cents, "monthly")]] : [])] as [string, string][])
     : [["annual", "Annual"]];
-  // A free seat adding a card agrees to continue on General automatically.
+  // A free seat adding a card agrees to continue on that offer automatically.
   const continueTermsFor =
-    free && general && plan.current_period_end
-      ? Object.fromEntries(cycles.map(([c]) => [c, continueTerms({ next: general, cycle: c as Cycle, endsAt: plan.current_period_end!, timeZone: safeTimeZone(timeZone) })]))
+    free && founding && general && plan.current_period_end
+      ? Object.fromEntries(
+          cycles.map(([c]) => [c, continueTerms({ free: founding, next: general, cycle: c as Cycle, endsAt: plan.current_period_end!, timeZone: safeTimeZone(timeZone) })]),
+        )
       : undefined;
 
   return (
@@ -252,7 +259,8 @@ async function PaymentPanel({ plan, billing, timeZone }: { plan: Tables<"subscri
       </h2>
       {free && !plan.anet_payment_profile_id && (
         <p>
-          Your free Founding seat ends on {ends}. Add a card to continue on General from then. Nothing is charged until that date.
+          Your free {founding?.name ?? "membership"} seat ends on {ends}. Add a card to continue on {general?.name ?? "a paid plan"} from
+          then. Nothing is charged until that date.
         </p>
       )}
       {plan.anet_payment_profile_id && !plan.cancel_at_period_end && terms && (

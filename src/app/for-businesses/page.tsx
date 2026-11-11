@@ -125,7 +125,7 @@ async function FoundingCallout() {
   if (!f) return null;
   return (
     <p className="mt-6 rounded-sm border-[1.5px] border-ink bg-stock-butter p-4">
-      <span className="font-semibold">Be a Founding Merchant.</span> The first {f.freeSeats} qualifying merchants to join between{" "}
+      <span className="font-semibold">{f.name} offer:</span> The first {f.freeSeats} qualifying merchants to join between{" "}
       {f.from} and {f.to} receive one complimentary year. See{" "}
       <Link href="/business-membership" className="font-medium text-ink underline underline-offset-4">
         Business membership

@@ -139,22 +139,23 @@ export function planStartedEmail({
   endsAt: string | null;
   timeZone: string;
   foundingSeat?: boolean;
-  // Paid plans: the offer name, for example "Founding Merchant".
+  // The offer name from the offers table, for example "Pioneer Circle". Shown for paid plans and free seats.
   offerName?: string | null;
   // Paid plans: the automatic renewal terms the merchant agreed to, word for word.
   renewalTerms?: string | null;
 }): RenderedEmail {
   const paid = source !== "complimentary";
   const rows: [string, string][] = [["Business", businessName]];
-  if (foundingSeat) rows.push(["Plan", "Founding Merchant, free seat"]);
+  const seat = foundingSeat ? (offerName ?? "Coupersville") : null;
+  if (seat) rows.push(["Plan", `${seat}, free seat`]);
   if (paid && offerName) rows.push(["Plan", offerName]);
   if (endsAt) rows.push([paid ? "Renews on" : "Active until", day(endsAt, timeZone)]);
   let text = "Coupersville gave your business a complimentary plan. Your published coupons are live for shoppers.";
   if (paid) text = "Thanks for your payment. Your plan is active and your published coupons are live for shoppers.";
-  if (foundingSeat) text = "Welcome, Founding Merchant. You have one of the free Founding seats: your first 12 months are on us, and your coupon is live for shoppers.";
+  if (seat) text = `Welcome to ${seat}. You have one of the free ${seat} seats: your first 12 months are on us, and your coupon is live for shoppers.`;
   return layout({
-    subject: foundingSeat ? "Your Founding Merchant seat is confirmed" : "Your Coupersville plan is active",
-    heading: foundingSeat ? "Welcome, Founding Merchant" : "Your plan is active",
+    subject: seat ? `Your ${seat} seat is confirmed` : "Your Coupersville plan is active",
+    heading: seat ? `Welcome to ${seat}` : "Your plan is active",
     blocks: [
       { kind: "p", text },
       { kind: "stub", rows },
@@ -174,13 +175,24 @@ function renewalTermsBlocks(terms: string | null): Block[] {
   ];
 }
 
-// After a free Founding seat adds a card: confirms the plan will continue on General automatically.
-export function renewalTermsEmail({ businessName, terms, last4 }: { businessName: string; terms: string; last4: string | null }): RenderedEmail {
+// After a free founding seat (Pioneer Circle) adds a card: confirms the plan will continue automatically.
+export function renewalTermsEmail({
+  businessName,
+  terms,
+  last4,
+  freeName,
+}: {
+  businessName: string;
+  terms: string;
+  last4: string | null;
+  // The founding offer's name from the offers table.
+  freeName: string;
+}): RenderedEmail {
   return layout({
     subject: "Your card is saved: your automatic renewal terms",
     heading: "Your card is saved",
     blocks: [
-      { kind: "p", text: `Thanks. Your card${last4 ? ` ending in ${last4}` : ""} is saved for ${businessName}, so your plan continues when your free Founding year ends.` },
+      { kind: "p", text: `Thanks. Your card${last4 ? ` ending in ${last4}` : ""} is saved for ${businessName}, so your plan continues when your free ${freeName} year ends.` },
       ...renewalTermsBlocks(terms),
       { kind: "button", label: "Open Billing", href: absoluteUrl("/merchant/billing") },
     ],
@@ -287,31 +299,35 @@ export function renewalReminderEmail({
   });
 }
 
-// 60 and 30 days before a free Founding seat ends.
+// 60 and 30 days before a free founding seat (Pioneer Circle) ends. Names come from the offers table.
 export function addCardReminderEmail({
   businessName,
   endsOn,
-  generalPrices,
+  freeName,
+  nextName,
+  nextPrices,
   hasCard,
   timeZone,
 }: {
   businessName: string;
   endsOn: string;
-  generalPrices: string;
+  freeName: string;
+  nextName: string;
+  nextPrices: string;
   hasCard: boolean;
   timeZone: string;
 }): RenderedEmail {
   return layout({
-    subject: hasCard ? "Your Founding seat continues on General soon" : "Your free Founding seat ends soon",
+    subject: hasCard ? `Your ${freeName} seat continues on ${nextName} soon` : `Your free ${freeName} seat ends soon`,
     heading: hasCard ? "Your plan continues soon" : "Your free year ends soon",
     blocks: [
       {
         kind: "p",
         text: hasCard
-          ? `The free Founding seat for ${businessName} ends soon. Your card is on file, so the plan continues on General.`
-          : `The free Founding seat for ${businessName} ends soon. Add a card to continue on General, or the plan ends and your coupons are hidden from shoppers.`,
+          ? `The free ${freeName} seat for ${businessName} ends soon. Your card is on file, so the plan continues on ${nextName}.`
+          : `The free ${freeName} seat for ${businessName} ends soon. Add a card to continue on ${nextName}, or the plan ends and your coupons are hidden from shoppers.`,
       },
-      { kind: "stub", rows: [["Free seat ends on", day(endsOn, timeZone)], ["General", generalPrices]] },
+      { kind: "stub", rows: [["Free seat ends on", day(endsOn, timeZone)], [nextName, nextPrices]] },
       { kind: "button", label: hasCard ? "See your plan" : "Add card", href: absoluteUrl("/merchant/billing") },
     ],
   });

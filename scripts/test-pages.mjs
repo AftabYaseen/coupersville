@@ -223,6 +223,65 @@ async function main() {
 
   await phaseThree({ shop, owner, categoryId, insertCoupon, storeA, pastry: coupon });
   await nearMe();
+  await roundThree();
+}
+
+// Client changes, round 3 (2026-11-12): the home hero, the new membership level names (read from the
+// offers table everywhere), and the permanent /join address for the printed QR code. Reads only.
+async function roundThree() {
+  console.log("\nRound 3: home hero");
+  const home = await get("/");
+  const tagline = home.body.indexOf("Local offers. Local shoppers. One simple marketplace.");
+  const headline = home.body.indexOf("Where good deals live.");
+  check("home: the marketplace line sits above the headline", tagline > -1 && headline > tagline, { tagline, headline });
+  check(
+    "home: the supporting line",
+    home.body.includes("Coupersville is a digital coupon marketplace that connects local businesses with shoppers ready to discover them."),
+  );
+  check(
+    "home: the town sign is a contained postcard with an ink outline in the hero",
+    /<figure class="[^"]*border-ink[^"]*max-w-\[560px\]|<figure class="[^"]*max-w-\[560px\][^"]*border-ink/.test(home.body) && home.body.includes("town-sign") &&
+      home.body.indexOf("town-sign") < home.body.indexOf("What kind of deal are you looking for?"),
+  );
+
+  console.log("\nRound 3: membership level names");
+  const offers = must(await admin.from("offers").select("code, name"), "offers");
+  const name = Object.fromEntries(offers.map((o) => [o.code, o.name]));
+  check(
+    "offers table has the new names",
+    name.founding_merchant === "Pioneer Circle" && name.early_access === "Early Bird" && name.general === "Main Street" && name.merchant_plus === "Boulevard" && name.enterprise === "Build Your Route",
+    name,
+  );
+  const OLD = ["Founding Merchant", "Early Access", "General Membership", "Merchant Plus", "Enterprise (Custom)", "Founding seat", "General rate", "Enterprise custom quote"];
+  const membership = await get("/business-membership");
+  const shownLevels = ["early_access", "general", "merchant_plus", "enterprise"].map((c) => name[c]);
+  check("Business membership shows the level names from the offers table", shownLevels.every((n) => membership.body.includes(n)), shownLevels);
+  check(
+    "Business membership words other levels by their table names",
+    membership.body.includes(`${name.merchant_plus} includes up to`) && membership.body.includes(`for a ${name.enterprise} custom quote`) &&
+      membership.body.includes(`${name.early_access} renewals convert to the then-current ${name.general} rate`),
+  );
+  for (const [path, label] of [["/", "home"], ["/business-membership", "Business membership"], ["/for-businesses", "For businesses"]]) {
+    const body = path === "/" ? home.body : path === "/business-membership" ? membership.body : (await get(path)).body;
+    const found = OLD.filter((o) => body.includes(o));
+    check(`${label}: no old level names`, found.length === 0, found);
+  }
+  const callout = must(await admin.from("offers").select("active, free_seats, window_ends_at").eq("code", "founding_merchant").single(), "founding");
+  if (callout.active && new Date(callout.window_ends_at).getTime() > Date.now()) {
+    check("home: the founding callout uses its table name", home.body.includes(`${name.founding_merchant} offer:`));
+  }
+
+  console.log("\nRound 3: coupersville.com/join");
+  const join = await get("/join");
+  check(
+    "/join sends visitors to the business sign-up (temporary redirect, so the printed address keeps working if the page moves)",
+    join.status === 307 && new URL(join.location, base).pathname === "/signup" && new URL(join.location, base).searchParams.get("type") === "merchant",
+    `${join.status} ${join.location}`,
+  );
+  const joinFollowed = await fetch(`${base}/join`);
+  check("/join lands on the business sign-up form", joinFollowed.status === 200 && (await joinFollowed.text()).includes("Create my business account"));
+  const staffInvite = await get(`/join/${"0".repeat(48)}`);
+  check("/join/[token] staff invites still open the invite page", staffInvite.status === 200 && staffInvite.body.includes("Invite not available"));
 }
 
 // Copy deck phase 3 (2026-11-12): breadcrumb, Get directions, Exclusions, the generate step, search

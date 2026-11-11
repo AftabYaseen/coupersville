@@ -23,34 +23,45 @@ const ROW_SIZE = 6;
 export default function Home() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
-      <figure className="mx-auto w-full max-w-[827px] rounded-sm border-[1.5px] border-ink bg-white p-2 sm:p-3">
-        <Image
-          src={welcomeSign}
-          alt="A wooden sign reading Welcome to Coupersville, Find Your Joy, Population: Growing Every Day, beside a tree-lined main street of shops."
-          sizes="(max-width: 859px) calc(100vw - 3.5rem), 800px"
-          className="h-auto w-full max-w-[800px]"
-          preload
-        />
-      </figure>
-
-      <section className="mt-10" aria-labelledby="welcome-heading">
-        <p className="text-lg font-medium">Come see what&apos;s happening in Coupersville.</p>
-        <h1 id="welcome-heading" className="wordmark mt-1 text-4xl text-ink sm:text-5xl">
-          Where good deals live.
-        </h1>
-        <p className="mt-3 max-w-2xl text-lg">
-          Discover savings from restaurants, shops, services and businesses near you and beyond. Find an offer you love, get your
-          digital coupon and enjoy the savings.
+      {/* The hero: the marketplace line on top, then the welcome sign as a postcard beside the
+          headline (above it on a phone). The sign is contained, never a full-width background. */}
+      <section aria-labelledby="welcome-heading">
+        <p className="wordmark text-2xl text-ink sm:text-3xl">Local offers. Local shoppers. One simple marketplace.</p>
+        <p className="mt-2 max-w-2xl text-lg">
+          Coupersville is a digital coupon marketplace that connects local businesses with shoppers ready to discover them.
         </p>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Link href="/search" className="btn">
-            Find a deal
-          </Link>
-          <Link href="/explore" className="btn btn-secondary">
-            Explore Coupersville
-          </Link>
+
+        <div className="mt-6 grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-8">
+          <figure className="mx-auto w-full max-w-[560px] rounded-sm border-[1.5px] border-ink bg-white p-2 sm:p-3 lg:order-2">
+            <Image
+              src={welcomeSign}
+              alt="A wooden sign reading Welcome to Coupersville, Find Your Joy, Population: Growing Every Day, beside a tree-lined main street of shops."
+              sizes="(max-width: 1023px) min(calc(100vw - 3.5rem), 536px), 456px"
+              className="h-auto w-full"
+              preload
+            />
+          </figure>
+
+          <div className="lg:order-1">
+            <p className="text-lg font-medium">Come see what&apos;s happening in Coupersville.</p>
+            <h1 id="welcome-heading" className="wordmark mt-1 text-4xl text-ink sm:text-5xl">
+              Where good deals live.
+            </h1>
+            <p className="mt-3 max-w-2xl text-lg">
+              Discover savings from restaurants, shops, services and businesses near you and beyond. Find an offer you love, get
+              your digital coupon and enjoy the savings.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link href="/search" className="btn">
+                Find a deal
+              </Link>
+              <Link href="/explore" className="btn btn-secondary">
+                Explore Coupersville
+              </Link>
+            </div>
+            <p className="mt-4 font-medium">No clipping. No printing. Just find it, scan it and save.</p>
+          </div>
         </div>
-        <p className="mt-4 font-medium">No clipping. No printing. Just find it, scan it and save.</p>
       </section>
 
       <section className="mt-12" aria-labelledby="search-heading">
@@ -134,7 +145,7 @@ async function FoundingLine() {
   if (!f) return null;
   return (
     <p className="rounded-sm border-[1.5px] border-ink bg-stock-butter p-4">
-      <span className="font-semibold">Founding Merchant offer:</span> The first {f.freeSeats} qualifying merchants who join between{" "}
+      <span className="font-semibold">{f.name} offer:</span> The first {f.freeSeats} qualifying merchants who join between{" "}
       {f.from} and {f.to} receive one complimentary year.
     </p>
   );
