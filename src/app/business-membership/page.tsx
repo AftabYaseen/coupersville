@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { membershipLevels } from "@/lib/membership";
+import { FOUNDING_OFFER } from "@/lib/offers";
 import { JOIN_HREF } from "@/lib/site-copy";
 
 export const metadata: Metadata = {
@@ -101,6 +102,11 @@ async function Levels() {
               </div>
               <div className="grid content-start gap-3">
                 <p>{l.details}</p>
+                {l.code === FOUNDING_OFFER && (
+                  <Link href="/pioneer-circle" className="font-medium text-ink underline underline-offset-4 justify-self-start">
+                    What it means to join the {l.name}
+                  </Link>
+                )}
                 {!l.annual && (
                   <Link href="/contact" className="btn btn-secondary justify-self-start">
                     Contact us for a custom quote
@@ -160,6 +166,13 @@ async function Levels() {
             </div>
           ))}
         </dl>
+        <p className="mt-4">
+          More questions? See the{" "}
+          <Link href="/faq" className="font-medium text-ink underline underline-offset-4">
+            frequently asked questions
+          </Link>
+          .
+        </p>
       </section>
     </>
   );

@@ -171,7 +171,11 @@ async function main() {
   const history = await get("/history", shopper);
   check("history lists it with business and store", history.body.includes(`Page test shop ${run}`) && history.body.includes("North store"));
   const dash = await get("/merchant", owner);
-  check("dashboard shows redemption stats", dash.body.includes("Redemptions") && dash.body.includes("Page test pastry"));
+  check(
+    "dashboard shows redemption stats",
+    dash.body.includes("Redemptions") && dash.body.includes("Page test pastry"),
+    `${dash.status} ${dash.location} redemptions:${dash.body.includes("Redemptions")} pastry:${dash.body.includes("Page test pastry")} length:${dash.body.length}`,
+  );
   const list = await get("/merchant/coupons?view=live", owner);
   check("coupon list shows 1 of 50 redeemed", list.body.includes("1 of 50 redeemed"));
 
@@ -224,6 +228,103 @@ async function main() {
   await phaseThree({ shop, owner, categoryId, insertCoupon, storeA, pastry: coupon });
   await nearMe();
   await roundThree();
+  await pioneerAndFaq(owner);
+}
+
+// Client request (2026-11-11): the Pioneer Circle page, the welcome step, and the FAQ page.
+async function pioneerAndFaq(plainOwner) {
+  const founding = must(await admin.from("offers").select("name, seat_cap, free_seats").eq("code", "founding_merchant").single(), "founding");
+  const name = founding.name;
+  const first = founding.seat_cap ? `first ${founding.seat_cap}` : "first";
+
+  console.log("\nPioneer Circle page");
+  const pc = await get("/pioneer-circle");
+  check("/pioneer-circle is public", pc.status === 200);
+  check("its name and seat count come from the offers table", pc.body.includes(`Coupersville ${name}`) && pc.body.includes(`The ${first}. The beginning of something bigger.`));
+  check(
+    "it carries the client's sections, Honorary Pioneer included",
+    ["What we ask of our Pioneers", "What you can expect from us", "When life and business happen", "Coupersville Honorary Pioneer", "Completing your Pioneer year", "The Pioneer spirit"].every((t) => pc.body.includes(t)),
+  );
+  // Our factual note, numbers from the offers table (the current figures: 200 places, 50 free).
+  const note =
+    founding.seat_cap && founding.free_seats > 0 && founding.free_seats < founding.seat_cap - 1
+      ? `The ${name} has ${founding.seat_cap} places. The first ${founding.free_seats} Pioneers receive a complimentary year; Pioneers ${founding.free_seats + 1} to ${founding.seat_cap} join at the ${name} rate.`
+      : null;
+  if (note) check("the page has the places note, with numbers from the offers table", pc.body.includes(note), note);
+  check("nothing to sign and no checkbox", pc.body.includes("nothing to sign") && !pc.body.includes('type="checkbox"'));
+  check("no em dashes", !pc.body.includes("—"));
+
+  console.log("\nLinks to the Pioneer Circle and FAQ pages");
+  const home = await get("/");
+  check("footer links to the Pioneer Circle (named from the table) and the FAQ", /href="\/pioneer-circle"[^>]*>[^<]*<\/a>/.test(home.body) && home.body.includes(`>${name}</a>`) && home.body.includes('href="/faq"'));
+  const callout = must(await admin.from("offers").select("active, window_ends_at").eq("code", "founding_merchant").single(), "window");
+  const open = callout.active && new Date(callout.window_ends_at).getTime() > Date.now();
+  if (open) {
+    check("home callout links to the Pioneer Circle", home.body.includes(`About the ${name}`));
+    check("For businesses callout links to the Pioneer Circle", (await get("/for-businesses")).body.includes(`for what we ask of our Pioneers`));
+  }
+  const membership = await get("/business-membership");
+  if (open) check("Business membership links to the Pioneer Circle from its level", membership.body.includes(`What it means to join the ${name}`));
+  check("Business membership links to the FAQ", membership.body.includes('href="/faq"'));
+  check("How to save links to the FAQ", (await get("/how-to-save")).body.includes('href="/faq"'));
+
+  console.log("\nFAQ page");
+  const faq = await get("/faq");
+  check("/faq is public", faq.status === 200);
+  check(
+    "grouped under the client's headings",
+    ["About Coupersville", "For shoppers", "For businesses", `Coupersville ${name}`, "Privacy and marketing", "Still have questions?"].every((t) => faq.body.includes(t)),
+  );
+  check("questions are collapsible", (faq.body.match(/<details/g) ?? []).length >= 30, (faq.body.match(/<details/g) ?? []).length);
+  check("correction: free for shoppers", faq.body.includes("No. Coupersville is free for shoppers."));
+  check(
+    "correction: accounts",
+    faq.body.includes("You can browse Coupersville without an account. To save or redeem a coupon, sign up with your email and a one-time code. No password needed."),
+  );
+  check(
+    "correction: redeeming",
+    faq.body.includes("When you are at the business and ready, tap Get my coupon to create your one-time QR code, then show it to the staff to scan. Each coupon page lists its limits, locations and expiry date."),
+  );
+  check(
+    "the replaced answers are gone",
+    !faq.body.includes("Some Coupersville features may require") && !faq.body.includes("Redemption instructions may vary") && !faq.body.includes("designed to make discovering coupons"),
+  );
+  check("coupon kinds include fixed-price offers and free items or services", faq.body.includes("Fixed-price offers") && faq.body.includes("Free items or services"));
+  check("Pioneer answers use the table's name and seat count", faq.body.includes(`What is the Coupersville ${name}?`) && faq.body.includes(`${first} businesses`));
+  if (note) {
+    const section = faq.body.slice(faq.body.indexOf('id="pioneer-circle"'), faq.body.indexOf('id="privacy"'));
+    check("the FAQ's Pioneer section has the places note", section.includes(note));
+  }
+  check("FAQ never says no account is needed", !/no account (is )?needed/i.test(faq.body));
+  check("no em dashes", !faq.body.includes("—"));
+
+  console.log("\nWelcome step and dashboard link");
+  const pioneer = await makeUser("pioneer", "merchant");
+  const biz = must(
+    await admin.from("businesses").insert({ owner_id: pioneer.id, name: `Pioneer test shop ${run}`, status: "active", timezone: "America/Chicago" }).select().single(),
+    "pioneer business",
+  );
+  created.businesses.push(biz.id);
+  const welcome = await get("/merchant/welcome", pioneer);
+  check("the welcome shows the Pioneer Circle page with its button", welcome.status === 200 && welcome.body.includes(`Coupersville ${name}`) && welcome.body.includes("Got it, take me to my dashboard"));
+  const seen = must(await admin.from("businesses").select("pioneer_welcome_seen_at").eq("id", biz.id).single(), "seen");
+  check("opening it records that it was shown", Boolean(seen.pioneer_welcome_seen_at));
+  const again = await get("/merchant/welcome", pioneer);
+  // The page streams, so the redirect may come as a 307 or inside the streamed page (Next's
+  // NEXT_REDIRECT marker, which the browser follows). Either way the page itself is not shown again.
+  const streamedTo = (r, path) => r.status === 200 && r.body.includes(`NEXT_REDIRECT;replace;${path};`);
+  check(
+    "it is shown only once: a second visit goes to the dashboard",
+    (redirectsTo(again, "/merchant") || streamedTo(again, "/merchant")) && !again.body.includes("Got it, take me"),
+    `${again.status} ${again.location} button:${again.body.includes("Got it, take me")} markers:${(again.body.match(/NEXT_REDIRECT.{0,60}|__next-page-redirect.{0,100}/g) ?? []).join(" | ")}`,
+  );
+  const plainDash = await get("/merchant", pioneer);
+  check("no Pioneer Circle link without a founding seat or plan", plainDash.status === 200 && !plainDash.body.includes("You are part of the"));
+  must(await admin.from("subscriptions").insert({ business_id: biz.id, source: "complimentary", status: "active", offer_code: "founding_merchant" }), "founding plan");
+  const pioneerDash = await get("/merchant", pioneer);
+  check("a Pioneer business's dashboard links to the Pioneer Circle", pioneerDash.body.includes(`You are part of the ${name}.`) && pioneerDash.body.includes('href="/pioneer-circle"'));
+  const ownerDash = await get("/merchant", plainOwner);
+  check("other businesses' dashboards have no Pioneer link", !ownerDash.body.includes("You are part of the"));
 }
 
 // Client changes, round 3 (2026-11-12): the home hero, the new membership level names (read from the

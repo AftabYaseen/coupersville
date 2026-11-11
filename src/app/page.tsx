@@ -146,7 +146,10 @@ async function FoundingLine() {
   return (
     <p className="rounded-sm border-[1.5px] border-ink bg-stock-butter p-4">
       <span className="font-semibold">{f.name} offer:</span> The first {f.freeSeats} qualifying merchants who join between{" "}
-      {f.from} and {f.to} receive one complimentary year.
+      {f.from} and {f.to} receive one complimentary year.{" "}
+      <Link href="/pioneer-circle" className="font-medium text-ink underline underline-offset-4">
+        About the {f.name}
+      </Link>
     </p>
   );
 }

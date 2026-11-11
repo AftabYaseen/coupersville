@@ -11,6 +11,7 @@ import { COUPON_VIEWS, COUPON_VIEW_LABELS, couponView } from "@/lib/coupons";
 import { planState } from "@/lib/billing";
 import { FOUNDING_OFFER } from "@/lib/offers";
 import { offerNames } from "@/lib/offer-names";
+import { pioneerOffer } from "@/lib/pioneer";
 import { PageLoading } from "@/components/page-loading";
 import { PlanPanel } from "@/components/merchant/plan-panel";
 import { CampaignUsage } from "@/components/merchant/usage";
@@ -28,6 +29,27 @@ export default function MerchantPage() {
 
 function clockNow() {
   return Date.now();
+}
+
+// Pioneer businesses (a seat in the founding offer, free or paid, or a plan from it) keep a link to
+// the Pioneer Circle page.
+async function PioneerLink({ businessId, offerCode }: { businessId: string; offerCode: string | null }) {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("offer_seat_claims")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", businessId)
+    .eq("offer_code", FOUNDING_OFFER);
+  if (!count && offerCode !== FOUNDING_OFFER) return null;
+  const { name } = await pioneerOffer();
+  return (
+    <p className="panel mt-6 flex flex-wrap items-center justify-between gap-3 p-5">
+      <span>You are part of the {name}.</span>
+      <Link href="/pioneer-circle" className="btn btn-secondary">
+        {name}
+      </Link>
+    </p>
+  );
 }
 
 function summarise(
@@ -147,6 +169,10 @@ async function MerchantHome() {
           billingLink
         />
       </div>
+
+      <Suspense fallback={null}>
+        <PioneerLink businessId={managed.businessId} offerCode={subscription?.offer_code ?? null} />
+      </Suspense>
 
       <section className="mt-6" aria-labelledby="redemptions-heading">
         <h2 id="redemptions-heading" className="text-xl font-semibold">

@@ -130,7 +130,11 @@ async function FoundingCallout() {
       <Link href="/business-membership" className="font-medium text-ink underline underline-offset-4">
         Business membership
       </Link>{" "}
-      for details.
+      for details, and{" "}
+      <Link href="/pioneer-circle" className="font-medium text-ink underline underline-offset-4">
+        the {f.name}
+      </Link>{" "}
+      for what we ask of our Pioneers.
     </p>
   );
 }

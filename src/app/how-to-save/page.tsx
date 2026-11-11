@@ -104,6 +104,13 @@ export default function HowToSavePage() {
             </div>
           ))}
         </dl>
+        <p className="mt-4">
+          More questions? See the{" "}
+          <Link href="/faq" className="font-medium text-ink underline underline-offset-4">
+            frequently asked questions
+          </Link>
+          .
+        </p>
       </section>
     </div>
   );

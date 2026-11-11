@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { cacheLife } from "next/cache";
 import { BRAND_LINE, ENDING_SOON_HREF, JOIN_HREF } from "@/lib/site-copy";
+import { pioneerOffer } from "@/lib/pioneer";
 
 // Coupon terms, Business membership terms and Accessibility wait for the client's texts.
-const GROUPS = [
+// The Pioneer Circle link takes its label from the offers table (cached for an hour).
+const groups = (pioneerName: string) => [
   {
     label: "For shoppers",
     links: [
@@ -18,6 +20,7 @@ const GROUPS = [
     links: [
       { href: "/for-businesses", label: "For businesses" },
       { href: "/business-membership", label: "Business membership" },
+      { href: "/pioneer-circle", label: pioneerName },
       { href: JOIN_HREF, label: "Join Coupersville" },
       { href: "/login", label: "Merchant sign in" },
     ],
@@ -26,6 +29,7 @@ const GROUPS = [
     label: "Coupersville",
     links: [
       { href: "/about", label: "About" },
+      { href: "/faq", label: "FAQ" },
       { href: "/contact", label: "Contact" },
       { href: "/privacy", label: "Privacy notice" },
       { href: "/terms", label: "Terms of use" },
@@ -40,7 +44,7 @@ async function currentYear() {
 }
 
 export async function SiteFooter() {
-  const year = await currentYear();
+  const [year, pioneer] = await Promise.all([currentYear(), pioneerOffer()]);
   return (
     <footer className="mt-16 border-t-[1.5px] border-ink bg-white">
       <div className="mx-auto grid max-w-5xl gap-8 px-4 py-8 md:grid-cols-[minmax(0,1.3fr)_repeat(3,minmax(0,1fr))]">
@@ -54,7 +58,7 @@ export async function SiteFooter() {
           </p>
           <p className="mt-2 text-sm font-semibold">{BRAND_LINE}</p>
         </div>
-        {GROUPS.map((g) => (
+        {groups(pioneer.name).map((g) => (
           <nav key={g.label} aria-label={g.label}>
             <p className="font-semibold">{g.label}</p>
             <ul className="mt-1">

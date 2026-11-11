@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { businessRow, locationRow } from "@/lib/merchant-rows";
 import { onboardingSchema } from "@/lib/validation/merchant";
+import { pioneerWindowOpen } from "@/lib/pioneer";
 import type { ActionResult } from "@/lib/validation/auth";
 
 const FAILED: ActionResult = { ok: false, error: "We could not save your business. Try again in a moment." };
@@ -61,5 +62,7 @@ export async function completeOnboarding(input: unknown): Promise<ActionResult> 
     .eq("status", "draft");
   if (activateError) return FAILED;
 
-  redirect("/merchant");
+  // Joining while the Pioneer Circle (founding offer) window is open: show its page once first.
+  const pioneer = await pioneerWindowOpen(Date.now()).catch(() => false);
+  redirect(pioneer ? "/merchant/welcome" : "/merchant");
 }

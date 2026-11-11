@@ -151,6 +151,7 @@ export type Database = {
           logo_path: string | null
           name: string
           owner_id: string | null
+          pioneer_welcome_seen_at: string | null
           primary_category_id: string | null
           status: Database["public"]["Enums"]["business_status"]
           timezone: string
@@ -167,6 +168,7 @@ export type Database = {
           logo_path?: string | null
           name: string
           owner_id?: string | null
+          pioneer_welcome_seen_at?: string | null
           primary_category_id?: string | null
           status?: Database["public"]["Enums"]["business_status"]
           timezone?: string
@@ -183,6 +185,7 @@ export type Database = {
           logo_path?: string | null
           name?: string
           owner_id?: string | null
+          pioneer_welcome_seen_at?: string | null
           primary_category_id?: string | null
           status?: Database["public"]["Enums"]["business_status"]
           timezone?: string

@@ -159,6 +159,7 @@ export function planStartedEmail({
     blocks: [
       { kind: "p", text },
       { kind: "stub", rows },
+      ...(seat ? [{ kind: "p" as const, text: `Read what being part of the ${seat} looks like: ${absoluteUrl("/pioneer-circle")}` }] : []),
       ...renewalTermsBlocks(renewalTerms),
       { kind: "button", label: "Open your dashboard", href: absoluteUrl("/merchant") },
     ],

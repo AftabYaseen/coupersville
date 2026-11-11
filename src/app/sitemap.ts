@@ -16,7 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     supabase.from("live_coupons").select("id, updated_at").order("updated_at", { ascending: false }).limit(5000),
   ]);
 
-  const pages = ["/", "/search", "/explore", "/how-to-save", "/for-businesses", "/business-membership", "/about", "/contact", "/privacy", "/terms"].map((path) => ({
+  const pages = ["/", "/search", "/explore", "/how-to-save", "/for-businesses", "/business-membership", "/pioneer-circle", "/faq", "/about", "/contact", "/privacy", "/terms"].map((path) => ({
     url: absoluteUrl(path),
     changeFrequency: path === "/" || path === "/search" ? ("daily" as const) : ("monthly" as const),
   }));
