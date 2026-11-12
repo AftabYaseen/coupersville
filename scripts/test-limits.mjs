@@ -64,7 +64,7 @@ async function merchant(label, offerCode = "general") {
 const couponInput = (title) => ({
   title, description: "", categoryId, discountType: "percent", discountValue: 20, includedProducts: "", limitsText: "", minSpend: "", minQty: "", maxPeople: "",
   startsOn: day(0), expiresOn: day(14), imagePath: null, allLocations: true, locationIds: [], totalLimit: "", perUserMode: "once", perUserLimit: "", redeemFrequency: "none",
-  scheduleOn: false, scheduleDays: [1, 2, 3, 4, 5, 6, 7], scheduleStart: "", scheduleEnd: "",
+  scheduleOn: false, scheduleDays: [1, 2, 3, 4, 5, 6, 7], scheduleStart: "", scheduleEnd: "", visibility: "public",
 });
 const locationInput = (name) => ({ storeName: name, storeNumber: "", addressLine1: "1 Main St", addressLine2: "", city: "Town", state: "CA", postalCode: "90001", phone: "", lat: "", lng: "" });
 
@@ -73,6 +73,8 @@ const save = (who, id, title, intent) => act(who, "merchant/coupons/actions.ts",
 const usageOf = async (who, businessId) => must(await who.client.rpc("business_usage", { p_business_id: businessId }), "usage");
 const couponByTitle = async (businessId, title) => must(await admin.from("coupons").select("*").eq("business_id", businessId).eq("title", title).maybeSingle(), "coupon");
 const page = async (path, who) => (await (await fetch(`${base}${path}`, { headers: { cookie: who.cookie } })).text()).replaceAll("<!-- -->", "");
+// Main Street's campaigns per location, with one open store.
+const LIMIT = 10;
 const draftRow = (businessId, title) => ({ business_id: businessId, category_id: categoryId, title, discount_type: "percent", discount_value: 10, starts_at: iso(-1), expires_at: iso(10), status: "draft" });
 
 async function main() {
@@ -83,23 +85,35 @@ async function main() {
   console.log("\nOffers");
   const offers = Object.fromEntries(must(await admin.from("offers").select("*"), "offers").map((o) => [o.code, o]));
   check("Founding: $99 a year, $12 a month, 200 seats, 50 free, 12 months, into Main Street", offers.founding_merchant.annual_price_cents === 9900 && offers.founding_merchant.monthly_price_cents === 1200 && offers.founding_merchant.seat_cap === 200 && offers.founding_merchant.free_seats === 50 && offers.founding_merchant.term_months === 12 && offers.founding_merchant.renews_into === "general");
-  for (const [code, stores] of [["founding_merchant", 1], ["early_access", 1], ["general", 1], ["merchant_plus", 3]]) {
-    check(`${code}: 4 campaigns, ${stores} location(s)`, offers[code].campaigns_per_month === 4 && offers[code].max_locations === stores, offers[code]);
+  for (const [code, stores, each, jfy] of [["founding_merchant", 1, 10, 5], ["early_access", 1, 10, 5], ["general", 1, 10, 8], ["merchant_plus", 3, 20, 12]]) {
+    check(`${code}: ${each} campaigns per location, ${stores} location(s), ${jfy} Just for You a month`, offers[code].campaigns_per_location === each && offers[code].max_locations === stores && offers[code].private_offers_per_month === jfy, offers[code]);
   }
   check("Build Your Route: inactive, admin only", offers.enterprise?.active === false && offers.enterprise?.admin_only === true);
+  const membership = (await (await fetch(`${base}/business-membership`)).text()).replaceAll("<!-- -->", "").replaceAll("&amp;", "&");
+  const n = (code) => offers[code].name;
+  check(
+    "Business membership: campaigns per location for each level, from the table",
+    membership.includes(`${n("founding_merchant")}, ${n("early_access")} and ${n("general")} include up to 10 campaigns per location per month, and ${n("merchant_plus")} includes up to 20`),
+  );
+  check(
+    "Business membership: Just for You offers for each level, from the table",
+    membership.includes(`Just for You private offers for one customer: 5 a month with ${n("founding_merchant")} and ${n("early_access")}, 8 with ${n("general")} and 12 with ${n("merchant_plus")}.`) &&
+      membership.includes("Includes up to 10 campaigns per location per month and 8 Just for You private offers per month."),
+  );
+  check("Business membership no longer says 4 campaigns", !/\b4 campaigns/.test(membership));
 
   console.log("\nCampaigns");
   const m = await merchant("a");
   const biz = m.business.id;
-  for (let i = 1; i <= 4; i += 1) {
+  for (let i = 1; i <= LIMIT; i += 1) {
     const r = await save(m.owner, null, `Campaign ${i} ${run}`, "publish");
     check(`publish ${i} goes through`, Boolean(r.redirect) && (await couponByTitle(biz, `Campaign ${i} ${run}`))?.status === "published", r);
   }
   let u = await usageOf(m.owner, biz);
-  check("usage says 4 of 4", u.campaigns_used === 4 && u.campaigns_limit === 4, u);
+  check(`usage says ${LIMIT} of ${LIMIT}, ${LIMIT} per location with 1 open store`, u.campaigns_used === LIMIT && u.campaigns_limit === LIMIT && u.campaigns_per_location === LIMIT && u.locations_used === 1 && u.campaigns_override === false, u);
 
   const fifth = await save(m.owner, null, `Campaign five ${run}`, "publish");
-  check("fifth publish is refused and says when it resets", fifth.value?.ok === false && /used all your campaigns/.test(fifth.value.error) && /reset on/.test(fifth.value.error), fifth);
+  check("one more publish is refused and says when it resets", fifth.value?.ok === false && /used all your campaigns/.test(fifth.value.error) && /reset on/.test(fifth.value.error), fifth);
   check("the refused coupon was not created", (await couponByTitle(biz, `Campaign five ${run}`)) === null);
   const draft = await save(m.owner, null, `Campaign five ${run}`, "draft");
   check("a draft can still be saved", Boolean(draft.redirect) && (await couponByTitle(biz, `Campaign five ${run}`))?.status === "draft", draft);
@@ -114,36 +128,37 @@ async function main() {
 
   const first = await couponByTitle(biz, `Campaign 1 ${run}`);
   const edit = await save(m.owner, first.id, `Campaign 1 edited ${run}`, "publish");
-  check("editing a published coupon does not count", Boolean(edit.redirect) && (await usageOf(m.owner, biz)).campaigns_used === 4, edit);
+  check("editing a published coupon does not count", Boolean(edit.redirect) && (await usageOf(m.owner, biz)).campaigns_used === LIMIT, edit);
   const pause = await act(m.owner, "merchant/coupons/actions.ts", "setCouponStatus", [first.id, "paused"]);
   const resume = await act(m.owner, "merchant/coupons/actions.ts", "setCouponStatus", [first.id, "published"]);
-  check("pausing and resuming at the limit works and does not count", pause.value?.ok === true && resume.value?.ok === true && (await usageOf(m.owner, biz)).campaigns_used === 4, { pause, resume });
+  check("pausing and resuming at the limit works and does not count", pause.value?.ok === true && resume.value?.ok === true && (await usageOf(m.owner, biz)).campaigns_used === LIMIT, { pause, resume });
 
   const pages = { dashboard: "/merchant", builder: "/merchant/coupons/new", editor: `/merchant/coupons/${first.id}`, billing: "/merchant/billing" };
   for (const [name, path] of Object.entries(pages)) {
-    check(`${name} shows 4 of 4 campaigns used this month`, /4 of 4 campaigns used this month/.test(await page(path, m.owner)), path);
+    const html = await page(path, m.owner);
+    check(`${name} shows ${LIMIT} of ${LIMIT} campaigns used this month, ${LIMIT} per location`, html.includes(`${LIMIT} of ${LIMIT} campaigns used this month`) && (name === "dashboard" || html.includes(`includes ${LIMIT} per location each month, with 1 open store`)), path);
   }
 
   const held = await couponByTitle(biz, `Campaign 2 ${run}`);
   must(await admin.from("coupons").update({ admin_hold: true }).eq("id", held.id), "hold");
   const del = await act(m.owner, "merchant/coupons/actions.ts", "deleteCoupon", [held.id]);
-  check("deleting a coupon does not give the campaign back", Boolean(del.redirect) && (await usageOf(m.owner, biz)).campaigns_used === 4, del);
+  check("deleting a coupon does not give the campaign back", Boolean(del.redirect) && (await usageOf(m.owner, biz)).campaigns_used === LIMIT, del);
 
   must(await admin.from("coupon_campaigns").update({ month: day(-40).slice(0, 8) + "01" }).eq("business_id", biz), "age ledger");
   u = await usageOf(m.owner, biz);
-  check("a new month starts at 0 with no rollover", u.campaigns_used === 0 && u.campaigns_limit === 4, u);
+  check("a new month starts at 0 with no rollover", u.campaigns_used === 0 && u.campaigns_limit === LIMIT, u);
   const afterReset = await save(m.owner, fifthCoupon.id, `Campaign five ${run}`, "publish");
   check("the draft publishes after the reset", Boolean(afterReset.redirect) && (await usageOf(m.owner, biz)).campaigns_used === 1, afterReset);
 
   console.log("\nCampaigns: two publishes at once");
   const raceM = await merchant("race");
   const raceIds = [];
-  for (let i = 0; i < 5; i += 1) raceIds.push(must(await admin.from("coupons").insert(draftRow(raceM.business.id, `Race ${i} ${run}`)).select("id").single(), "race coupon").id);
+  for (let i = 0; i <= LIMIT; i += 1) raceIds.push(must(await admin.from("coupons").insert(draftRow(raceM.business.id, `Race ${i} ${run}`)).select("id").single(), "race coupon").id);
   const results = await Promise.all(raceIds.map((id) => raceM.owner.client.from("coupons").update({ status: "published" }).eq("id", id)));
   const won = results.filter((r) => !r.error).length;
   const refused = results.filter((r) => r.error?.hint === "campaign_limit").length;
-  check("five at once: exactly four published, one refused", won === 4 && refused === 1, results.map((r) => r.error?.hint ?? "ok"));
-  check("ledger holds four", (await usageOf(raceM.owner, raceM.business.id)).campaigns_used === 4);
+  check(`${LIMIT + 1} at once: exactly ${LIMIT} published, one refused`, won === LIMIT && refused === 1, results.map((r) => r.error?.hint ?? "ok"));
+  check(`ledger holds ${LIMIT}`, (await usageOf(raceM.owner, raceM.business.id)).campaigns_used === LIMIT);
 
   console.log("\nLocations");
   check("dashboard shows 1 of 1 location", /1 of 1 location/.test(await page("/merchant", m.owner)));
@@ -173,12 +188,22 @@ async function main() {
   check("Boulevard shows 3 of 3 locations", /3 of 3 locations/.test(await page("/merchant/locations", plus.owner)));
   const fourth = await act(plus.owner, "merchant/locations/actions.ts", "createLocation", [locationInput("four")]);
   check("Boulevard: a fourth is refused", fourth.value?.ok === false && /includes up to 3 locations/.test(fourth.value.error), fourth);
+  let pu = await usageOf(plus.owner, plus.business.id);
+  check("Boulevard with 3 open stores: 20 per location x 3 = 60 campaigns", pu.campaigns_limit === 60 && pu.campaigns_per_location === 20 && pu.locations_used === 3, pu);
+  const plusBilling = await page("/merchant/billing", plus.owner);
+  check("Boulevard billing shows 0 of 60 campaigns, 20 per location with 3 open stores", /0 of 60 campaigns used this month/.test(plusBilling) && /includes 20 per location each month, with 3 open stores/.test(plusBilling));
+  const plusStore = must(await admin.from("locations").select("id").eq("business_id", plus.business.id).eq("store_name", "Store plus one").single(), "plus store");
+  const plusClosed = await act(plus.owner, "merchant/locations/actions.ts", "setLocationActive", [plusStore.id, false]);
+  pu = await usageOf(plus.owner, plus.business.id);
+  check("closing a store lowers the allowance to 40", plusClosed.value?.ok === true && pu.campaigns_limit === 40, { plusClosed, pu });
 
   for (const [code, stores] of [["founding_merchant", 1], ["early_access", 1], [null, 1]]) {
     const x = await merchant(`limit-${code ?? "none"}`, code);
     const v = await usageOf(x.owner, x.business.id);
-    check(`${code ?? "a plan with no offer"}: ${stores} location, 4 campaigns`, v.locations_limit === stores && v.campaigns_limit === 4, v);
+    check(`${code ?? "a plan with no offer"}: ${stores} location, ${LIMIT} campaigns`, v.locations_limit === stores && v.campaigns_limit === LIMIT, v);
   }
+
+  await justForYou();
 
   console.log("\nAccess");
   const stranger = await merchant("stranger");
@@ -199,14 +224,14 @@ async function main() {
   check("a merchant cannot call the admin action", notAllowed.value?.ok !== true, notAllowed);
   const setOverride = await adminAct("setBusinessLimits", [biz, { maxLocations: 2, campaignsPerMonth: 6 }]);
   u = await usageOf(boss, biz);
-  check("admin override changes the limits", setOverride.value?.ok === true && u.locations_limit === 2 && u.campaigns_limit === 6, { setOverride, u });
+  check("admin override changes the limits (a total for the business)", setOverride.value?.ok === true && u.locations_limit === 2 && u.campaigns_limit === 6 && u.campaigns_override === true, { setOverride, u });
   const reopenNow = await act(m.owner, "merchant/locations/actions.ts", "setLocationActive", [oldStore.id, true]);
   check("the extra store can reopen under the override", reopenNow.value?.ok === true, reopenNow);
   const adminPage = await page(`/admin/merchants/${biz}`, boss);
   check("admin merchant page shows Limits and Grant Build Your Route", /2 of 2 locations/.test(adminPage) && /Grant Build Your Route/.test(adminPage));
   const cleared = await adminAct("setBusinessLimits", [biz, { maxLocations: "", campaignsPerMonth: "" }]);
   u = await usageOf(boss, biz);
-  check("clearing the override returns to the plan's limits", cleared.value?.ok === true && u.locations_limit === 1 && u.campaigns_limit === 4, { cleared, u });
+  check("clearing the override returns to the plan's limits", cleared.value?.ok === true && u.locations_limit === 1 && u.campaigns_override === false, { cleared, u });
 
   const ent = await merchant("ent", null);
   must(await admin.from("subscriptions").delete().eq("business_id", ent.business.id), "remove plan");
@@ -239,6 +264,133 @@ async function main() {
   const noPlan = await merchant("noplan");
   must(await admin.from("subscriptions").delete().eq("business_id", noPlan.business.id), "remove plan");
   check("the Pioneer Circle offer shows both prices", /Pioneer Circle: \$99 a year or \$12 a month for your first year/.test(await page("/merchant/billing", noPlan.owner)));
+}
+
+// Just for You private offers: hidden everywhere public, opened by private link, redeemed once.
+// The "count as campaigns" setting is not switched here: tests never change platform settings.
+async function justForYou() {
+  console.log("\nJust for You");
+  const settings = must(await admin.from("platform_settings").select("private_offers_count_as_campaigns").eq("singleton", true).single(), "settings");
+  check("setting default: Just for You offers have their own allowance", settings.private_offers_count_as_campaigns === false, settings);
+  const LABEL = "Private Offer – Just for You";
+  // Main Street's Just for You offers per month (client, 2026-11-12).
+  const JFY = 8;
+  const j = await merchant("jfy");
+  const jb = j.business.id;
+  const title = `JFY ${run}`;
+  const jfyInput = (t, extra = {}) => ({ ...couponInput(t), visibility: "private", totalLimit: 5, ...extra });
+  const builder = await page("/merchant/coupons/new", j.owner);
+  check("the builder asks Who can see this offer? with both choices", builder.includes("Who can see this offer?") && builder.includes("Everyone: appears publicly on Coupersville") && builder.includes("Just for You: private offer for one customer"));
+
+  const draft = await act(j.owner, "merchant/coupons/actions.ts", "saveCoupon", [null, jfyInput(`${title} draft`), "draft"]);
+  const draftNow = await couponByTitle(jb, `${title} draft`);
+  check("a private draft is not counted", Boolean(draft.redirect) && draftNow?.visibility === "private" && Boolean(draftNow?.private_key) && (await usageOf(j.owner, jb)).private_used === 0, draftNow);
+  const anon = createClient(url, publishable, { auth: { persistSession: false, autoRefreshToken: false } });
+  check("a draft's link shows nothing", (await anon.rpc("private_offer", { p_key: draftNow.private_key })).data === null);
+  const toPublic = await act(j.owner, "merchant/coupons/actions.ts", "saveCoupon", [draftNow.id, { ...jfyInput(`${title} draft`), visibility: "public" }, "draft"]);
+  const nowPublic = await couponByTitle(jb, `${title} draft`);
+  check("a draft can still switch to Everyone, and loses its key", Boolean(toPublic.redirect) && nowPublic.visibility === "public" && nowPublic.private_key === null, nowPublic);
+
+  const pub = await act(j.owner, "merchant/coupons/actions.ts", "saveCoupon", [null, jfyInput(title), "publish"]);
+  const jc = await couponByTitle(jb, title);
+  check("publishing opens the coupon page with its link", Boolean(jc) && Boolean(pub.redirect?.includes(`/merchant/coupons/${jc.id}`)), pub);
+  check("the database fixes total uses at 1 and sets a 32-character private key", jc.visibility === "private" && jc.status === "published" && jc.total_limit === 1 && /^[0-9a-f]{32}$/.test(jc.private_key), jc);
+  const ju = await usageOf(j.owner, jb);
+  check("it counts as a Just for You offer, not a campaign", ju.campaigns_used === 0 && ju.private_used === 1 && ju.private_limit === JFY, ju);
+  const editor = await page(`/merchant/coupons/${jc.id}?published=1`, j.owner);
+  check("the editor shows the label, the private link and Copy link", editor.includes(LABEL) && editor.includes(`https://coupersville.com/just-for-you/${jc.private_key}`) && editor.includes("Copy link"));
+  check(`the editor shows 1 of ${JFY} Just for You offers used this month`, editor.includes(`1 of ${JFY} Just for You offers used this month`));
+  check("who can see it is locked after publishing", editor.includes("This cannot change after the offer is published."));
+  check("the coupon list shows the badge", (await page("/merchant/coupons?view=live", j.owner)).includes(LABEL));
+
+  console.log("\nJust for You: hidden from every public list");
+  const shopper = await user("jfy-shopper", "consumer");
+  check("not in live_coupons", ((await anon.from("live_coupons").select("id").eq("id", jc.id)).data ?? []).length === 0);
+  check("signed out cannot read it from coupons by id", ((await anon.from("coupons").select("id").eq("id", jc.id)).data ?? []).length === 0);
+  check("a signed-in shopper cannot read it by id", ((await shopper.client.from("coupons").select("id").eq("id", jc.id)).data ?? []).length === 0);
+  const found = must(await anon.rpc("search_live_coupons", { p_business: j.business.name, p_limit: 60 }), "search");
+  check("search by business name does not find it", !found.some((r) => r.id === jc.id), found.length);
+  const featuredTry = await admin.from("coupons").update({ featured: true }).eq("id", jc.id).select("featured").single();
+  check("it cannot be featured, even by an admin", featuredTry.data?.featured === false, featuredTry);
+  const slug = must(await admin.from("categories").select("slug").eq("id", categoryId).single(), "category").slug;
+  for (const path of ["/", `/search?business=${encodeURIComponent(j.business.name)}`, "/explore", `/c/${slug}`, "/sitemap.xml", `/coupon/${jc.id}`]) {
+    const html = await (await fetch(`${base}${path}`)).text();
+    check(`${path.split("?")[0]} does not show it`, !html.includes(title), path);
+  }
+  const robots = await (await fetch(`${base}/robots.txt`)).text();
+  check("robots.txt keeps crawlers off /just-for-you", /Disallow: \/just-for-you/.test(robots));
+
+  console.log("\nJust for You: the private link");
+  const link = `/just-for-you/${jc.private_key}`;
+  const open = (await (await fetch(`${base}${link}`)).text()).replaceAll("<!-- -->", "");
+  check("the link opens signed out, says Just for You and offers Get my coupon", open.includes(title) && open.includes("Just for You") && open.includes("Get my coupon") && !open.includes("Private Offer"));
+  check("the page is not indexed and sends no referrer", /<meta name="robots" content="noindex, nofollow"/.test(open) && /<meta name="referrer" content="no-referrer"/.test(open));
+  check("it has no Save button", !/Save for later|Save coupon/.test(open));
+  const wrong = await (await fetch(`${base}/just-for-you/${"0".repeat(32)}`)).text();
+  check("a wrong key shows nothing", !wrong.includes(title));
+
+  const noKey = must(await shopper.client.rpc("create_redemption_token", { p_coupon_id: jc.id }), "no key");
+  check("its id alone gets no code", noKey.result === "not_live", noKey);
+  const badKey = must(await shopper.client.rpc("create_redemption_token", { p_coupon_id: jc.id, p_private_key: "f".repeat(32) }), "bad key");
+  check("a wrong key gets no code", badKey.result === "not_live", badKey);
+  const fav = await shopper.client.from("favorites").insert({ user_id: shopper.id, coupon_id: jc.id });
+  check("it cannot be saved to a list", Boolean(fav.error), fav.error);
+  const started = await act(shopper, "redeem/actions.ts", "startRedemption", [jc.id, jc.private_key]);
+  check("with the key, Get my coupon makes a code", Boolean(started.redirect?.startsWith("/redeem/")), started);
+  const tokenId = started.redirect?.split("/").pop();
+  check("the redeem screen links back to the private page", (await page(started.redirect ?? "/", shopper)).includes(link));
+
+  const store = must(await admin.from("locations").select("id").eq("business_id", jb).single(), "store");
+  const tokenRow = must(await admin.from("redemption_tokens").select("token").eq("id", tokenId).single(), "token");
+  const preview = must(await j.owner.client.rpc("preview_redemption", { p_token_or_code: tokenRow.token, p_location_id: store.id }), "preview");
+  check("staff see it is a Just for You offer before confirming", preview.result === "ok" && preview.offer?.just_for_you === true, preview);
+  const verified = must(await j.owner.client.rpc("verify_redemption", { p_token_or_code: tokenRow.token, p_location_id: store.id }), "verify");
+  check("staff redeem it", verified.result === "ok", verified);
+
+  const second = await user("jfy-second", "consumer");
+  const again = must(await second.client.rpc("create_redemption_token", { p_coupon_id: jc.id, p_private_key: jc.private_key }), "again");
+  check("nobody can redeem it a second time", again.result === "total_limit_reached", again);
+  const againAction = await act(second, "redeem/actions.ts", "startRedemption", [jc.id, jc.private_key]);
+  check("and the shopper is told This offer has been used.", againAction.value?.error === "This offer has been used.", againAction);
+  const used = (await (await fetch(`${base}${link}`)).text()).replaceAll("<!-- -->", "");
+  check("the link now says This offer has been used.", used.includes("This offer has been used.") && !used.includes("Get my coupon"));
+  check("the coupon page says it has been redeemed", (await page(`/merchant/coupons/${jc.id}`, j.owner)).includes("It has been redeemed"));
+
+  console.log("\nJust for You: no free Pioneer Circle seat");
+  const seatless = await merchant("jfy-noplan");
+  must(await admin.from("subscriptions").delete().eq("business_id", seatless.business.id), "remove plan");
+  const privateFirst = await act(seatless.owner, "merchant/coupons/actions.ts", "saveCoupon", [null, jfyInput(`${title} first`), "publish"]);
+  const privateFirstRow = await couponByTitle(seatless.business.id, `${title} first`);
+  check(
+    "a Just for You first coupon is kept as a draft and Billing says why",
+    privateFirstRow?.status === "draft" && (privateFirst.redirect === "/merchant/billing?claim=coupon_private" || /active plan/.test(privateFirst.value?.error ?? "")),
+    privateFirst,
+  );
+  const claimDirect = must(await seatless.owner.client.rpc("claim_founding_seat", { p_business_id: seatless.business.id, p_coupon_id: privateFirstRow.id }), "claim");
+  check("the database refuses a seat for a Just for You offer", claimDirect.result === "coupon_private", claimDirect);
+  const seatRows = must(await admin.from("offer_seat_claims").select("id").eq("business_id", seatless.business.id), "seat claims");
+  const seatPlan = must(await admin.from("subscriptions").select("id").eq("business_id", seatless.business.id), "plan");
+  check("no seat and no plan were given", seatRows.length === 0 && seatPlan.length === 0, { seatRows, seatPlan });
+  const seatBilling = await page("/merchant/billing?claim=coupon_private", seatless.owner);
+  check("Billing explains that the next public coupon claims the seat", seatBilling.includes("A Just for You offer cannot claim your free") && seatBilling.includes("Publish a public coupon to claim your seat"));
+
+  console.log("\nJust for You: the rules hold in the database");
+  const flip = await j.owner.client.from("coupons").update({ visibility: "public" }).eq("id", jc.id);
+  check("who can see it cannot change after publishing", flip.error?.hint === "visibility_locked", flip.error);
+  await j.owner.client.from("coupons").update({ total_limit: 5, private_key: "a".repeat(32) }).eq("id", jc.id);
+  const after = await couponByTitle(jb, title);
+  check("total uses stay 1 and the key never changes", after.total_limit === 1 && after.private_key === jc.private_key, after);
+
+  for (let i = 2; i <= JFY; i += 1) {
+    must(await j.owner.client.from("coupons").insert({ ...draftRow(jb, `${title} ${i}`), visibility: "private", status: "published" }), `private ${i}`);
+  }
+  const overLimit = await j.owner.client.from("coupons").insert({ ...draftRow(jb, `${title} over`), visibility: "private", status: "published" });
+  check(`Just for You offer ${JFY + 1} this month is refused`, overLimit.error?.hint === "private_limit", overLimit.error);
+  const viaAction = await act(j.owner, "merchant/coupons/actions.ts", "saveCoupon", [null, jfyInput(`${title} 12`), "publish"]);
+  check("the builder says the private offers are used up", viaAction.value?.ok === false && /used all your Just for You offers/.test(viaAction.value.error), viaAction);
+  const publicStill = await save(j.owner, null, `${title} public`, "publish");
+  const ju2 = await usageOf(j.owner, jb);
+  check("public campaigns are still available", Boolean(publicStill.redirect) && ju2.campaigns_used === 1 && ju2.private_used === JFY, { publicStill, ju2 });
 }
 
 let crashed = null;

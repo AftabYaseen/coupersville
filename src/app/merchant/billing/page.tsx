@@ -49,6 +49,10 @@ const claimMessages = (seat: string): Record<string, { tone: "error" | "success"
   coupon_required: { tone: "error", text: "Publish your first coupon to claim your free seat." },
   coupon_invalid: { tone: "error", text: "That coupon cannot be published, so it is saved as a draft. Check its end date and try again." },
   campaign_limit: { tone: "error", text: "You have used all your campaigns for this month, so your coupon is saved as a draft." },
+  coupon_private: {
+    tone: "error",
+    text: `A Just for You offer cannot claim your free ${seat} seat, so it is saved as a draft. Publish a public coupon to claim your seat, then publish this one.`,
+  },
   has_plan: { tone: "success", text: "You already have a plan, so you can publish coupons." },
   not_allowed: { tone: "error", text: "Only the owner or a manager can claim a seat for this business." },
   failed: { tone: "error", text: "We could not claim a seat just now. Your coupon is saved as a draft. Try again in a moment." },

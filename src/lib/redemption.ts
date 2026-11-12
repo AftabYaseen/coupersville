@@ -127,6 +127,8 @@ export const offerSchema = z.object({
   schedule_days: z.array(z.number()).nullable().optional(),
   schedule_start: z.string().nullable().optional(),
   schedule_end: z.string().nullable().optional(),
+  // A Just for You offer: staff see its label on the confirm screen.
+  just_for_you: z.boolean().optional(),
   timezone: z.string().nullable().optional(),
   stock_tint: z.enum(["mint", "pink", "sky", "butter"]),
 });

@@ -15,6 +15,7 @@ const FIELDS: { key: keyof typeof SETTING_OPTIONS; label: string }[] = [
   { key: "founders_full", label: "If {founding} seats fill before the window ends" },
   { key: "payments_open", label: "Payments" },
   { key: "renewals_enabled", label: "Renewals" },
+  { key: "private_offers", label: "Just for You offers" },
 ];
 
 export function SettingsForm({ defaults, names }: { defaults: SettingsInput; names: { founding: string; early: string } }) {

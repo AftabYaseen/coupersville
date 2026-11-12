@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { saveCoupon } from "@/app/merchant/coupons/actions";
 import { couponSchema, type CouponInput, type CouponIntent } from "@/lib/validation/merchant";
 import { describeLimits } from "@/lib/coupons";
+import { PRIVATE_OFFER_LABEL } from "@/lib/just-for-you";
 import { goodToKnow } from "@/lib/good-to-know";
 import { DAY_PATTERN, endOfDayInZone } from "@/lib/dates";
 import { WEEKDAYS } from "@/lib/rules";
@@ -48,7 +49,14 @@ type Props = {
   defaults: CouponInput;
   // Removed by Coupersville: it can be edited but never published from here.
   held?: boolean;
+  // Who can see it cannot change once it has been published.
+  visibilityLocked?: boolean;
 };
+
+const VISIBILITY_CHOICES = [
+  { value: "public", label: "Everyone: appears publicly on Coupersville" },
+  { value: "private", label: "Just for You: private offer for one customer" },
+] as const;
 
 function text(v: unknown): string {
   return typeof v === "string" ? v : "";
@@ -78,6 +86,7 @@ export function CouponForm(props: Props) {
   const values = useWatch({ control });
 
   const isDraft = (status === null || status === "draft") && !props.held;
+  const isPrivate = values.visibility === "private";
 
   function submit(intent: CouponIntent) {
     return form.handleSubmit(
@@ -178,6 +187,33 @@ export function CouponForm(props: Props) {
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
         <form onSubmit={submit(isDraft ? "draft" : "save")} noValidate className="grid gap-6">
           {serverError && <FormMessage tone="error">{serverError}</FormMessage>}
+
+          <section className="panel grid gap-4 p-5 sm:p-6">
+            <fieldset disabled={props.visibilityLocked}>
+              <legend className="text-xl font-semibold">Who can see this offer?</legend>
+              <div className="mt-3 grid gap-2">
+                {VISIBILITY_CHOICES.map((choice) => (
+                  <label
+                    key={choice.value}
+                    className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-sm border-[1.5px] border-ink px-3 py-2 ${
+                      values.visibility === choice.value ? "bg-stock-sky" : "bg-white"
+                    }`}
+                  >
+                    <input type="radio" value={choice.value} className="size-5 accent-ink" {...register("visibility")} />
+                    {choice.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            {isPrivate && (
+              <p className="text-sm">
+                A {PRIVATE_OFFER_LABEL} never appears on Coupersville. After you publish it, you get a private link to copy and send to
+                your customer yourself; Coupersville sends no email. It can be redeemed once in total, and every other rule below still
+                applies.
+              </p>
+            )}
+            {props.visibilityLocked && <p className="text-sm">This cannot change after the offer is published.</p>}
+          </section>
 
           <section className="panel grid gap-5 p-5 sm:p-6">
             <h2 className="text-xl font-semibold">The offer</h2>
@@ -294,9 +330,16 @@ export function CouponForm(props: Props) {
                 <input id="maxPeople" inputMode="numeric" className="field-input tabular" {...register("maxPeople")} />
               </Field>
             </div>
-            <Field id="totalLimit" label="Total uses" hint="Optional. Leave blank for no cap." error={err("totalLimit")}>
-              <input id="totalLimit" inputMode="numeric" className="field-input max-w-40 tabular" {...register("totalLimit")} />
-            </Field>
+            {isPrivate ? (
+              <div>
+                <p className="field-label">Total uses</p>
+                <p className="tabular">1, fixed for a {PRIVATE_OFFER_LABEL}.</p>
+              </div>
+            ) : (
+              <Field id="totalLimit" label="Total uses" hint="Optional. Leave blank for no cap." error={err("totalLimit")}>
+                <input id="totalLimit" inputMode="numeric" className="field-input max-w-40 tabular" {...register("totalLimit")} />
+              </Field>
+            )}
             <Field
               id="limitsText"
               label="Additional terms"
@@ -500,7 +543,11 @@ export function CouponForm(props: Props) {
 
       {previewOpen && (
         <Dialog title="Preview coupon" wide onClose={() => setPreviewOpen(false)}>
-          <p className="text-sm">This is how shoppers will see your coupon. Nothing is saved or published from here.</p>
+          <p className="text-sm">
+            {isPrivate
+              ? "This is how your customer will see it, under the heading Just for You. Nothing is saved or published from here."
+              : "This is how shoppers will see your coupon. Nothing is saved or published from here."}
+          </p>
           <div className="grid gap-6 md:grid-cols-[minmax(0,20rem)_1fr] md:items-start">
             {ticket}
             <section aria-label="Good to know">
@@ -517,7 +564,7 @@ export function CouponForm(props: Props) {
                     min_qty: toNumber(values.minQty),
                     max_people: toNumber(values.maxPeople),
                     ...ruleValues,
-                    total_limit: toNumber(values.totalLimit),
+                    total_limit: isPrivate ? 1 : toNumber(values.totalLimit),
                     limits_text: text(values.limitsText) || null,
                     exclusions: text(values.exclusions) || null,
                     expires_at: previewExpires ?? null,
@@ -541,8 +588,9 @@ export function CouponForm(props: Props) {
       {confirmOpen && (
         <Dialog title="Publish this coupon now?" busy={pending} onClose={() => setConfirmOpen(false)}>
           <p>
-            It will become visible in Coupersville immediately and may be redeemed until it is paused, expires or your membership
-            ends.
+            {isPrivate
+              ? "It will not appear anywhere on Coupersville. You will get its private link to send to your customer, and it can be redeemed once until it is paused, expires or your membership ends."
+              : "It will become visible in Coupersville immediately and may be redeemed until it is paused, expires or your membership ends."}
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <button

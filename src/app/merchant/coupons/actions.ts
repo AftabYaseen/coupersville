@@ -13,7 +13,7 @@ import { COUPON_IMAGE_BUCKET, IMAGE_ERROR, isBusinessImagePath } from "@/lib/sto
 import { verifyStoredImage } from "@/lib/verify-image";
 import { couponIntentSchema, couponRuleColumns, couponSchema } from "@/lib/validation/merchant";
 import { parseStats } from "@/lib/redemption-stats";
-import { campaignLimitError } from "@/lib/limits";
+import { campaignLimitError, privateLimitError } from "@/lib/limits";
 import type { ActionResult } from "@/lib/validation/auth";
 import type { PostgrestError } from "@supabase/supabase-js";
 
@@ -41,6 +41,8 @@ function writeError(error: PostgrestError): ActionResult {
   if (error.hint === "admin_hold") return HELD;
   if (error.hint === "publishing_not_open") return NOT_OPEN;
   if (error.hint === "campaign_limit") return campaignLimitError(error.details);
+  if (error.hint === "private_limit") return privateLimitError(error.details);
+  if (error.hint === "visibility_locked") return { ok: false, error: "Who can see this offer cannot change after it is published." };
   return error.hint === "subscription_required" ? PLAN_REQUIRED : FAILED;
 }
 
@@ -81,12 +83,12 @@ export async function saveCoupon(couponId: unknown, input: unknown, intentInput:
     if (count !== locationIds.length) return { ok: false, error: "One of the chosen stores is not yours. Choose again." };
   }
 
-  let existing: { id: string; status: "draft" | "published" | "paused"; image_path: string | null; admin_hold: boolean } | null =
+  let existing: { id: string; status: "draft" | "published" | "paused"; image_path: string | null; admin_hold: boolean; visibility: "public" | "private" } | null =
     null;
   if (id) {
     const { data } = await supabase
       .from("coupons")
-      .select("id, status, image_path, admin_hold")
+      .select("id, status, image_path, admin_hold, visibility")
       .eq("id", id.data)
       .eq("business_id", business.id)
       .maybeSingle();
@@ -126,6 +128,9 @@ export async function saveCoupon(couponId: unknown, input: unknown, intentInput:
     }
   }
 
+  // Who can see it is fixed once published; only a draft takes the form value.
+  const visibility = existing && existing.status !== "draft" ? existing.visibility : v.visibility;
+
   const row = {
     category_id: v.categoryId,
     title: v.title,
@@ -142,7 +147,9 @@ export async function saveCoupon(couponId: unknown, input: unknown, intentInput:
     status,
     image_path: v.imagePath,
     all_locations: v.allLocations,
-    total_limit: v.totalLimit ?? null,
+    visibility,
+    // A Just for You offer is redeemed once in total. The database fixes this too.
+    total_limit: visibility === "private" ? 1 : (v.totalLimit ?? null),
     // Offer value, per-customer limit, frequency and schedule.
     ...couponRuleColumns(v),
   };
@@ -180,6 +187,10 @@ export async function saveCoupon(couponId: unknown, input: unknown, intentInput:
     redirect("/merchant/billing?claim=claimed");
   }
 
+  // A Just for You offer opens on its own page after publishing, where its private link is ready to copy.
+  if (visibility === "private" && status === "published" && existing?.status !== "published") {
+    redirect(`/merchant/coupons/${savedId}?published=1`);
+  }
   const view = couponView({ status, starts_at: row.starts_at, expires_at: row.expires_at, admin_hold: existing?.admin_hold }, now);
   redirect(`/merchant/coupons?view=${view}${view === "live" && status === "published" && existing?.status !== "published" ? "&published=1" : ""}`);
 }

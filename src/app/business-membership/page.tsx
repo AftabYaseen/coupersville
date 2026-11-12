@@ -23,8 +23,7 @@ export default function BusinessMembershipPage() {
 }
 
 async function Levels() {
-  const { levels, campaignsEach, plusLocations, names } = await membershipLevels();
-  const each = campaignsEach ? `up to ${campaignsEach} campaigns per month` : null;
+  const { levels, campaignsSummary, privateSummary, plusLocations, names } = await membershipLevels();
 
   const faq: { q: string; a: ReactNode }[] = [
     {
@@ -39,8 +38,9 @@ async function Levels() {
       q: "Can I create more than one coupon?",
       a: (
         <>
-          Yes. {each ? `Every membership level includes ${each}` : "Every membership level includes several campaigns per month"}, subject
-          to platform terms and acceptable-use requirements. Businesses needing more can{" "}
+          Yes. {campaignsSummary ?? "Every membership level includes several campaigns per location per month"}, subject to platform
+          terms and acceptable-use requirements. Your monthly allowance is that number times your open locations. Businesses needing
+          more can{" "}
           <Link href="/contact" className="font-medium text-ink underline underline-offset-4">
             contact us
           </Link>{" "}
@@ -75,7 +75,7 @@ async function Levels() {
     <>
       <p className="mt-3 max-w-2xl text-lg">
         Create offers whenever it makes sense for your business. Choose the membership level that fits, publish your own coupons and
-        keep more of every sale.{each ? ` Every level includes ${each}.` : ""}
+        keep more of every sale. Every level includes a monthly campaign allowance for each of your locations.
       </p>
 
       <section className="mt-8" aria-labelledby="levels-heading">
@@ -127,7 +127,8 @@ async function Levels() {
           Membership includes
         </h2>
         <ul className="panel mt-4 grid list-disc gap-1.5 p-5 pl-10">
-          {each && <li>{each[0].toUpperCase() + each.slice(1)} at every membership level</li>}
+          {campaignsSummary && <li>{campaignsSummary}</li>}
+          {privateSummary && <li>{privateSummary}</li>}
           <li>
             Single-location support, up to {plusLocations ?? 3} locations with {names.plus} and custom multi-location plans with{" "}
             {names.enterprise}

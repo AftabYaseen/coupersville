@@ -8,7 +8,7 @@ import { formatDay } from "@/lib/dates";
 // merchant_plus Boulevard, enterprise Build Your Route.
 
 type Overview = Database["public"]["Functions"]["offer_overview"]["Returns"][number];
-type Nullable = "window_starts_at" | "window_ends_at" | "seat_cap" | "term_months" | "monthly_price_cents" | "renews_into" | "max_locations" | "max_live_coupons" | "campaigns_per_month";
+type Nullable = "window_starts_at" | "window_ends_at" | "seat_cap" | "term_months" | "monthly_price_cents" | "renews_into" | "max_locations" | "max_live_coupons" | "campaigns_per_location" | "private_offers_per_month";
 // Generated function types mark every column as set; these can be null.
 export type Offer = Omit<Overview, Nullable> & { [K in Nullable]: Overview[K] | null };
 
@@ -85,6 +85,7 @@ export type ClaimResult =
   | "has_plan"
   | "coupon_required"
   | "coupon_invalid"
+  | "coupon_private"
   | "no_offer"
   | "already_claimed"
   | "seats_gone";
@@ -97,6 +98,7 @@ const CLAIM_RESULTS: ClaimResult[] = [
   "has_plan",
   "coupon_required",
   "coupon_invalid",
+  "coupon_private",
   "no_offer",
   "already_claimed",
   "seats_gone",

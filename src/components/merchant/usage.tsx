@@ -1,11 +1,13 @@
-import { campaignsResetText, campaignsText, type BusinessUsage } from "@/lib/limits";
+import { campaignsResetText, campaignsText, privateOffersText, type BusinessUsage } from "@/lib/limits";
 
 export function CampaignUsage({ usage, className = "" }: { usage: BusinessUsage | null; className?: string }) {
   if (!usage) return null;
+  const privateLine = privateOffersText(usage);
   return (
     <p className={className}>
       <span className="font-semibold tabular">{campaignsText(usage)}</span>
       <span className="mt-1 block text-sm">{campaignsResetText(usage)}</span>
+      {privateLine && <span className="mt-1 block text-sm tabular">{privateLine}</span>}
     </p>
   );
 }

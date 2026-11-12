@@ -1,16 +1,25 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatDay } from "@/lib/dates";
+import { PRIVATE_OFFER_LABEL } from "@/lib/just-for-you";
 import type { Database } from "@/lib/supabase/database.types";
 import type { ActionResult } from "@/lib/validation/auth";
 
 // Campaigns and locations. The database decides (count_coupon_campaign, enforce_location_limit);
 // this file reads the numbers through business_usage and words them. A null limit is unlimited.
 
+// The campaign allowance is campaigns per location times open stores, unless an admin set a total
+// for the business. Just for You offers have their own allowance unless the platform setting counts
+// them as campaigns.
 export type BusinessUsage = {
   locationsUsed: number;
   locationsLimit: number | null;
   campaignsUsed: number;
   campaignsLimit: number | null;
+  campaignsPerLocation: number | null;
+  campaignsOverride: boolean;
+  privateUsed: number;
+  privateLimit: number | null;
+  privateCountsAsCampaigns: boolean;
   resetsOn: string;
 };
 
@@ -21,12 +30,19 @@ export async function loadUsage(supabase: SupabaseClient<Database>, businessId: 
 
 export function parseUsage(data: unknown): BusinessUsage | null {
   if (!data || typeof data !== "object") return null;
-  const d = data as Record<string, number | string | null>;
+  const d = data as Record<string, unknown>;
+  // A missing or null limit is unlimited.
+  const limit = (v: unknown) => (v === null || v === undefined ? null : Number(v));
   return {
     locationsUsed: Number(d.locations_used),
-    locationsLimit: d.locations_limit === null ? null : Number(d.locations_limit),
+    locationsLimit: limit(d.locations_limit),
     campaignsUsed: Number(d.campaigns_used),
-    campaignsLimit: d.campaigns_limit === null ? null : Number(d.campaigns_limit),
+    campaignsLimit: limit(d.campaigns_limit),
+    campaignsPerLocation: limit(d.campaigns_per_location),
+    campaignsOverride: d.campaigns_override === true,
+    privateUsed: Number(d.private_used ?? 0),
+    privateLimit: limit(d.private_limit),
+    privateCountsAsCampaigns: d.private_counts_as_campaigns === true,
     resetsOn: String(d.resets_on),
   };
 }
@@ -41,8 +57,32 @@ export function campaignsText(u: BusinessUsage): string {
   return `${u.campaignsUsed} of ${u.campaignsLimit} ${plural(u.campaignsLimit, "campaign")} used this month`;
 }
 
+// How the allowance is worked out: "10 per location each month, with 1 open store."
+export function campaignsAllowanceText(u: BusinessUsage): string {
+  if (u.campaignsLimit === null) return "";
+  if (u.campaignsOverride) return "Coupersville set this allowance for your business.";
+  if (u.campaignsPerLocation === null) return "";
+  return `Your plan includes ${u.campaignsPerLocation} per location each month, with ${u.locationsUsed} open ${plural(u.locationsUsed, "store")}.`;
+}
+
 export function campaignsResetText(u: BusinessUsage): string {
-  return `Each new coupon you publish is one campaign. Editing, pausing and resuming do not count. Resets on ${resetDay(u.resetsOn)}.`;
+  const allowance = campaignsAllowanceText(u);
+  return `${allowance ? `${allowance} ` : ""}Each new coupon you publish is one campaign. Editing, pausing and resuming do not count. Resets on ${resetDay(u.resetsOn)}.`;
+}
+
+// "1 of 5 Just for You offers used this month". Null when they count as campaigns.
+export function privateOffersText(u: BusinessUsage): string | null {
+  if (u.privateCountsAsCampaigns) return null;
+  if (u.privateLimit === null) return `${u.privateUsed} Just for You ${plural(u.privateUsed, "offer")} used this month`;
+  return `${u.privateUsed} of ${u.privateLimit} Just for You ${plural(u.privateLimit, "offer")} used this month`;
+}
+
+export function privateLimitError(resetsOn: string | undefined): ActionResult {
+  const when = resetsOn && /^\d{4}-\d{2}-\d{2}$/.test(resetsOn) ? ` They reset on ${resetDay(resetsOn)}.` : "";
+  return {
+    ok: false,
+    error: `You have used all your Just for You offers for this month, so this ${PRIVATE_OFFER_LABEL} cannot be published yet.${when} You can save it as a draft for now.`,
+  };
 }
 
 // "1 of 1 location"

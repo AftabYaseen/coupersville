@@ -39,7 +39,11 @@ export function BusinessLimits({ businessId, maxLocations, campaignsPerMonth, ca
         <Field id={id("locations")} label="Locations" hint="Blank uses the plan's limit.">
           <input id={id("locations")} type="number" min={1} inputMode="numeric" className="field-input tabular" value={locations} onChange={(e) => setLocations(e.target.value)} />
         </Field>
-        <Field id={id("campaigns")} label="Campaigns per month" hint="Blank uses the plan's limit.">
+        <Field
+          id={id("campaigns")}
+          label="Campaigns per month, total"
+          hint="For the whole business. Blank uses the plan: campaigns per location times open stores."
+        >
           <input id={id("campaigns")} type="number" min={1} inputMode="numeric" className="field-input tabular" value={campaigns} onChange={(e) => setCampaigns(e.target.value)} />
         </Field>
       </div>

@@ -333,6 +333,7 @@ export type Database = {
           counted_at: string
           coupon_id: string | null
           id: string
+          kind: string
           month: string
         }
         Insert: {
@@ -340,6 +341,7 @@ export type Database = {
           counted_at?: string
           coupon_id?: string | null
           id?: string
+          kind?: string
           month: string
         }
         Update: {
@@ -347,6 +349,7 @@ export type Database = {
           counted_at?: string
           coupon_id?: string | null
           id?: string
+          kind?: string
           month?: string
         }
         Relationships: [
@@ -441,6 +444,7 @@ export type Database = {
           min_qty: number | null
           min_spend: number | null
           per_user_limit: number | null
+          private_key: string | null
           redeem_frequency: string | null
           schedule_days: number[] | null
           schedule_end: string | null
@@ -450,6 +454,7 @@ export type Database = {
           title: string
           total_limit: number | null
           updated_at: string
+          visibility: Database["public"]["Enums"]["coupon_visibility"]
         }
         Insert: {
           admin_hold?: boolean
@@ -475,6 +480,7 @@ export type Database = {
           min_qty?: number | null
           min_spend?: number | null
           per_user_limit?: number | null
+          private_key?: string | null
           redeem_frequency?: string | null
           schedule_days?: number[] | null
           schedule_end?: string | null
@@ -484,6 +490,7 @@ export type Database = {
           title: string
           total_limit?: number | null
           updated_at?: string
+          visibility?: Database["public"]["Enums"]["coupon_visibility"]
         }
         Update: {
           admin_hold?: boolean
@@ -509,6 +516,7 @@ export type Database = {
           min_qty?: number | null
           min_spend?: number | null
           per_user_limit?: number | null
+          private_key?: string | null
           redeem_frequency?: string | null
           schedule_days?: number[] | null
           schedule_end?: string | null
@@ -518,6 +526,7 @@ export type Database = {
           title?: string
           total_limit?: number | null
           updated_at?: string
+          visibility?: Database["public"]["Enums"]["coupon_visibility"]
         }
         Relationships: [
           {
@@ -749,7 +758,7 @@ export type Database = {
           active: boolean
           admin_only: boolean
           annual_price_cents: number
-          campaigns_per_month: number | null
+          campaigns_per_location: number | null
           code: string
           created_at: string
           free_seats: number
@@ -757,6 +766,7 @@ export type Database = {
           max_locations: number | null
           monthly_price_cents: number | null
           name: string
+          private_offers_per_month: number | null
           renews_into: string | null
           seat_cap: number | null
           sort_order: number
@@ -769,7 +779,7 @@ export type Database = {
           active?: boolean
           admin_only?: boolean
           annual_price_cents: number
-          campaigns_per_month?: number | null
+          campaigns_per_location?: number | null
           code: string
           created_at?: string
           free_seats?: number
@@ -777,6 +787,7 @@ export type Database = {
           max_locations?: number | null
           monthly_price_cents?: number | null
           name: string
+          private_offers_per_month?: number | null
           renews_into?: string | null
           seat_cap?: number | null
           sort_order?: number
@@ -789,7 +800,7 @@ export type Database = {
           active?: boolean
           admin_only?: boolean
           annual_price_cents?: number
-          campaigns_per_month?: number | null
+          campaigns_per_location?: number | null
           code?: string
           created_at?: string
           free_seats?: number
@@ -797,6 +808,7 @@ export type Database = {
           max_locations?: number | null
           monthly_price_cents?: number | null
           name?: string
+          private_offers_per_month?: number | null
           renews_into?: string | null
           seat_cap?: number | null
           sort_order?: number
@@ -907,6 +919,7 @@ export type Database = {
           id: string
           payments_open: boolean
           plans: string
+          private_offers_count_as_campaigns: boolean
           publishing_opens_at: string
           redemption_method: string
           region_restriction: string | null
@@ -926,6 +939,7 @@ export type Database = {
           id?: string
           payments_open?: boolean
           plans?: string
+          private_offers_count_as_campaigns?: boolean
           publishing_opens_at?: string
           redemption_method?: string
           region_restriction?: string | null
@@ -945,6 +959,7 @@ export type Database = {
           id?: string
           payments_open?: boolean
           plans?: string
+          private_offers_count_as_campaigns?: boolean
           publishing_opens_at?: string
           redemption_method?: string
           region_restriction?: string | null
@@ -1650,7 +1665,10 @@ export type Database = {
         }
         Returns: string
       }
-      create_redemption_token: { Args: { p_coupon_id: string }; Returns: Json }
+      create_redemption_token: {
+        Args: { p_coupon_id: string; p_private_key?: string }
+        Returns: Json
+      }
       has_business_role: {
         Args: {
           p_business_id: string
@@ -1690,6 +1708,7 @@ export type Database = {
           min_spend: number
           only_store: string
           per_user_limit: number
+          private_key: string
           redeemed_at: string
           redeemed_store: string
           short_code: string
@@ -1741,7 +1760,7 @@ export type Database = {
         Returns: {
           active: boolean
           annual_price_cents: number
-          campaigns_per_month: number
+          campaigns_per_location: number
           code: string
           free_seats: number
           free_seats_used: number
@@ -1749,6 +1768,7 @@ export type Database = {
           max_locations: number
           monthly_price_cents: number
           name: string
+          private_offers_per_month: number
           renews_into: string
           seat_cap: number
           seats_used: number
@@ -1775,6 +1795,7 @@ export type Database = {
         Args: { p_location_id: string; p_token_or_code: string }
         Returns: Json
       }
+      private_offer: { Args: { p_key: string }; Returns: Json }
       purge_stale_codes: { Args: never; Returns: undefined }
       redemption_offer: {
         Args: { p_coupon: Database["public"]["Tables"]["coupons"]["Row"] }
@@ -1860,6 +1881,7 @@ export type Database = {
       account_status: "active" | "suspended"
       business_status: "draft" | "active" | "suspended"
       coupon_status: "draft" | "published" | "paused"
+      coupon_visibility: "public" | "private"
       discount_type: "percent" | "amount" | "fixed_price" | "free"
       member_role: "owner" | "manager" | "staff"
       redemption_method: "qr" | "code"
@@ -1997,6 +2019,7 @@ export const Constants = {
       account_status: ["active", "suspended"],
       business_status: ["draft", "active", "suspended"],
       coupon_status: ["draft", "published", "paused"],
+      coupon_visibility: ["public", "private"],
       discount_type: ["percent", "amount", "fixed_price", "free"],
       member_role: ["owner", "manager", "staff"],
       redemption_method: ["qr", "code"],

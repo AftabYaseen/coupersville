@@ -73,6 +73,10 @@ export const SETTING_OPTIONS = {
     { value: "off", label: "Off: no renewals, retries or renewal reminders" },
     { value: "on", label: "On: saved cards are charged when plans renew" },
   ],
+  private_offers: [
+    { value: "separate", label: "Their own monthly allowance (set per level in Admin > Offers)" },
+    { value: "campaign", label: "Count towards the campaign allowance" },
+  ],
 } as const;
 
 const values = <K extends keyof typeof SETTING_OPTIONS>(key: K) =>
@@ -84,6 +88,7 @@ export const settingsSchema = z.object({
   founders_full: z.enum(values("founders_full")),
   payments_open: z.enum(values("payments_open")),
   renewals_enabled: z.enum(values("renewals_enabled")),
+  private_offers: z.enum(values("private_offers")),
   // The day publishing opens, from midnight Pacific time.
   publishing_opens_on: z.string().trim().regex(DAY_PATTERN, { error: "Choose a valid date." }),
   enterprise_contact_email: z.email({ error: "Enter a valid email address." }).max(254),
@@ -130,7 +135,8 @@ export const offerSchema = z
     active: z.boolean(),
     maxLocations: optionalWhole(10000),
     maxLiveCoupons: optionalWhole(10000),
-    campaignsPerMonth: optionalWhole(10000),
+    campaignsPerLocation: optionalWhole(10000),
+    privateOffersPerMonth: optionalWhole(10000),
   })
   .refine((v) => !v.startsOn || !v.endsOn || v.endsOn >= v.startsOn, { error: "The last day must be on or after the first day.", path: ["endsOn"] })
   .refine((v) => v.seatCap === null || v.freeSeats <= v.seatCap, { error: "Free seats cannot be more than the seat cap.", path: ["freeSeats"] });

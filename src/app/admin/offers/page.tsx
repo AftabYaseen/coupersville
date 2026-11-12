@@ -91,7 +91,8 @@ async function OffersContent() {
                   active: o.active,
                   maxLocations: o.max_locations === null ? "" : String(o.max_locations),
                   maxLiveCoupons: o.max_live_coupons === null ? "" : String(o.max_live_coupons),
-                  campaignsPerMonth: o.campaigns_per_month === null ? "" : String(o.campaigns_per_month),
+                  campaignsPerLocation: o.campaigns_per_location === null ? "" : String(o.campaigns_per_location),
+                  privateOffersPerMonth: o.private_offers_per_month === null ? "" : String(o.private_offers_per_month),
                 }}
               />}
             </li>

@@ -41,6 +41,7 @@ async function SettingsContent() {
               founders_full: data.founders_full_early_access ? "early_access" : "wait",
               payments_open: data.payments_open ? "open" : "closed",
               renewals_enabled: data.renewals_enabled ? "on" : "off",
+              private_offers: data.private_offers_count_as_campaigns ? "campaign" : "separate",
               publishing_opens_on: dayInZone(data.publishing_opens_at, OFFER_TIME_ZONE),
               enterprise_contact_email: data.enterprise_contact_email,
               contact_response_time: data.contact_response_time,

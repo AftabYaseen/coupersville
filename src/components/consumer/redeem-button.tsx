@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { CalendarClock, QrCode } from "lucide-react";
 import { startRedemption } from "@/app/redeem/actions";
+import { privateOfferPath } from "@/lib/just-for-you";
 import { FormMessage } from "@/components/field";
 import { SignInSheet } from "@/components/consumer/sign-in-sheet";
 
@@ -15,9 +16,11 @@ type Props = {
   variant?: "primary" | "secondary";
   // Set when the coupon's schedule is closed right now, for example "Available Tuesday at 11am".
   unavailable?: string | null;
+  // A Just for You offer: the key from its private link, which the database needs for a code.
+  privateKey?: string;
 };
 
-export function RedeemButton({ couponId, signedIn, label = "Redeem now", variant = "primary", unavailable }: Props) {
+export function RedeemButton({ couponId, signedIn, label = "Redeem now", variant = "primary", unavailable, privateKey }: Props) {
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
   // The "Ready to use this deal?" step: the code and its 5-minute timer start only after Generate.
@@ -47,7 +50,7 @@ export function RedeemButton({ couponId, signedIn, label = "Redeem now", variant
       <SignInSheet
         open={sheetOpen}
         title="Sign in to redeem this coupon"
-        returnPath={`/coupon/${couponId}`}
+        returnPath={privateKey ? privateOfferPath(privateKey) : `/coupon/${couponId}`}
         onClose={() => setSheetOpen(false)}
         onSignedIn={() => {
           setSheetOpen(false);
@@ -55,12 +58,12 @@ export function RedeemButton({ couponId, signedIn, label = "Redeem now", variant
           setStepOpen(true);
         }}
       />
-      {stepOpen && <GenerateStep couponId={couponId} onClose={() => setStepOpen(false)} />}
+      {stepOpen && <GenerateStep couponId={couponId} privateKey={privateKey} onClose={() => setStepOpen(false)} />}
     </div>
   );
 }
 
-function GenerateStep({ couponId, onClose }: { couponId: string; onClose: () => void }) {
+function GenerateStep({ couponId, privateKey, onClose }: { couponId: string; privateKey?: string; onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const headingId = useId();
@@ -80,7 +83,7 @@ function GenerateStep({ couponId, onClose }: { couponId: string; onClose: () => 
     setError(null);
     startTransition(async () => {
       // On success this redirects to the QR code, so a result only comes back on failure.
-      const result = await startRedemption(couponId);
+      const result = await startRedemption(couponId, privateKey);
       if (!result.ok) setError(result.error);
     });
   }

@@ -9,6 +9,7 @@ import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { describeLimits } from "@/lib/coupons";
 import { offerSchema } from "@/lib/redemption";
+import { privateOfferPath } from "@/lib/just-for-you";
 import { TicketSkeleton } from "@/components/consumer/ticket-skeleton";
 import { RedeemScreen } from "@/components/consumer/redeem-screen";
 
@@ -60,7 +61,7 @@ async function RedeemContent({ params }: { params: PageProps<"/redeem/[tokenId]"
   return (
     <>
       <Link
-        href={`/coupon/${row.coupon_id}`}
+        href={row.private_key ? privateOfferPath(row.private_key) : `/coupon/${row.coupon_id}`}
         className="mb-4 inline-flex min-h-11 items-center gap-2 font-medium text-ink"
       >
         <ArrowLeft aria-hidden size={18} strokeWidth={1.5} />
@@ -70,6 +71,7 @@ async function RedeemContent({ params }: { params: PageProps<"/redeem/[tokenId]"
         key={row.token_id}
         tokenId={row.token_id}
         couponId={row.coupon_id}
+        privateKey={row.private_key ?? null}
         shortCode={row.short_code}
         qrSvg={qrSvg}
         expiresAt={row.expires_at}

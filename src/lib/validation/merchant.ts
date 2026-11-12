@@ -85,6 +85,7 @@ export type OnboardingInput = z.input<typeof onboardingSchema>;
 export const DISCOUNT_TYPES = ["percent", "amount", "fixed_price", "free"] as const;
 export const PER_USER_MODES = ["once", "limited", "unlimited"] as const;
 export const FREQUENCIES = ["none", "day", "week"] as const;
+export const VISIBILITIES = ["public", "private"] as const;
 const TIME_OR_BLANK = /^$|^([01]\d|2[0-3]):[0-5]\d(:00)?$/;
 
 export const couponSchema = z
@@ -120,6 +121,9 @@ export const couponSchema = z
     scheduleStart: z.preprocess(nullToEmpty, z.string().regex(TIME_OR_BLANK, { error: "Choose a time." })),
     scheduleEnd: z.preprocess(nullToEmpty, z.string().regex(TIME_OR_BLANK, { error: "Choose a time." })),
     totalLimit: optionalNumber(z.number().int({ error: "Use a whole number." }).min(1, { error: "Use 1 or more." })),
+    // Everyone, or Just for You: one customer, by private link, redeemed once in total. A form opened
+    // before this choice existed sends nothing and means Everyone.
+    visibility: z.enum(VISIBILITIES, { error: "Choose who can see this offer." }).default("public"),
   })
   .superRefine((v, ctx) => {
     if (v.discountType !== "free" && v.discountValue === undefined) {

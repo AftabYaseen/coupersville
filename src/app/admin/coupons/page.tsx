@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Search, Star } from "lucide-react";
+import { LockKeyhole, Search, Star } from "lucide-react";
+import { PRIVATE_OFFER_LABEL } from "@/lib/just-for-you";
 import { z } from "zod";
 import { requireAdminPage } from "@/lib/admin";
 import { subscriptionIsActive } from "@/lib/merchant";
@@ -62,7 +63,7 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/admi
   let query = supabase
     .from("coupons")
     .select(
-      "id, title, status, starts_at, expires_at, discount_type, discount_value, featured, total_limit, admin_hold, hold_reason, held_at, business_id, businesses(name, status, timezone, subscriptions(status, current_period_end, source, cancel_at_period_end, past_due_since)), categories(name, active)",
+      "id, title, status, starts_at, expires_at, discount_type, discount_value, featured, visibility, total_limit, admin_hold, hold_reason, held_at, business_id, businesses(name, status, timezone, subscriptions(status, current_period_end, source, cancel_at_period_end, past_due_since)), categories(name, active)",
       { count: "exact" },
     );
   if (f.q) query = query.ilike("title", `%${escapeLike(f.q)}%`);
@@ -192,6 +193,12 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/admi
                       {formatOffer(c.discount_type, Number(c.discount_value))}
                     </span>
                     <span className="font-semibold">{c.title}</span>
+                    {c.visibility === "private" && (
+                      <span className="inline-flex items-center gap-1 text-sm font-medium">
+                        <LockKeyhole aria-hidden size={16} strokeWidth={1.5} className="text-ink" />
+                        {PRIVATE_OFFER_LABEL}
+                      </span>
+                    )}
                     {c.featured && (
                       <span className="inline-flex items-center gap-1 text-sm font-medium">
                         <Star aria-hidden size={16} strokeWidth={1.5} className="text-ink" />
@@ -232,9 +239,11 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/admi
                   ) : (
                     c.status !== "draft" && view !== "expired" && <HoldCouponButton couponId={c.id} />
                   )}
-                  <ActionButton action={setCouponFeatured.bind(null, c.id, !c.featured)} showSuccess={false}>
-                    {c.featured ? "Remove from featured" : "Feature"}
-                  </ActionButton>
+                  {c.visibility === "public" && (
+                    <ActionButton action={setCouponFeatured.bind(null, c.id, !c.featured)} showSuccess={false}>
+                      {c.featured ? "Remove from featured" : "Feature"}
+                    </ActionButton>
+                  )}
                 </div>
               </li>
             );

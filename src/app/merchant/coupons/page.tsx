@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Plus } from "lucide-react";
+import { LockKeyhole, Plus } from "lucide-react";
+import { PRIVATE_OFFER_LABEL } from "@/lib/just-for-you";
 import { requireManagedBusiness } from "@/lib/merchant";
 import { COUPON_VIEWS, COUPON_VIEW_LABELS, REMOVED_LABEL, couponView, type CouponView } from "@/lib/coupons";
 import { formatDay } from "@/lib/dates";
@@ -52,7 +53,7 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/merc
   const [{ data: coupons }, { data: rawStats }] = await Promise.all([
     supabase
       .from("coupons")
-      .select("id, title, status, discount_type, discount_value, starts_at, expires_at, total_limit, admin_hold, hold_reason, categories(name, stock_tint)")
+      .select("id, title, status, discount_type, discount_value, starts_at, expires_at, total_limit, admin_hold, hold_reason, visibility, categories(name, stock_tint)")
       .eq("business_id", business.id)
       .order("updated_at", { ascending: false }),
     supabase.rpc("business_redemption_stats", { p_business_id: business.id }),
@@ -123,6 +124,12 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/merc
                 />
                 <span className="flex flex-1 flex-wrap items-center justify-between gap-x-4 gap-y-1 p-4">
                   <span>
+                    {c.visibility === "private" && (
+                      <span className="mb-1 inline-flex items-center gap-1.5 rounded-sm border-[1.5px] border-ink bg-white px-2 py-0.5 text-sm font-medium">
+                        <LockKeyhole aria-hidden size={14} strokeWidth={1.5} className="text-ink" />
+                        {PRIVATE_OFFER_LABEL}
+                      </span>
+                    )}
                     <span className="block font-semibold">{c.title}</span>
                     <span className="block text-sm tabular">
                       {formatDay(c.starts_at, tz)} to {formatDay(c.expires_at, tz)}

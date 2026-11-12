@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, useTransition, type ReactNode
 import { RefreshCw } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { startRedemption } from "@/app/redeem/actions";
+import { privateOfferPath } from "@/lib/just-for-you";
 import { formatShortCode } from "@/lib/redemption";
 import { Ticket, formatOffer, type StockTint } from "@/components/ticket";
 import { FormMessage } from "@/components/field";
@@ -15,6 +16,8 @@ type Redemption = { redeemedAt: string; store: string | null };
 type Props = {
   tokenId: string;
   couponId: string;
+  // Set for a Just for You offer: its private link's key, needed for a new code.
+  privateKey: string | null;
   shortCode: string;
   qrSvg: string | null;
   expiresAt: string;
@@ -46,7 +49,8 @@ function formatTime(iso: string, tz: string) {
   return new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(new Date(iso));
 }
 
-export function RedeemScreen({ tokenId, couponId, shortCode, qrSvg, expiresAt, serverNow, initialRedemption, ticket }: Props) {
+export function RedeemScreen({ tokenId, couponId, privateKey, shortCode, qrSvg, expiresAt, serverNow, initialRedemption, ticket }: Props) {
+  const couponHref = privateKey ? privateOfferPath(privateKey) : `/coupon/${couponId}`;
   // The phone's clock can drift from the server's; count down against server time.
   const [skew] = useState(() => serverNow - Date.now());
   const expiresMs = new Date(expiresAt).getTime();
@@ -156,7 +160,7 @@ export function RedeemScreen({ tokenId, couponId, shortCode, qrSvg, expiresAt, s
   function renew() {
     setRenewError(null);
     startRenew(async () => {
-      const result = await startRedemption(couponId);
+      const result = await startRedemption(couponId, privateKey ?? undefined);
       if (!result.ok) setRenewError(result.error);
     });
   }
@@ -199,7 +203,7 @@ export function RedeemScreen({ tokenId, couponId, shortCode, qrSvg, expiresAt, s
         <p className="text-lg font-semibold">This QR code has expired</p>
         <p className="text-sm">
           Return to the{" "}
-          <Link href={`/coupon/${couponId}`} className="font-medium text-ink underline underline-offset-4">
+          <Link href={couponHref} className="font-medium text-ink underline underline-offset-4">
             coupon page
           </Link>{" "}
           to check whether the offer is still available, or get a new code if you are at the business now.

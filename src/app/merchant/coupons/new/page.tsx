@@ -54,6 +54,7 @@ async function NewCouponContent() {
           allLocations: true,
           locationIds: [],
           totalLimit: "",
+          visibility: "public",
           perUserMode: "once",
           perUserLimit: "",
           redeemFrequency: "none",

@@ -9,7 +9,8 @@ import {
   useTransition,
   type ReactNode,
 } from "react";
-import { CameraOff, CheckCircle2, Store, XCircle } from "lucide-react";
+import { CameraOff, CheckCircle2, LockKeyhole, Store, XCircle } from "lucide-react";
+import { SHOPPER_LABEL } from "@/lib/just-for-you";
 import { confirmRedemption, previewRedemption } from "@/app/merchant/scan/actions";
 import { verifyFailureText, type Offer, type VerifyResponse } from "@/lib/redemption";
 import { formatOffer } from "@/components/ticket";
@@ -262,6 +263,12 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
             <p className="offer-text inline-block bg-marigold px-2 pt-1.5 pb-1 text-5xl tabular">
               {formatOffer(offer.discount_type, offer.discount_value)}
             </p>
+            {offer.just_for_you && (
+              <p className="mt-3 inline-flex items-center gap-1.5 rounded-sm border-[1.5px] border-ink bg-white px-2 py-0.5 font-medium">
+                <LockKeyhole aria-hidden size={16} strokeWidth={1.5} className="text-ink" />
+                {SHOPPER_LABEL}
+              </p>
+            )}
             <h2 className="mt-3 text-xl font-semibold">{offer.title}</h2>
             {offer.included_products && (
               <p className="mt-2">

@@ -35,6 +35,8 @@ export async function updateSettings(input: unknown): Promise<ActionResult> {
       founders_full_early_access: v.founders_full === "early_access",
       payments_open: v.payments_open === "open",
       renewals_enabled: v.renewals_enabled === "on",
+      // Applies to Just for You offers published from now on; earlier ones keep the allowance they used.
+      private_offers_count_as_campaigns: v.private_offers === "campaign",
       publishing_opens_at: startOfDayInZone(v.publishing_opens_on, OFFER_TIME_ZONE).toISOString(),
       enterprise_contact_email: v.enterprise_contact_email,
       contact_response_time: v.contact_response_time,

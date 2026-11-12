@@ -1,4 +1,5 @@
 import "server-only";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { describeLimits, rulesOf } from "@/lib/coupons";
@@ -180,6 +181,88 @@ export async function getLiveCouponDetail(id: string) {
   };
 }
 
+const privateStore = z.object({
+  id: z.uuid(),
+  store_name: z.string(),
+  store_number: z.string().nullable(),
+  address_line1: z.string().nullable(),
+  address_line2: z.string().nullable(),
+  city: z.string().nullable(),
+  state: z.string().nullable(),
+  postal_code: z.string().nullable(),
+  country: z.string().nullable(),
+  phone: z.string().nullable(),
+});
+const amount = z.union([z.number(), z.string()]).transform(Number);
+const privateOfferSchema = z.object({
+  state: z.enum(["live", "scheduled", "used", "ended", "unavailable"]),
+  title: z.string(),
+  business_name: z.string(),
+  starts_at: z.string(),
+  timezone: z.string(),
+  details: z
+    .object({
+      coupon_id: z.uuid(),
+      description: z.string().nullable(),
+      discount_type: z.enum(["percent", "amount", "fixed_price", "free"]),
+      discount_value: amount.nullable(),
+      included_products: z.string().nullable(),
+      limits_text: z.string().nullable(),
+      exclusions: z.string().nullable(),
+      min_spend: amount.nullable(),
+      min_qty: z.number().nullable(),
+      max_people: z.number().nullable(),
+      per_user_limit: z.number().nullable(),
+      redeem_frequency: z.string().nullable(),
+      schedule_days: z.array(z.number()).nullable(),
+      schedule_start: z.string().nullable(),
+      schedule_end: z.string().nullable(),
+      total_limit: z.number().nullable(),
+      expires_at: z.string(),
+      image_path: z.string().nullable(),
+      all_locations: z.boolean(),
+      business: z.object({
+        name: z.string(),
+        description: z.string().nullable(),
+        logo_path: z.string().nullable(),
+        website_url: z.string().nullable(),
+        contact_phone: z.string().nullable(),
+      }),
+      category: z.object({ slug: z.string(), name: z.string(), stock_tint: z.enum(["mint", "pink", "sky", "butter"]) }),
+      stores: z.array(privateStore),
+    })
+    .nullable(),
+});
+export type PrivateOffer = z.infer<typeof privateOfferSchema>;
+
+// A Just for You offer by the key in its private link. The database decides what the link may show:
+// full details only while the offer is live or about to start. Null for an unknown key or a draft.
+export async function getPrivateOffer(key: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("private_offer", { p_key: key });
+  if (!data || typeof data !== "object") return null;
+  const raw = data as Record<string, unknown>;
+  const parsed = privateOfferSchema.safeParse({ ...raw, details: raw.coupon_id ? raw : null });
+  if (!parsed.success) return null;
+  const offer = parsed.data;
+  const d = offer.details;
+  if (!d) return { ...offer, limits: "", availability: null, expiringSoon: false };
+
+  const now = Date.now();
+  const rules = rulesOf(d);
+  const nextAvailable = isWithinSchedule(rules, offer.timezone, now) ? null : nextOpening(rules, offer.timezone, now);
+  return {
+    ...offer,
+    limits: describeLimits(d),
+    expiringSoon: new Date(d.expires_at).getTime() - now <= EXPIRING_SOON_MS,
+    availability: isWithinSchedule(rules, offer.timezone, now)
+      ? null
+      : nextAvailable && nextAvailable.getTime() < new Date(d.expires_at).getTime()
+        ? `Available ${formatWhen(nextAvailable, offer.timezone, now)}`
+        : "Not available again before this offer ends",
+  };
+}
+
 export async function isSaved(userId: string, couponId: string): Promise<boolean> {
   const supabase = await createClient();
   const { data } = await supabase
@@ -236,6 +319,8 @@ export async function getEndedCoupon(id: string) {
     .from("coupons")
     .select("title, status, admin_hold, expires_at, businesses(name, status)")
     .eq("id", id)
+    // A Just for You offer is never found by its id; its private page says when it has ended.
+    .eq("visibility", "public")
     .maybeSingle();
   if (!data || data.status !== "published" || data.admin_hold || data.businesses?.status !== "active") return null;
   if (new Date(data.expires_at).getTime() > Date.now()) return null;
