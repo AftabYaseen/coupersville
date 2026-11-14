@@ -23,10 +23,10 @@ const EMPTY: Record<CouponView, string> = {
 };
 
 const TINT_BG = {
-  mint: "bg-stock-mint",
-  pink: "bg-stock-pink",
-  sky: "bg-stock-sky",
-  butter: "bg-stock-butter",
+  mint: "bg-mint-100",
+  pink: "bg-brick-100",
+  sky: "bg-sky-100",
+  butter: "bg-marigold-100",
 } as const;
 
 export default function CouponsPage({ searchParams }: PageProps<"/merchant/coupons">) {
@@ -73,7 +73,7 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/merc
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="wordmark text-4xl text-ink">Coupons</h1>
+        <h1 className="wordmark text-4xl text-primary">Coupons</h1>
         <Link href="/merchant/coupons/new" className="btn">
           <Plus aria-hidden size={18} strokeWidth={1.5} />
           Create a coupon
@@ -92,8 +92,8 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/merc
               <Link
                 href={`/merchant/coupons?view=${v}`}
                 aria-current={v === view ? "page" : undefined}
-                className={`inline-flex min-h-11 items-center gap-2 rounded-sm border-[1.5px] border-ink px-3 font-medium whitespace-nowrap ${
-                  v === view ? "bg-ink text-white" : "bg-white text-ink"
+                className={`inline-flex min-h-11 items-center gap-2 rounded-sm border border-line px-3 font-medium whitespace-nowrap ${
+                  v === view ? "bg-primary text-white" : "bg-white text-primary"
                 }`}
               >
                 {COUPON_VIEW_LABELS[v]}
@@ -120,13 +120,13 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/merc
               <Link href={`/merchant/coupons/${c.id}`} className="panel flex items-stretch overflow-hidden">
                 <span
                   aria-hidden
-                  className={`w-3 shrink-0 border-r-[1.5px] border-dashed border-ink ${TINT_BG[c.categories?.stock_tint ?? "sky"]}`}
+                  className={`w-3 shrink-0 border-r border-dashed border-line ${TINT_BG[c.categories?.stock_tint ?? "sky"]}`}
                 />
                 <span className="flex flex-1 flex-wrap items-center justify-between gap-x-4 gap-y-1 p-4">
                   <span>
                     {c.visibility === "private" && (
-                      <span className="mb-1 inline-flex items-center gap-1.5 rounded-sm border-[1.5px] border-ink bg-white px-2 py-0.5 text-sm font-medium">
-                        <LockKeyhole aria-hidden size={14} strokeWidth={1.5} className="text-ink" />
+                      <span className="mb-1 inline-flex items-center gap-1.5 rounded-sm border border-line bg-white px-2 py-0.5 text-sm font-medium">
+                        <LockKeyhole aria-hidden size={14} strokeWidth={1.5} className="text-primary" />
                         {PRIVATE_OFFER_LABEL}
                       </span>
                     )}
@@ -136,7 +136,7 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/merc
                       {c.categories?.name ? `, ${c.categories.name}` : ""}
                     </span>
                     {c.admin_hold && (
-                      <span className="block text-sm font-semibold text-signal">
+                      <span className="block text-sm font-semibold text-urgent">
                         {REMOVED_LABEL}
                         {c.hold_reason ? `: ${c.hold_reason}` : ""}
                       </span>
@@ -147,7 +147,7 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/merc
                       </span>
                     )}
                   </span>
-                  <span className="offer-text bg-marigold px-2 pt-1 pb-0.5 text-2xl tabular">
+                  <span className="offer-text bg-accent px-2 pt-1 pb-0.5 text-2xl tabular">
                     {formatOffer(c.discount_type, Number(c.discount_value))}
                   </span>
                 </span>

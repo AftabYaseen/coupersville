@@ -19,7 +19,7 @@ type Item = { q: string; a: ReactNode };
 type Group = { id: string; title: string; items: Item[]; note?: ReactNode };
 
 const A = ({ href, children }: { href: string; children: ReactNode }) => (
-  <Link href={href} className="font-medium text-ink underline underline-offset-4">
+  <Link href={href} className="font-medium text-primary underline underline-offset-4">
     {children}
   </Link>
 );
@@ -386,7 +386,7 @@ function groups(o: PioneerOffer): Group[] {
           a: (
             <>
               <p>Pioneers who remain actively engaged through their introductory year become members of the:</p>
-              <p className="grid font-semibold text-ink">
+              <p className="grid font-semibold text-primary">
                 <span>Original Coupersville {name}</span>
                 <span>One of the original {o.seats ?? "Pioneers"}</span>
               </p>
@@ -441,7 +441,7 @@ export default async function FaqPage() {
   const all = groups(offer);
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="wordmark text-4xl text-ink sm:text-5xl">Coupersville frequently asked questions</h1>
+      <h1 className="wordmark text-4xl text-primary sm:text-5xl">Coupersville frequently asked questions</h1>
 
       <nav aria-label="Questions by topic" className="mt-6">
         <ul className="flex flex-wrap gap-2">
@@ -449,7 +449,7 @@ export default async function FaqPage() {
             <li key={g.id}>
               <a
                 href={`#${g.id}`}
-                className="inline-flex min-h-11 items-center rounded-sm border-[1.5px] border-ink bg-white px-3 font-medium text-ink"
+                className="inline-flex min-h-11 items-center rounded-sm border border-line bg-white px-3 font-medium text-primary"
               >
                 {g.title}
               </a>
@@ -460,7 +460,7 @@ export default async function FaqPage() {
 
       {all.map((g) => (
         <section key={g.id} id={g.id} className="mt-10 scroll-mt-6" aria-labelledby={`${g.id}-heading`}>
-          <h2 id={`${g.id}-heading`} className="wordmark text-3xl text-ink">
+          <h2 id={`${g.id}-heading`} className="wordmark text-3xl text-primary">
             {g.title}
           </h2>
           {g.note && <div className="mt-4">{g.note}</div>}
@@ -469,7 +469,7 @@ export default async function FaqPage() {
               <details key={q} className="group panel">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 p-4 font-semibold [&::-webkit-details-marker]:hidden">
                   {q}
-                  <ChevronDown aria-hidden size={20} strokeWidth={1.5} className="shrink-0 text-ink group-open:rotate-180" />
+                  <ChevronDown aria-hidden size={20} strokeWidth={1.5} className="shrink-0 text-primary group-open:rotate-180" />
                 </summary>
                 <div className="grid gap-3 px-4 pb-4">{a}</div>
               </details>
@@ -479,7 +479,7 @@ export default async function FaqPage() {
       ))}
 
       <section className="panel mt-12 grid gap-3 p-5 sm:p-6" aria-labelledby="still-heading">
-        <h2 id="still-heading" className="wordmark text-3xl text-ink">
+        <h2 id="still-heading" className="wordmark text-3xl text-primary">
           Still have questions?
         </h2>
         <p>
@@ -493,7 +493,7 @@ export default async function FaqPage() {
         <Link href="/contact" className="btn justify-self-start">
           Contact us
         </Link>
-        <p className="mt-2 text-lg font-semibold text-ink">Welcome to Coupersville.</p>
+        <p className="mt-2 text-lg font-semibold text-primary">Welcome to Coupersville.</p>
         <p className="font-semibold">Discover more. Save more. Support more.</p>
       </section>
     </div>

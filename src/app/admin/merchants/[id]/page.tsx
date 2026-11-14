@@ -114,14 +114,14 @@ async function BusinessContent({
 
   return (
     <div className="mx-auto grid max-w-4xl gap-6 px-4 py-10">
-      <Link href="/admin/merchants" className="inline-flex min-h-11 items-center gap-2 justify-self-start font-medium text-ink">
+      <Link href="/admin/merchants" className="inline-flex min-h-11 items-center gap-2 justify-self-start font-medium text-primary">
         <ArrowLeft aria-hidden size={18} strokeWidth={1.5} />
         All merchants
       </Link>
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="wordmark text-4xl text-ink">{business.name}</h1>
+          <h1 className="wordmark text-4xl text-primary">{business.name}</h1>
           <p className="mt-2 flex flex-wrap gap-2">
             <StatusBadge status={business.status} />
             <PlanBadge source={plan?.source ?? null} active={planActive} />
@@ -146,7 +146,7 @@ async function BusinessContent({
       </div>
 
       {business.status === "suspended" && (
-        <p className="rounded-sm border-[1.5px] border-signal bg-white p-4 text-signal">
+        <p className="rounded-sm border border-urgent bg-white p-4 text-urgent">
           Suspended. None of this business&apos;s coupons are shown to shoppers, and staff cannot redeem them.
         </p>
       )}
@@ -292,7 +292,7 @@ async function BusinessContent({
                   {s.store_name}
                   {s.store_number && <span className="font-normal tabular"> #{s.store_number}</span>}
                 </span>
-                {!s.active && <span className="ml-2 text-sm font-medium text-signal">Closed</span>}
+                {!s.active && <span className="ml-2 text-sm font-medium text-urgent">Closed</span>}
                 <span className="block text-sm">{[s.address_line1, s.city, s.state, s.postal_code].filter(Boolean).join(", ")}</span>
               </li>
             ))}

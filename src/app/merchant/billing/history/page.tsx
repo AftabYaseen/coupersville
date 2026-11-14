@@ -34,9 +34,9 @@ async function HistoryContent() {
   return (
     <div className="mx-auto grid max-w-2xl gap-6 px-4 py-10">
       <div>
-        <h1 className="wordmark text-4xl text-ink">Billing history</h1>
+        <h1 className="wordmark text-4xl text-primary">Billing history</h1>
         <p className="mt-2">
-          Every payment for {business.name}. <Link href="/merchant/billing" className="font-medium text-ink underline underline-offset-4">Back to billing</Link>
+          Every payment for {business.name}. <Link href="/merchant/billing" className="font-medium text-primary underline underline-offset-4">Back to billing</Link>
         </p>
       </div>
       {!payments?.length ? (
@@ -45,7 +45,7 @@ async function HistoryContent() {
         <div className="panel overflow-x-auto p-0">
           <table className="w-full text-left tabular">
             <thead>
-              <tr className="border-b-[1.5px] border-ink">
+              <tr className="border-b border-line">
                 <th scope="col" className="p-3 font-semibold">Date</th>
                 <th scope="col" className="p-3 font-semibold">Amount</th>
                 <th scope="col" className="p-3 font-semibold">Card</th>
@@ -54,11 +54,11 @@ async function HistoryContent() {
             </thead>
             <tbody>
               {payments.map((p) => (
-                <tr key={p.id} className="border-b border-ink/30 last:border-0">
+                <tr key={p.id} className="border-b border-line last:border-0">
                   <td className="p-3">{formatDay(p.created_at, business.timezone)}</td>
                   <td className="p-3">{formatPrice(p.amount_cents)}</td>
                   <td className="p-3">{p.card_last4 ? `Ending in ${p.card_last4}` : "Card"}</td>
-                  <td className={`p-3 ${p.status === "paid" ? "" : "text-signal"}`}>
+                  <td className={`p-3 ${p.status === "paid" ? "" : "text-urgent"}`}>
                     {STATUS[p.status] ?? p.status}
                     {p.kind === "renewal" ? ", renewal" : ""}
                   </td>

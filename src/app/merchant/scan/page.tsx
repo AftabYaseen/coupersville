@@ -24,7 +24,7 @@ async function ScanContent() {
     if (user.role === "merchant" || memberships.some((m) => m.role === "owner")) redirect("/merchant/onboarding");
     return (
       <div className="mx-auto max-w-md px-4 py-10">
-        <h1 className="wordmark text-4xl text-ink">Scanner</h1>
+        <h1 className="wordmark text-4xl text-primary">Scanner</h1>
         <p className="panel mt-6 p-5">You are not on a shop&apos;s team yet. Ask the owner to send you an invite link.</p>
       </div>
     );
@@ -52,7 +52,7 @@ async function ScanContent() {
     const manages = teams.some((t) => t.role !== "staff");
     return (
       <div className="mx-auto max-w-md px-4 py-10">
-        <h1 className="wordmark text-4xl text-ink">Scanner</h1>
+        <h1 className="wordmark text-4xl text-primary">Scanner</h1>
         <div className="panel mt-6 grid gap-4 p-5">
           <p>There are no open stores to redeem at.</p>
           {manages ? (

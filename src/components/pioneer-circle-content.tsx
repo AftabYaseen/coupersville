@@ -10,7 +10,7 @@ import { firstSeats, seatsNote, type PioneerOffer } from "@/lib/pioneer";
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
     <section className="mt-10" aria-labelledby={id}>
-      <h2 id={id} className="wordmark text-3xl text-ink">
+      <h2 id={id} className="wordmark text-3xl text-primary">
         {title}
       </h2>
       <div className="mt-3 grid gap-3">{children}</div>
@@ -27,7 +27,7 @@ function Sub({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-const Motto = ({ children }: { children: ReactNode }) => <p className="text-lg font-semibold text-ink">{children}</p>;
+const Motto = ({ children }: { children: ReactNode }) => <p className="text-lg font-semibold text-primary">{children}</p>;
 
 const List = ({ items }: { items: string[] }) => (
   <ul className="grid list-disc gap-1 pl-6">
@@ -43,11 +43,11 @@ export function PioneerSeatsNote({ offer }: { offer: PioneerOffer }) {
   const note = seatsNote(offer);
   if (!note) return null;
   return (
-    <aside aria-label={`${offer.name} places`} className="flex gap-3 rounded-sm border-[1.5px] border-ink bg-stock-sky p-4">
-      <Info aria-hidden size={20} strokeWidth={1.5} className="mt-0.5 shrink-0 text-ink" />
+    <aside aria-label={`${offer.name} places`} className="flex gap-3 rounded-sm border border-line bg-sky-100 p-4">
+      <Info aria-hidden size={20} strokeWidth={1.5} className="mt-0.5 shrink-0 text-primary" />
       <p>
         {note}{" "}
-        <Link href="/business-membership" className="font-medium text-ink underline underline-offset-4">
+        <Link href="/business-membership" className="font-medium text-primary underline underline-offset-4">
           See membership and pricing
         </Link>
       </p>
@@ -62,8 +62,8 @@ export function PioneerCircleContent({ offer, seatsNote: withNote = false }: { o
   const tagline = `The ${first}. The beginning of something bigger.`;
   return (
     <>
-      <h1 className="wordmark text-4xl text-ink sm:text-5xl">Coupersville {name}</h1>
-      <p className="mt-2 text-xl font-semibold text-ink">{tagline}</p>
+      <h1 className="wordmark text-4xl text-primary sm:text-5xl">Coupersville {name}</h1>
+      <p className="mt-2 text-xl font-semibold text-primary">{tagline}</p>
       {withNote && (
         <div className="mt-5">
           <PioneerSeatsNote offer={offer} />
@@ -83,7 +83,7 @@ export function PioneerCircleContent({ offer, seatsNote: withNote = false }: { o
           There is <strong>nothing to sign</strong>. We simply want every business joining the {name} to understand what being an
           active Pioneer looks like.
         </p>
-        <p className="rounded-sm border-[1.5px] border-ink bg-stock-butter p-4 font-semibold">
+        <p className="rounded-sm border border-line bg-marigold-100 p-4 font-semibold">
           We don&apos;t expect perfection. We ask for participation, honest feedback, and communication.
         </p>
       </Section>
@@ -214,8 +214,8 @@ export function PioneerCircleContent({ offer, seatsNote: withNote = false }: { o
         </p>
         <p>We&apos;ll start with a conversation and see what makes sense.</p>
         <p>If stepping back is the best choice, the business can transition to a special place in our Pioneer community as a:</p>
-        <div className="grid gap-3 rounded-sm border-[1.5px] border-ink bg-stock-sky p-5">
-          <h3 className="text-2xl font-semibold text-ink">Coupersville Honorary Pioneer</h3>
+        <div className="grid gap-3 rounded-sm border border-line bg-sky-100 p-5">
+          <h3 className="text-2xl font-semibold text-primary">Coupersville Honorary Pioneer</h3>
           <p className="font-semibold">Always part of our beginning</p>
           <p>
             An Honorary Pioneer is a business that joined Coupersville in its earliest days and will always be recognized as part of
@@ -253,13 +253,13 @@ export function PioneerCircleContent({ offer, seatsNote: withNote = false }: { o
 
       <Section id="pioneer-year" title="Completing your Pioneer year">
         <p>Pioneers who remain actively engaged through their introductory 12 months become part of the:</p>
-        <div className="grid gap-1 rounded-sm border-[1.5px] border-ink bg-stock-butter p-5">
-          <p className="text-2xl font-semibold text-ink">Original Coupersville {name}</p>
+        <div className="grid gap-1 rounded-sm border border-line bg-marigold-100 p-5">
+          <p className="text-2xl font-semibold text-primary">Original Coupersville {name}</p>
           <p className="font-semibold">One of the original {offer.seats ?? "Pioneers"}</p>
         </div>
         <p>At that point, the introductory monthly coupon and survey expectations come to an end.</p>
         <p>But the recognition doesn&apos;t.</p>
-        <p className="grid text-lg font-semibold text-ink">
+        <p className="grid text-lg font-semibold text-primary">
           <span>You were here.</span>
           <span>You participated.</span>
           <span>You shared your voice.</span>
@@ -281,7 +281,7 @@ export function PioneerCircleContent({ offer, seatsNote: withNote = false }: { o
       </Section>
 
       <div className="panel mt-10 grid gap-1 p-5">
-        <p className="wordmark text-2xl text-ink">Coupersville {name}</p>
+        <p className="wordmark text-2xl text-primary">Coupersville {name}</p>
         <p className="font-semibold">{tagline}</p>
         <p className="font-semibold">Once a Pioneer, always part of the story.</p>
       </div>

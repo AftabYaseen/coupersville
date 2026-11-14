@@ -27,7 +27,7 @@ async function SettingsContent() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="wordmark text-4xl text-ink">Settings</h1>
+      <h1 className="wordmark text-4xl text-primary">Settings</h1>
       <p className="mt-2 mb-6">Product decisions for the whole platform.</p>
       {!data ? (
         <p className="panel p-5">The settings row is missing. Run the database migrations, then reload.</p>

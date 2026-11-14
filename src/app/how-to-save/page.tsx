@@ -61,18 +61,18 @@ const FAQ: { q: string; a: string }[] = [
 export default function HowToSavePage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="wordmark text-4xl text-ink sm:text-5xl">Find it. Get it. Scan it. Save.</h1>
+      <h1 className="wordmark text-4xl text-primary sm:text-5xl">Find it. Get it. Scan it. Save.</h1>
       <p className="mt-3 max-w-xl text-lg">Coupersville makes saving simple. {ACCOUNT_LINE}</p>
 
       <ol className="mt-8 grid gap-4">
         {STEPS.map(({ title, body, Icon }, i) => (
           <li key={title} className="panel flex gap-4 p-5">
-            <span className="offer-text flex size-12 shrink-0 items-center justify-center rounded-sm bg-marigold text-3xl text-ink-deep tabular" aria-hidden>
+            <span className="offer-text flex size-12 shrink-0 items-center justify-center rounded-sm bg-accent text-3xl text-evergreen-900 tabular" aria-hidden>
               {i + 1}
             </span>
             <div>
               <h2 className="flex items-center gap-2 text-xl font-semibold">
-                <Icon aria-hidden size={20} strokeWidth={1.5} className="text-ink" />
+                <Icon aria-hidden size={20} strokeWidth={1.5} className="text-primary" />
                 {title}
               </h2>
               <p className="mt-1">{body}</p>
@@ -81,7 +81,7 @@ export default function HowToSavePage() {
         ))}
       </ol>
 
-      <p className="mt-6 rounded-sm border-[1.5px] border-ink bg-stock-butter p-4">
+      <p className="mt-6 rounded-sm border border-line bg-marigold-100 p-4">
         <span className="font-semibold">Important:</span> Each QR coupon is intended for one customer and one redemption. Do not
         generate the code until you are ready to use it.
       </p>
@@ -93,7 +93,7 @@ export default function HowToSavePage() {
       </div>
 
       <section className="mt-12" aria-labelledby="faq-heading">
-        <h2 id="faq-heading" className="wordmark text-3xl text-ink">
+        <h2 id="faq-heading" className="wordmark text-3xl text-primary">
           Frequently asked questions
         </h2>
         <dl className="mt-4 grid gap-3">
@@ -106,7 +106,7 @@ export default function HowToSavePage() {
         </dl>
         <p className="mt-4">
           More questions? See the{" "}
-          <Link href="/faq" className="font-medium text-ink underline underline-offset-4">
+          <Link href="/faq" className="font-medium text-primary underline underline-offset-4">
             frequently asked questions
           </Link>
           .

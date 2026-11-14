@@ -24,7 +24,7 @@ export default function CategoryPage({ params }: PageProps<"/c/[category]">) {
       <Suspense
         fallback={
           <div className="grid gap-8">
-            <div className="h-28 rounded-sm border-[1.5px] border-ink bg-white" aria-hidden />
+            <div className="h-28 rounded-sm border border-line bg-white" aria-hidden />
             <TicketGridSkeleton count={3} />
           </div>
         }
@@ -44,14 +44,14 @@ async function CategoryContent({ params }: { params: PageProps<"/c/[category]">[
 
   return (
     <div className="grid gap-8">
-      <header className="overflow-hidden rounded-sm border-[1.5px] border-ink bg-white">
-        <span aria-hidden className="flex h-4 border-b-[1.5px] border-ink">
+      <header className="overflow-hidden rounded-sm border border-line bg-white">
+        <span aria-hidden className="flex h-4 border-b border-line">
           {Array.from({ length: 12 }, (_, i) => (
-            <span key={i} className={`flex-1 ${i % 2 === 0 ? "bg-ink" : TINT_BG[shop.stock_tint]}`} />
+            <span key={i} className={`flex-1 ${i % 2 === 0 ? "bg-primary" : TINT_BG[shop.stock_tint]}`} />
           ))}
         </span>
         <div className={`p-5 sm:p-6 ${TINT_BG[shop.stock_tint]}`}>
-          <h1 className="wordmark text-4xl text-ink">{shop.name} deals</h1>
+          <h1 className="wordmark text-4xl text-primary">{shop.name} deals</h1>
           <p className="mt-2 max-w-2xl">
             Explore current offers from {shop.name} businesses in Coupersville. Check each coupon for participating locations, limits
             and expiration details.

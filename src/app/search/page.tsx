@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 export default function SearchPage({ searchParams }: PageProps<"/search">) {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
-      <h1 className="wordmark text-4xl text-ink">Find a deal worth leaving home for.</h1>
+      <h1 className="wordmark text-4xl text-primary">Find a deal worth leaving home for.</h1>
       <p className="mt-3 max-w-2xl text-lg">
         Search Coupersville by business, product, category or location. Whether you know exactly what you want or simply feel like
         exploring, a good deal may be waiting nearby.
@@ -72,7 +72,7 @@ async function SearchContent({ searchParams }: { searchParams: PageProps<"/searc
             {where}
           </h2>
           {(options.usingLocation || query.place) && (
-            <Link href="/search" className="font-medium text-ink underline underline-offset-4">
+            <Link href="/search" className="font-medium text-primary underline underline-offset-4">
               Clear location
             </Link>
           )}

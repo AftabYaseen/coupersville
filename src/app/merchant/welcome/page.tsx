@@ -42,10 +42,10 @@ async function WelcomeContent() {
   );
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <p className="mb-6 rounded-sm border-[1.5px] border-ink bg-white p-4">
+      <p className="mb-6 rounded-sm border border-line bg-white p-4">
         {business.name} is set up. You joined during the {offer.name} window, so here is what being a Pioneer looks like. You can
         read it again any time on the{" "}
-        <Link href="/pioneer-circle" className="font-medium text-ink underline underline-offset-4">
+        <Link href="/pioneer-circle" className="font-medium text-primary underline underline-offset-4">
           {offer.name} page
         </Link>
         , linked at the bottom of every page.

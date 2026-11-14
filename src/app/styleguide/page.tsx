@@ -4,22 +4,22 @@ import { Ticket, formatOffer } from "@/components/ticket";
 export const metadata: Metadata = { title: "Ticket style" };
 
 const SWATCHES = [
-  ["ink", "bg-ink"],
-  ["ink-deep", "bg-ink-deep"],
-  ["marigold", "bg-marigold"],
-  ["paper", "bg-paper"],
+  ["ink", "bg-primary"],
+  ["ink-deep", "bg-evergreen-900"],
+  ["marigold", "bg-accent"],
+  ["paper", "bg-cream-50"],
   ["white", "bg-white"],
-  ["signal", "bg-signal"],
-  ["stock-mint", "bg-stock-mint"],
-  ["stock-pink", "bg-stock-pink"],
-  ["stock-sky", "bg-stock-sky"],
-  ["stock-butter", "bg-stock-butter"],
+  ["signal", "bg-urgent"],
+  ["stock-mint", "bg-mint-100"],
+  ["stock-pink", "bg-brick-100"],
+  ["stock-sky", "bg-sky-100"],
+  ["stock-butter", "bg-marigold-100"],
 ] as const;
 
 export default function StyleguidePage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="wordmark text-4xl text-ink">New on Main Street</h1>
+      <h1 className="wordmark text-4xl text-primary">New on Main Street</h1>
       <p className="mt-2 max-w-prose">
         Sample tickets in each stock tint. Each category prints its coupons on one of these four colours.
       </p>
@@ -91,7 +91,7 @@ export default function StyleguidePage() {
       <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
         {SWATCHES.map(([name, bg]) => (
           <li key={name} className="panel overflow-hidden">
-            <div className={`h-14 border-b-[1.5px] border-ink ${bg}`} />
+            <div className={`h-14 border-b border-line ${bg}`} />
             <p className="px-3 py-2 text-sm font-medium">{name}</p>
           </li>
         ))}

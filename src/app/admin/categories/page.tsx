@@ -9,7 +9,7 @@ import { deleteCategory, moveCategory, setCategoryActive } from "@/app/admin/cat
 
 export const metadata: Metadata = { title: "Categories" };
 
-const TINT_BG = { mint: "bg-stock-mint", pink: "bg-stock-pink", sky: "bg-stock-sky", butter: "bg-stock-butter" } as const;
+const TINT_BG = { mint: "bg-mint-100", pink: "bg-brick-100", sky: "bg-sky-100", butter: "bg-marigold-100" } as const;
 
 export default function CategoriesPage() {
   return (
@@ -32,7 +32,7 @@ async function CategoriesContent() {
   return (
     <div className="mx-auto grid max-w-4xl gap-8 px-4 py-10">
       <div>
-        <h1 className="wordmark text-4xl text-ink">Categories</h1>
+        <h1 className="wordmark text-4xl text-primary">Categories</h1>
         <p className="mt-2">
           Each category is a shop on Main Street, in this order. Deactivating one hides it and its coupons from shoppers. A
           category with coupons cannot be deleted.
@@ -55,14 +55,14 @@ async function CategoriesContent() {
           {list.map((c, i) => {
             const used = counts.get(c.id) ?? 0;
             return (
-              <li key={c.id} className={`panel overflow-hidden ${c.active ? "" : "bg-paper"}`}>
+              <li key={c.id} className={`panel overflow-hidden ${c.active ? "" : "bg-cream-50"}`}>
                 <div className="flex items-stretch">
-                  <span aria-hidden className={`w-3 shrink-0 border-r-[1.5px] border-dashed border-ink ${TINT_BG[c.stock_tint]}`} />
+                  <span aria-hidden className={`w-3 shrink-0 border-r border-dashed border-line ${TINT_BG[c.stock_tint]}`} />
                   <div className="flex flex-1 flex-wrap items-start justify-between gap-3 p-4">
                     <div className="min-w-0">
                       <p className="font-semibold">
                         <span className="tabular">{i + 1}.</span> {c.name}
-                        {!c.active && <span className="ml-2 text-sm font-medium text-signal">Inactive</span>}
+                        {!c.active && <span className="ml-2 text-sm font-medium text-urgent">Inactive</span>}
                       </p>
                       <p className="text-sm">
                         /c/{c.slug}

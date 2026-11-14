@@ -51,7 +51,7 @@ export function BusinessLimits({ businessId, maxLocations, campaignsPerMonth, ca
         Save limits
       </button>
       {canGrantEnterprise && (
-        <div className="grid gap-3 border-t-[1.5px] border-ink pt-3">
+        <div className="grid gap-3 border-t border-line pt-3">
           <Field id={id("ends")} label={`${enterpriseName} until`} hint="Uses the two limits above. Leave blank for no end date.">
             <input id={id("ends")} type="date" min={today} className="field-input tabular" value={endsOn} onChange={(e) => setEndsOn(e.target.value)} />
           </Field>

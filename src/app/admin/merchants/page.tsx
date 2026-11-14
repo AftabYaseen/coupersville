@@ -51,7 +51,7 @@ async function MerchantsContent({ searchParams }: { searchParams: PageProps<"/ad
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="wordmark text-4xl text-ink">Merchants</h1>
+      <h1 className="wordmark text-4xl text-primary">Merchants</h1>
       {raw.deleted === "1" && <FormMessage tone="success">The business and everything in it is deleted.</FormMessage>}
 
       <form action="/admin/merchants" className="mt-6 flex gap-2" role="search">
@@ -81,8 +81,8 @@ async function MerchantsContent({ searchParams }: { searchParams: PageProps<"/ad
                 <Link
                   href={href(s.value)}
                   aria-current={current ? "page" : undefined}
-                  className={`inline-flex min-h-11 items-center rounded-sm border-[1.5px] border-ink px-3 font-medium whitespace-nowrap ${
-                    current ? "bg-ink text-white" : "bg-white text-ink"
+                  className={`inline-flex min-h-11 items-center rounded-sm border border-line px-3 font-medium whitespace-nowrap ${
+                    current ? "bg-primary text-white" : "bg-white text-primary"
                   }`}
                 >
                   {s.label}

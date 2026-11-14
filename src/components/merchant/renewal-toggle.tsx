@@ -30,7 +30,7 @@ export function RenewalToggle({ cancelled, endsOn }: { cancelled: boolean; endsO
             Cancel renewal? Your plan stays active until {endsOn}, then your coupons are hidden from shoppers. There are no partial refunds.
           </p>
           <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn border-signal bg-signal" disabled={pending} onClick={() => run(false)}>
+            <button type="button" className="btn border-urgent bg-urgent" disabled={pending} onClick={() => run(false)}>
               Yes, cancel renewal
             </button>
             <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => setConfirming(false)}>

@@ -42,7 +42,7 @@ async function OnboardingContent() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="wordmark text-4xl text-ink">Welcome to Coupersville.</h1>
+      <h1 className="wordmark text-4xl text-primary">Welcome to Coupersville.</h1>
       <p className="mt-2 mb-8">
         Your business account has been created. Complete your business profile, add your locations and create your first offer.
       </p>

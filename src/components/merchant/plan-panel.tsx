@@ -91,10 +91,10 @@ export function PlanPanel({ state, timeZone: tz, seatName, billingLink }: Props)
 }
 
 function Panel({ title, tone, children }: { title: string; tone?: "warn" | "alert"; children: ReactNode }) {
-  const border = tone === "alert" ? "border-signal" : "border-ink";
+  const border = tone === "alert" ? "border-urgent" : "border-line";
   return (
-    <section className={`grid gap-4 rounded-sm border-[1.5px] bg-white p-5 ${border}`} aria-labelledby="plan-state-heading">
-      <h2 id="plan-state-heading" className={`text-xl font-semibold ${tone === "alert" ? "text-signal" : ""}`}>
+    <section className={`grid gap-4 rounded-sm border bg-white p-5 ${border}`} aria-labelledby="plan-state-heading">
+      <h2 id="plan-state-heading" className={`text-xl font-semibold ${tone === "alert" ? "text-urgent" : ""}`}>
         {title}
       </h2>
       {children}

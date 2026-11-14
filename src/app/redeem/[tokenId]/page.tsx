@@ -53,7 +53,7 @@ async function RedeemContent({ params }: { params: PageProps<"/redeem/[tokenId]"
         type: "svg",
         errorCorrectionLevel: "M",
         margin: 2,
-        color: { dark: "#121A4D", light: "#FFFFFF" },
+        color: { dark: "#14231E", light: "#FFFFFF" },
       })
     : null;
 
@@ -62,7 +62,7 @@ async function RedeemContent({ params }: { params: PageProps<"/redeem/[tokenId]"
     <>
       <Link
         href={row.private_key ? privateOfferPath(row.private_key) : `/coupon/${row.coupon_id}`}
-        className="mb-4 inline-flex min-h-11 items-center gap-2 font-medium text-ink"
+        className="mb-4 inline-flex min-h-11 items-center gap-2 font-medium text-primary"
       >
         <ArrowLeft aria-hidden size={18} strokeWidth={1.5} />
         Back to coupon

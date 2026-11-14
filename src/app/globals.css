@@ -1,82 +1,152 @@
 @import "tailwindcss";
 
+/* Coupersville "Main Street Modern" (client rebrand, 2026-11-13). Tokens from the brand package
+   (docs/coupersville-rebrand/dev/coupersville-tokens.css). Contrast pairs that pass are listed in
+   CLAUDE.md; marigold is never used for text on a light background. */
 :root {
-  --ink: #1b2a8f;
-  --ink-deep: #121a4d;
-  --marigold: #ffb81c;
-  --paper: #f2f4f8;
-  --white: #ffffff;
-  --signal: #d8342c;
-  --stock-mint: #cfebdd;
-  --stock-pink: #f9d2dc;
-  --stock-sky: #cfe2f7;
-  --stock-butter: #fbebb0;
-  --line: 1.5px;
+  --cv-evergreen-900: #14231e; /* ink: body text, footer, dark sections */
+  --cv-evergreen-800: #173d32; /* primary hover / pressed */
+  --cv-evergreen-700: #1f4d3f; /* primary: logo, buttons, links */
+  --cv-evergreen-500: #3c7a63; /* decorative only */
+  --cv-mint-100: #e4f1ea;
+  --cv-marigold-400: #f2b33d; /* accent: savings, highlights, focus ring */
+  --cv-marigold-700: #8a5a00; /* marigold text on light backgrounds */
+  --cv-marigold-100: #fdf1d6;
+  --cv-brick-600: #b93a1f; /* urgency: ending soon, errors */
+  --cv-brick-100: #fbe6df;
+  --cv-sky-100: #e3eef7;
+  --cv-lilac-100: #eee8f6;
+  --cv-cream-50: #fff8ec; /* page background */
+  --cv-paper: #ffffff;
+  --cv-stone-600: #56605b; /* secondary text */
+  --cv-line: #e7dfcf; /* decorative borders and dividers */
+  --cv-field: #7a827e; /* form field borders: 3.95:1 on white */
+
+  --cv-radius-sm: 8px;
+  --cv-radius-md: 14px;
+  --cv-radius-lg: 22px;
+  --cv-shadow-sm: 0 1px 2px rgba(20, 35, 30, 0.06), 0 1px 1px rgba(20, 35, 30, 0.04);
+  --cv-shadow-md: 0 6px 18px -6px rgba(20, 35, 30, 0.14), 0 2px 4px rgba(20, 35, 30, 0.05);
+  --cv-shadow-lg: 0 24px 48px -16px rgba(20, 35, 30, 0.22);
+  --cv-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --cv-duration: 180ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --cv-duration: 0ms;
+  }
 }
 
 @theme inline {
-  --color-ink: var(--ink);
-  --color-ink-deep: var(--ink-deep);
-  --color-marigold: var(--marigold);
-  --color-paper: var(--paper);
-  --color-white: var(--white);
-  --color-signal: var(--signal);
-  --color-stock-mint: var(--stock-mint);
-  --color-stock-pink: var(--stock-pink);
-  --color-stock-sky: var(--stock-sky);
-  --color-stock-butter: var(--stock-butter);
-  --font-sans: var(--font-archivo), system-ui, sans-serif;
-  --radius-sm: 4px;
+  --color-evergreen-900: var(--cv-evergreen-900);
+  --color-evergreen-800: var(--cv-evergreen-800);
+  --color-evergreen-700: var(--cv-evergreen-700);
+  --color-evergreen-500: var(--cv-evergreen-500);
+  --color-mint-100: var(--cv-mint-100);
+  --color-marigold-100: var(--cv-marigold-100);
+  --color-marigold-400: var(--cv-marigold-400);
+  --color-marigold-700: var(--cv-marigold-700);
+  --color-brick-100: var(--cv-brick-100);
+  --color-brick-600: var(--cv-brick-600);
+  --color-sky-100: var(--cv-sky-100);
+  --color-lilac-100: var(--cv-lilac-100);
+  --color-cream-50: var(--cv-cream-50);
+  --color-stone-600: var(--cv-stone-600);
+  --color-line: var(--cv-line);
+  --color-field: var(--cv-field);
+  --color-white: var(--cv-paper);
+  /* Semantic names used in components. */
+  --color-primary: var(--cv-evergreen-700);
+  --color-primary-hover: var(--cv-evergreen-800);
+  --color-accent: var(--cv-marigold-400);
+  --color-urgent: var(--cv-brick-600);
+  --font-sans: var(--font-dm-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --radius-sm: var(--cv-radius-sm);
+  --radius-md: var(--cv-radius-md);
+  --radius-lg: var(--cv-radius-lg);
+  --shadow-sm: var(--cv-shadow-sm);
+  --shadow-md: var(--cv-shadow-md);
+  --shadow-lg: var(--cv-shadow-lg);
 }
 
 html {
-  background: var(--paper);
-  color: var(--ink-deep);
+  background: var(--cv-cream-50);
+  color: var(--cv-evergreen-900);
 }
 
 body {
-  background: var(--paper);
-  color: var(--ink-deep);
+  background: var(--cv-cream-50);
+  color: var(--cv-evergreen-900);
   font-family: var(--font-sans);
   font-weight: 400;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
 
+/* Headings in Fraunces; everything else in DM Sans. */
+h1,
+h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  font-variation-settings: "SOFT" 60;
+  line-height: 1.12;
+}
+
+/* A marigold ring with a dark inner edge, so focus shows on cream, white and evergreen alike. */
 :focus-visible {
-  outline: 2px solid var(--ink);
+  outline: 3px solid var(--cv-marigold-400);
   outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--cv-evergreen-900);
 }
 
 @layer components {
+  /* Deal values ("20% OFF", "FREE") in Fraunces, the hero of each ticket. */
   .offer-text {
-    font-weight: 850;
-    font-variation-settings: "wdth" 68;
-    line-height: 0.92;
-    letter-spacing: -0.01em;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-variation-settings: "SOFT" 60;
+    line-height: 1;
+    letter-spacing: -0.02em;
   }
 
+  /* Page and section headings. */
   .wordmark {
-    font-weight: 800;
-    font-variation-settings: "wdth" 75;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-variation-settings: "SOFT" 60;
+    letter-spacing: -0.015em;
+    line-height: 1.1;
   }
 
   .tabular {
     font-variant-numeric: tabular-nums;
   }
 
+  /* Buttons: pill shaped. Primary evergreen, secondary outlined, accent marigold (one per view). */
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
     min-height: 44px;
-    padding: 0 1.25rem;
-    border-radius: 4px;
-    border: var(--line) solid var(--ink);
-    background: var(--ink);
-    color: var(--white);
+    padding: 0.5rem 1.25rem;
+    border-radius: 999px;
+    border: 2px solid var(--cv-evergreen-700);
+    background: var(--cv-evergreen-700);
+    color: #ffffff;
     font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
     cursor: pointer;
+    transition:
+      background-color var(--cv-duration) var(--cv-ease),
+      border-color var(--cv-duration) var(--cv-ease);
+  }
+  .btn:hover {
+    background: var(--cv-evergreen-800);
+    border-color: var(--cv-evergreen-800);
   }
   .btn:disabled {
     opacity: 0.6;
@@ -84,103 +154,141 @@ body {
   }
   .btn-secondary {
     background: transparent;
-    color: var(--ink);
+    color: var(--cv-evergreen-700);
+  }
+  .btn-secondary:hover {
+    background: var(--cv-mint-100);
+    border-color: var(--cv-evergreen-700);
+  }
+  .btn-accent {
+    background: var(--cv-marigold-400);
+    border-color: var(--cv-marigold-400);
+    color: var(--cv-evergreen-900);
+  }
+  .btn-accent:hover {
+    background: #e9a526;
+    border-color: #e9a526;
+  }
+  /* On evergreen surfaces. */
+  .btn-on-dark {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.7);
+    color: #ffffff;
+  }
+  .btn-on-dark:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #ffffff;
   }
 
   .field-label {
     display: block;
-    font-weight: 500;
+    font-weight: 600;
     margin-bottom: 0.375rem;
   }
   .field-input {
     display: block;
     width: 100%;
     min-height: 44px;
-    padding: 0 0.75rem;
-    border-radius: 4px;
-    border: var(--line) solid var(--ink);
-    background: var(--white);
-    color: var(--ink-deep);
+    padding: 0 0.875rem;
+    border-radius: var(--cv-radius-md);
+    border: 1px solid var(--cv-field);
+    background: #ffffff;
+    color: var(--cv-evergreen-900);
+  }
+  .field-input::placeholder {
+    color: #6e7672;
   }
   .field-input[aria-invalid="true"] {
-    border-color: var(--signal);
+    border-color: var(--cv-brick-600);
   }
   .field-error {
     margin-top: 0.375rem;
-    color: var(--signal);
+    color: var(--cv-brick-600);
     font-size: 0.875rem;
   }
 
+  /* Cards and panels. */
   .panel {
-    background: var(--white);
-    border: var(--line) solid var(--ink);
-    border-radius: 4px;
+    background: #ffffff;
+    border: 1px solid var(--cv-line);
+    border-radius: var(--cv-radius-lg);
+    box-shadow: var(--cv-shadow-sm);
+  }
+
+  /* Small labels such as "Private Offer – Just for You" or "New". */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.4;
+    background: var(--cv-mint-100);
+    color: var(--cv-evergreen-700);
+  }
+  .badge-urgent {
+    background: var(--cv-brick-100);
+    color: var(--cv-brick-600);
+  }
+  .badge-accent {
+    background: var(--cv-marigold-400);
+    color: var(--cv-evergreen-900);
   }
 }
 
-/* Ticket: two parts, notched where they meet, joined by a dashed perforation. */
+/* Ticket: two parts, notched where they meet, joined by a dashed perforation. The tinted top
+   carries the offer; the white stub carries the expiry, limits and store. The shadow is a
+   drop-shadow on the whole ticket so it follows the notches. */
 .ticket {
   --notch: 12px;
-  --ticket-bg: var(--white);
+  --ticket-bg: var(--cv-marigold-100);
   display: flex;
   flex-direction: column;
-  color: var(--ink-deep);
+  color: var(--cv-evergreen-900);
+  filter: drop-shadow(0 8px 14px rgba(20, 35, 30, 0.1));
 }
-.ticket[data-tint="mint"] { --ticket-bg: var(--stock-mint); }
-.ticket[data-tint="pink"] { --ticket-bg: var(--stock-pink); }
-.ticket[data-tint="sky"] { --ticket-bg: var(--stock-sky); }
-.ticket[data-tint="butter"] { --ticket-bg: var(--stock-butter); }
+/* Category tints. The stored values (mint, pink, sky, butter) keep their names; they display in
+   the new palette. */
+.ticket[data-tint="mint"] { --ticket-bg: var(--cv-mint-100); }
+.ticket[data-tint="pink"] { --ticket-bg: var(--cv-brick-100); }
+.ticket[data-tint="sky"] { --ticket-bg: var(--cv-sky-100); }
+.ticket[data-tint="butter"] { --ticket-bg: var(--cv-marigold-100); }
 
 .ticket-main,
 .ticket-stub {
   position: relative;
-  background: var(--ticket-bg);
-  border: var(--line) solid var(--ink);
   mask-composite: intersect;
   -webkit-mask-composite: source-in;
 }
 .ticket-main {
-  border-bottom: 0;
-  border-radius: 6px 6px 0 0;
+  background: var(--ticket-bg);
+  border-radius: var(--cv-radius-lg) var(--cv-radius-lg) 0 0;
+  border-bottom: 2px dashed rgba(20, 35, 30, 0.28);
   mask-image:
     radial-gradient(circle at 0 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
     radial-gradient(circle at 100% 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
 }
 .ticket-stub {
-  border-top-style: dashed;
-  border-radius: 0 0 6px 6px;
+  background: #ffffff;
+  border-radius: 0 0 var(--cv-radius-lg) var(--cv-radius-lg);
   mask-image:
     radial-gradient(circle at 0 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
     radial-gradient(circle at 100% 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
 }
 
-/* Ink arcs that outline each notch. Centred on the outer corner where the two parts meet. */
-.ticket-main::before,
-.ticket-main::after,
-.ticket-stub::before,
-.ticket-stub::after {
-  content: "";
-  position: absolute;
-  width: calc(2 * (var(--notch) + var(--line)));
-  height: calc(2 * (var(--notch) + var(--line)));
-  border: var(--line) solid var(--ink);
-  border-radius: 50%;
-  pointer-events: none;
-}
-.ticket-main::before { left: calc(-1 * (var(--notch) + var(--line)) - var(--line)); bottom: calc(-1 * (var(--notch) + var(--line))); }
-.ticket-main::after { right: calc(-1 * (var(--notch) + var(--line)) - var(--line)); bottom: calc(-1 * (var(--notch) + var(--line))); }
-.ticket-stub::before { left: calc(-1 * (var(--notch) + var(--line)) - var(--line)); top: calc(-1 * (var(--notch) + var(--line)) - var(--line)); }
-.ticket-stub::after { right: calc(-1 * (var(--notch) + var(--line)) - var(--line)); top: calc(-1 * (var(--notch) + var(--line)) - var(--line)); }
-
-/* The one animated moment: an ink stamp presses onto the ticket and the stub tears away. */
+/* The one animated moment: a stamp presses onto the ticket and the stub tears away. */
 .stamp {
   position: absolute;
   top: 2.5rem;
   right: 1rem;
   padding: 0.375rem 0.875rem 0.5rem;
-  border: 3px solid var(--ink);
-  border-radius: 4px;
-  color: var(--ink);
+  border: 3px solid var(--cv-evergreen-700);
+  border-radius: var(--cv-radius-sm);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--cv-evergreen-700);
+  font-family: var(--font-display);
   text-align: center;
   transform: rotate(-8deg);
   pointer-events: none;
@@ -206,7 +314,9 @@ body {
   display: none;
 }
 .redeem-ticket.is-torn .ticket-main {
-  border-bottom: var(--line) dashed var(--ink);
+  border-radius: var(--cv-radius-lg);
+  border-bottom: 0;
+  mask-image: none;
 }
 @media (prefers-reduced-motion: reduce) {
   .stamp-press,
@@ -218,15 +328,14 @@ body {
 /* Long-form text on the privacy and terms pages. */
 .legal h2 {
   margin-top: 1rem;
-  font-size: 1.375rem;
-  font-weight: 600;
-  color: var(--ink);
+  font-size: 1.5rem;
+  color: var(--cv-evergreen-700);
 }
 .legal h3 {
   margin-top: 0.5rem;
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--ink);
+  color: var(--cv-evergreen-700);
 }
 .legal ul {
   display: grid;
@@ -235,10 +344,18 @@ body {
   list-style: disc;
 }
 .legal a {
-  color: var(--ink);
+  color: var(--cv-evergreen-700);
   font-weight: 500;
   text-decoration: underline;
   text-underline-offset: 4px;
+}
+
+/* The home page hero: search bar on white with a warm shadow. */
+.hero-search {
+  background: #ffffff;
+  border: 1px solid var(--cv-line);
+  border-radius: var(--cv-radius-lg);
+  box-shadow: var(--cv-shadow-lg);
 }
 
 /* Visible only when focused with the keyboard: jumps past the header. */
@@ -248,11 +365,24 @@ body {
   top: -100px;
   z-index: 60;
   padding: 0.625rem 1rem;
-  border-radius: 4px;
-  background: var(--ink);
-  color: var(--white);
+  border-radius: var(--cv-radius-sm);
+  background: var(--cv-evergreen-700);
+  color: #ffffff;
   font-weight: 600;
 }
 .skip-link:focus {
   top: 0.75rem;
+}
+
+/* Cards that lift a little on hover (deal tickets, categories). Off with reduced motion. */
+.card-lift {
+  transition:
+    transform var(--cv-duration) var(--cv-ease),
+    box-shadow var(--cv-duration) var(--cv-ease),
+    border-color var(--cv-duration) var(--cv-ease);
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .card-lift:hover {
+    transform: translateY(-3px);
+  }
 }

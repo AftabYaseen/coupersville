@@ -25,7 +25,7 @@ async function AccountContent() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-10">
-      <h1 className="wordmark text-4xl text-ink">Your account</h1>
+      <h1 className="wordmark text-4xl text-primary">Your account</h1>
       <div className="panel mt-6 p-5">
         <AccountNameForm name={user.fullName} />
       </div>
@@ -41,12 +41,12 @@ async function AccountContent() {
       </dl>
       <ul className="panel mt-6 grid p-2">
         <li>
-          <Link href="/saved" className="flex min-h-11 items-center px-3 font-medium text-ink">
+          <Link href="/saved" className="flex min-h-11 items-center px-3 font-medium text-primary">
             Saved coupons
           </Link>
         </li>
         <li>
-          <Link href="/history" className="flex min-h-11 items-center px-3 font-medium text-ink">
+          <Link href="/history" className="flex min-h-11 items-center px-3 font-medium text-primary">
             Redemption history
           </Link>
         </li>
@@ -62,7 +62,7 @@ async function AccountContent() {
         </form>
       </div>
       {user.role !== "admin" && (
-        <section className="mt-10 border-t-[1.5px] border-ink pt-6" aria-labelledby="delete-heading">
+        <section className="mt-10 border-t border-line pt-6" aria-labelledby="delete-heading">
           <h2 id="delete-heading" className="text-xl font-semibold">
             Delete account
           </h2>

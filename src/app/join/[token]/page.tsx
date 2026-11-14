@@ -31,7 +31,7 @@ async function JoinContent({ params }: { params: PageProps<"/join/[token]">["par
   if (!invite || invite.expired || invite.accepted) {
     return (
       <>
-        <h1 className="wordmark text-4xl text-ink">Invite not available</h1>
+        <h1 className="wordmark text-4xl text-primary">Invite not available</h1>
         <p className="panel mt-6 p-5">
           {!invite
             ? "This invite link is not valid. Check you copied all of it, or ask the owner for a new one."
@@ -51,7 +51,7 @@ async function JoinContent({ params }: { params: PageProps<"/join/[token]">["par
   const next = encodeURIComponent(`/join/${token}`);
   return (
     <>
-      <h1 className="wordmark text-4xl text-ink">Join {invite.business_name}</h1>
+      <h1 className="wordmark text-4xl text-primary">Join {invite.business_name}</h1>
       <p className="mt-3">
         {invite.business_name} invited {invite.masked_email} to their team on Coupersville. Staff use the store scanner to
         redeem shoppers&apos; coupons.

@@ -333,17 +333,26 @@ async function roundThree() {
   console.log("\nRound 3: home hero");
   const home = await get("/");
   const tagline = home.body.indexOf("Local offers. Local shoppers. One simple marketplace.");
-  const headline = home.body.indexOf("Where good deals live.");
+  // The headline highlights its last word, so it is split across tags.
+  const headline = home.body.search(/Where good deals(<!-- -->)?\s*(<!-- -->)?<span[^>]*>\s*live\.\s*<\/span>/);
   check("home: the marketplace line sits above the headline", tagline > -1 && headline > tagline, { tagline, headline });
   check(
     "home: the supporting line",
     home.body.includes("Coupersville is a digital coupon marketplace that connects local businesses with shoppers ready to discover them."),
   );
+  // Rebrand (2026-11-13): the hero shows the illustrated Main Street with the search bar inside it;
+  // the town sign photo moved to the About page.
   check(
-    "home: the town sign is a contained postcard with an ink outline in the hero",
-    /<figure class="[^"]*border-ink[^"]*max-w-\[560px\]|<figure class="[^"]*max-w-\[560px\][^"]*border-ink/.test(home.body) && home.body.includes("town-sign") &&
-      home.body.indexOf("town-sign") < home.body.indexOf("What kind of deal are you looking for?"),
+    "home: the hero has the Main Street illustration, then the search inside the hero",
+    home.body.includes('viewBox="0 0 560 450"') && home.body.indexOf('viewBox="0 0 560 450"') < home.body.indexOf("What kind of deal are you looking for?") &&
+      home.body.indexOf("What kind of deal are you looking for?") < home.body.indexOf("New around town"),
   );
+  check("home: no town sign photo", !home.body.includes("town-sign"));
+  const about = await get("/about");
+  check("About: the town sign photo with its description", about.body.includes("town-sign") && about.body.includes("A wooden sign reading Welcome to Coupersville"));
+  check("header: the horizontal logo with the name as its text", /<img[^>]*alt="Coupersville"[^>]*src="\/brand\/coupersville-logo-horizontal\.svg"|<img[^>]*src="\/brand\/coupersville-logo-horizontal\.svg"[^>]*alt="Coupersville"/.test(home.body));
+  check("footer: the reversed logo on evergreen", home.body.includes("/brand/coupersville-logo-reversed-transparent.svg") && home.body.includes("bg-evergreen-900"));
+  check("fonts are served from this site, never from Google", !/fonts\.(googleapis|gstatic)\.com/.test(home.body) && /\/_next\/static\/media\/[^"]+\.woff2/.test(home.body));
 
   console.log("\nRound 3: membership level names");
   const offers = must(await admin.from("offers").select("code, name"), "offers");

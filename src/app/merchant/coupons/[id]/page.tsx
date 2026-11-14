@@ -61,7 +61,7 @@ async function EditCouponContent({
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="wordmark text-4xl text-ink">Edit coupon</h1>
+          <h1 className="wordmark text-4xl text-primary">Edit coupon</h1>
           <p className="mt-1 font-medium">Status: {COUPON_VIEW_STATUS[view]}</p>
           {view === "paused" && <p className="mt-1">This coupon is paused and is not visible to shoppers.</p>}
           {view === "expired" && (
@@ -80,7 +80,7 @@ async function EditCouponContent({
         <section className="panel mb-8 grid gap-3 p-5" aria-labelledby="private-link-heading">
           {published === "1" && <FormMessage tone="success">Your {PRIVATE_OFFER_LABEL} is published.</FormMessage>}
           <h2 id="private-link-heading" className="flex items-center gap-2 text-xl font-semibold">
-            <LockKeyhole aria-hidden size={20} strokeWidth={1.5} className="text-ink" />
+            <LockKeyhole aria-hidden size={20} strokeWidth={1.5} className="text-primary" />
             {PRIVATE_OFFER_LABEL}
           </h2>
           {coupon.status === "draft" || !coupon.private_key ? (
@@ -97,8 +97,8 @@ async function EditCouponContent({
         </section>
       )}
       {coupon.admin_hold && (
-        <div role="note" className="mb-8 rounded-sm border-[1.5px] border-signal bg-white p-4">
-          <p className="font-semibold text-signal">{REMOVED_LABEL}</p>
+        <div role="note" className="mb-8 rounded-sm border border-urgent bg-white p-4">
+          <p className="font-semibold text-urgent">{REMOVED_LABEL}</p>
           <p className="mt-1">{coupon.hold_reason ? `Reason: ${coupon.hold_reason}` : "No reason was given."}</p>
           <p className="mt-2 text-sm">
             Shoppers cannot see or redeem this coupon, and it cannot be published again. You can still edit or delete

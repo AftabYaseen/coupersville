@@ -25,7 +25,7 @@ async function OffersContent() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="wordmark text-4xl text-ink">Offers</h1>
+      <h1 className="wordmark text-4xl text-primary">Offers</h1>
       <p className="mt-2">
         What a merchant signs up for, and when. Dates are Pacific time. Names and prices show on the Business membership page,
         Billing and emails, so a change here appears everywhere. Payments are not open yet, so the only seats that can be taken
@@ -49,7 +49,7 @@ async function OffersContent() {
               </div>
               {(o.seat_cap !== null || o.free_seats > 0) && (
                 <dl className="grid grid-cols-2 gap-3 tabular sm:grid-cols-3">
-                  <div className="rounded-sm border-[1.5px] border-ink p-3">
+                  <div className="rounded-sm border border-line p-3">
                     <dt className="text-sm">Seats taken</dt>
                     <dd className="text-2xl font-semibold">
                       {Number(o.seats_used)}
@@ -57,7 +57,7 @@ async function OffersContent() {
                     </dd>
                   </div>
                   {o.free_seats > 0 && (
-                    <div className="rounded-sm border-[1.5px] border-ink p-3">
+                    <div className="rounded-sm border border-line p-3">
                       <dt className="text-sm">Free seats taken</dt>
                       <dd className="text-2xl font-semibold">
                         {Number(o.free_seats_used)} of {o.free_seats}
@@ -65,7 +65,7 @@ async function OffersContent() {
                     </div>
                   )}
                   {o.free_seats > 0 && (
-                    <div className="rounded-sm border-[1.5px] border-ink p-3">
+                    <div className="rounded-sm border border-line p-3">
                       <dt className="text-sm">Free seats left</dt>
                       <dd className="text-2xl font-semibold">{freeSeatsLeft(o)}</dd>
                     </div>

@@ -77,19 +77,19 @@ export function SignInSheet({ open, title, returnPath, onClose, onSignedIn }: Pr
   // Rendered into <body>: the buttons that open it sit inside the ticket stub, whose CSS mask
   // (the notches) would otherwise clip the sheet.
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-deep/40 sm:items-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-evergreen-900/40 sm:items-center" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={headingId}
-        className="w-full max-w-md rounded-t-sm border-[1.5px] border-ink bg-white p-5 pb-8 sm:rounded-sm"
+        className="w-full max-w-md rounded-t-sm border border-line bg-white p-5 pb-8 sm:rounded-sm"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
           <h2 id={headingId} className="text-xl font-semibold">
             {title}
           </h2>
-          <button type="button" className="-m-2 inline-flex size-11 items-center justify-center text-ink" onClick={onClose}>
+          <button type="button" className="-m-2 inline-flex size-11 items-center justify-center text-primary" onClick={onClose}>
             <X aria-hidden size={22} strokeWidth={1.5} />
             <span className="sr-only">Close</span>
           </button>
@@ -170,12 +170,12 @@ export function SignInSheet({ open, title, returnPath, onClose, onSignedIn }: Pr
               {pending ? "Checking" : "Continue"}
             </button>
             <div className="flex flex-wrap justify-between gap-2 text-sm">
-              <button type="button" className="min-h-11 font-medium text-ink underline underline-offset-4" onClick={sendCode} disabled={pending}>
+              <button type="button" className="min-h-11 font-medium text-primary underline underline-offset-4" onClick={sendCode} disabled={pending}>
                 Send a new code
               </button>
               <button
                 type="button"
-                className="min-h-11 font-medium text-ink underline underline-offset-4"
+                className="min-h-11 font-medium text-primary underline underline-offset-4"
                 onClick={() => {
                   setStep("email");
                   setError(null);
@@ -189,17 +189,17 @@ export function SignInSheet({ open, title, returnPath, onClose, onSignedIn }: Pr
 
         <p className="mt-4 text-sm">
           {usePassword ? "" : "Have a password? "}
-          <Link href={passwordHref} className="font-medium text-ink underline underline-offset-4">
+          <Link href={passwordHref} className="font-medium text-primary underline underline-offset-4">
             Sign in with your password
           </Link>
         </p>
         <p className="mt-3 text-sm">
           New here? Signing in makes a free shopper account. See our{" "}
-          <Link href="/terms" target="_blank" className="font-medium text-ink underline underline-offset-4">
+          <Link href="/terms" target="_blank" className="font-medium text-primary underline underline-offset-4">
             terms<span className="sr-only"> (opens in a new tab)</span>
           </Link>{" "}
           and{" "}
-          <Link href="/privacy" target="_blank" className="font-medium text-ink underline underline-offset-4">
+          <Link href="/privacy" target="_blank" className="font-medium text-primary underline underline-offset-4">
             privacy notice<span className="sr-only"> (opens in a new tab)</span>
           </Link>
           .

@@ -39,7 +39,7 @@ export function Dialog({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-ink-deep/40 sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-evergreen-900/40 sm:items-center sm:p-4"
       onClick={busy ? undefined : onClose}
     >
       <div
@@ -48,7 +48,7 @@ export function Dialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={headingId}
-        className={`grid max-h-[92vh] w-full gap-4 overflow-y-auto rounded-t-sm border-[1.5px] border-ink bg-white p-5 pb-8 sm:rounded-sm ${
+        className={`grid max-h-[92vh] w-full gap-4 overflow-y-auto rounded-t-sm border border-line bg-white p-5 pb-8 sm:rounded-sm ${
           wide ? "max-w-3xl" : "max-w-md"
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -59,7 +59,7 @@ export function Dialog({
           </h2>
           <button
             type="button"
-            className="-m-2 inline-flex size-11 shrink-0 items-center justify-center text-ink"
+            className="-m-2 inline-flex size-11 shrink-0 items-center justify-center text-primary"
             onClick={onClose}
             disabled={busy}
           >

@@ -37,7 +37,7 @@ export function HoldCouponButton({ couponId }: { couponId: string }) {
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          className="btn border-signal bg-signal"
+          className="btn border-urgent bg-urgent"
           disabled={pending}
           onClick={() => {
             setError(null);

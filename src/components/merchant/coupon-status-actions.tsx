@@ -54,7 +54,7 @@ export function CouponStatusActions({
               </p>
               <button
                 type="button"
-                className="btn border-signal bg-signal"
+                className="btn border-urgent bg-urgent"
                 disabled={pending}
                 onClick={() => run(() => deleteCoupon(couponId))}
               >

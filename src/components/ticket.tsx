@@ -57,12 +57,8 @@ export function Ticket({
   return (
     <article className={`ticket ${className ?? ""}`} data-tint={tint}>
       <div className="ticket-main px-5 pt-5 pb-6">
-        {merchant && <p className="text-sm font-medium">{merchant}</p>}
-        <p className="mt-2">
-          <span className="offer-text inline-block bg-marigold px-2 pt-1.5 pb-1 text-[3rem] text-ink-deep tabular">
-            {offer}
-          </span>
-        </p>
+        {merchant && <p className="text-sm font-semibold">{merchant}</p>}
+        <p className="offer-text mt-2 text-[2.75rem] text-evergreen-900 tabular">{offer}</p>
         <h3 className="mt-3 text-lg font-semibold leading-snug">{title}</h3>
         {description && <p className="mt-1 text-sm leading-relaxed">{description}</p>}
         {children}
@@ -71,8 +67,8 @@ export function Ticket({
       <div className="ticket-stub px-5 pt-4 pb-4 text-sm">
         <ul className="grid gap-1.5">
           {expires && (
-            <li className={`flex items-center gap-2 tabular ${expiringSoon ? "font-semibold text-signal" : ""}`}>
-              <CalendarClock aria-hidden size={16} strokeWidth={1.5} className={expiringSoon ? "text-signal" : "text-ink"} />
+            <li className={`flex items-center gap-2 tabular ${expiringSoon ? "font-semibold text-urgent" : ""}`}>
+              <CalendarClock aria-hidden size={16} strokeWidth={1.8} className={expiringSoon ? "text-urgent" : "text-primary"} />
               <span>
                 {expiringSoon ? "Ending soon, ends " : "Ends "}
                 <time dateTime={expires.toISOString()}>{formatDay(expires, timeZone)}</time>
@@ -81,7 +77,7 @@ export function Ticket({
           )}
           {limits && (
             <li className="flex items-start gap-2">
-              <ReceiptText aria-hidden size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-ink" />
+              <ReceiptText aria-hidden size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-primary" />
               <span>
                 <span className="sr-only">Limits: </span>
                 {limits}
@@ -90,7 +86,7 @@ export function Ticket({
           )}
           {store && (
             <li className="flex items-start gap-2">
-              <MapPin aria-hidden size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-ink" />
+              <MapPin aria-hidden size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-primary" />
               <span>
                 <span className="sr-only">Store: </span>
                 {store}

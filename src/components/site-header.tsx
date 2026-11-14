@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Bookmark, CircleUser, History, LayoutDashboard, ScanLine, Search, Store, type LucideIcon } from "lucide-react";
@@ -7,7 +8,7 @@ import { JOIN_HREF } from "@/lib/site-copy";
 
 function NavLink({ href, label, Icon }: { href: string; label: string; Icon: LucideIcon }) {
   return (
-    <Link href={href} className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 px-2 font-medium text-ink">
+    <Link href={href} className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full px-2.5 font-medium text-primary hover:bg-mint-100">
       <Icon aria-hidden size={20} strokeWidth={1.5} />
       <span className="sr-only md:not-sr-only">{label}</span>
     </Link>
@@ -24,10 +25,19 @@ const SITE_LINKS = [
 
 export function SiteHeader() {
   return (
-    <header className="border-b-[1.5px] border-ink bg-white">
-      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-2 px-4">
-        <Link href="/" className="wordmark text-2xl text-ink">
-          Coupersville
+    <header className="border-b border-line bg-cream-50">
+      <div className="mx-auto flex min-h-[72px] max-w-5xl items-center justify-between gap-3 px-4">
+        {/* The horizontal lockup; at least 120px wide (brand minimum). */}
+        <Link href="/" className="inline-flex min-h-11 shrink-0 items-center rounded-sm">
+          <Image
+            src="/brand/coupersville-logo-horizontal.svg"
+            alt="Coupersville"
+            width={714}
+            height={164}
+            unoptimized
+            preload
+            className="h-9 w-auto sm:h-10"
+          />
         </Link>
         <div className="flex items-center gap-1">
           <Suspense fallback={<div className="h-11 w-11" aria-hidden />}>
@@ -35,10 +45,14 @@ export function SiteHeader() {
           </Suspense>
         </div>
       </div>
-      <div className="border-t-[1.5px] border-ink">
+      <div className="border-t border-line">
         <nav aria-label="Coupersville" className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-1 px-2">
           {SITE_LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-ink">
+            <Link
+              key={l.href}
+              href={l.href}
+              className="inline-flex min-h-11 items-center rounded-sm px-2.5 text-sm font-medium text-evergreen-900 hover:bg-mint-100 hover:text-primary"
+            >
               {l.label}
             </Link>
           ))}
@@ -55,7 +69,7 @@ export function SiteHeader() {
 async function MerchantSignIn() {
   if (await getSessionUser()) return null;
   return (
-    <Link href="/login" className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-ink">
+    <Link href="/login" className="inline-flex min-h-11 items-center rounded-sm px-2.5 text-sm font-semibold text-primary hover:underline">
       Merchant sign in
     </Link>
   );

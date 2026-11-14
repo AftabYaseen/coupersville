@@ -33,8 +33,8 @@ export function FormMessage({ tone, children }: { tone: "error" | "success"; chi
   return (
     <p
       role={tone === "error" ? "alert" : "status"}
-      className={`rounded-sm border-[1.5px] px-3 py-2.5 text-sm ${
-        tone === "error" ? "border-signal text-signal bg-white" : "border-ink bg-stock-mint"
+      className={`rounded-sm border px-3 py-2.5 text-sm ${
+        tone === "error" ? "border-urgent text-urgent bg-white" : "border-line bg-mint-100"
       }`}
     >
       {children}

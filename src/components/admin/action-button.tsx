@@ -18,7 +18,7 @@ type Props = {
 const STYLES = {
   primary: "btn",
   secondary: "btn btn-secondary",
-  danger: "btn border-signal bg-signal",
+  danger: "btn border-urgent bg-urgent",
 };
 
 export function ActionButton({ action, children, pendingText, variant = "secondary", confirm, showSuccess = true }: Props) {

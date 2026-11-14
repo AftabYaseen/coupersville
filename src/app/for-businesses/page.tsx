@@ -45,7 +45,7 @@ export default function ForBusinessesPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <p className="text-lg font-medium">Turn an offer into an opportunity.</p>
-      <h1 className="wordmark mt-1 text-4xl text-ink sm:text-5xl">Give customers another reason to choose your business.</h1>
+      <h1 className="wordmark mt-1 text-4xl text-primary sm:text-5xl">Give customers another reason to choose your business.</h1>
       <p className="mt-3 max-w-2xl text-lg">
         Coupersville gives your business a straightforward way to create digital offers, attract deal-conscious customers and turn
         promotions into visits. You control the offer, the timing, the locations and the limits.
@@ -63,14 +63,14 @@ export default function ForBusinessesPage() {
       </div>
 
       <section className="mt-12" aria-labelledby="why-heading">
-        <h2 id="why-heading" className="wordmark text-3xl text-ink">
+        <h2 id="why-heading" className="wordmark text-3xl text-primary">
           Why businesses join
         </h2>
         <ul className="mt-4 grid gap-3 sm:grid-cols-2">
           {REASONS.map(({ title, body, Icon }) => (
             <li key={title} className="panel p-5">
               <h3 className="flex items-center gap-2 font-semibold">
-                <Icon aria-hidden size={20} strokeWidth={1.5} className="shrink-0 text-ink" />
+                <Icon aria-hidden size={20} strokeWidth={1.5} className="shrink-0 text-primary" />
                 {title}
               </h3>
               <p className="mt-1">{body}</p>
@@ -80,7 +80,7 @@ export default function ForBusinessesPage() {
       </section>
 
       <section className="mt-12" aria-labelledby="offers-heading">
-        <h2 id="offers-heading" className="wordmark text-3xl text-ink">
+        <h2 id="offers-heading" className="wordmark text-3xl text-primary">
           Your offer, printed on a ticket
         </h2>
         <p className="mt-1">Every coupon looks like this to shoppers, in the colour of its category, with its own limits.</p>
@@ -93,13 +93,13 @@ export default function ForBusinessesPage() {
       </section>
 
       <section className="mt-12" aria-labelledby="steps-heading">
-        <h2 id="steps-heading" className="wordmark text-3xl text-ink">
+        <h2 id="steps-heading" className="wordmark text-3xl text-primary">
           How Coupersville works for your business
         </h2>
         <ol className="mt-4 grid gap-3">
           {STEPS.map(({ title, body }, i) => (
             <li key={title} className="panel flex gap-4 p-5">
-              <span className="offer-text flex size-12 shrink-0 items-center justify-center rounded-sm bg-marigold text-3xl text-ink-deep tabular" aria-hidden>
+              <span className="offer-text flex size-12 shrink-0 items-center justify-center rounded-sm bg-accent text-3xl text-evergreen-900 tabular" aria-hidden>
                 {i + 1}
               </span>
               <div>
@@ -124,14 +124,14 @@ async function FoundingCallout() {
   const f = await foundingCallout();
   if (!f) return null;
   return (
-    <p className="mt-6 rounded-sm border-[1.5px] border-ink bg-stock-butter p-4">
+    <p className="mt-6 rounded-sm border border-line bg-marigold-100 p-4">
       <span className="font-semibold">{f.name} offer:</span> The first {f.freeSeats} qualifying merchants to join between{" "}
       {f.from} and {f.to} receive one complimentary year. See{" "}
-      <Link href="/business-membership" className="font-medium text-ink underline underline-offset-4">
+      <Link href="/business-membership" className="font-medium text-primary underline underline-offset-4">
         Business membership
       </Link>{" "}
       for details, and{" "}
-      <Link href="/pioneer-circle" className="font-medium text-ink underline underline-offset-4">
+      <Link href="/pioneer-circle" className="font-medium text-primary underline underline-offset-4">
         the {f.name}
       </Link>{" "}
       for what we ask of our Pioneers.

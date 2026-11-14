@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function ExplorePage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="wordmark text-4xl text-ink sm:text-5xl">There&apos;s always something to discover in Coupersville.</h1>
+      <h1 className="wordmark text-4xl text-primary sm:text-5xl">There&apos;s always something to discover in Coupersville.</h1>
       <p className="mt-3 max-w-2xl text-lg">
         Browse by category and discover offers from businesses that help you eat well, look good, shop smarter and enjoy more for
         less.
@@ -23,7 +23,7 @@ export default function ExplorePage() {
           <div role="status" className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <span className="sr-only">Loading categories</span>
             {Array.from({ length: 6 }, (_, i) => (
-              <div key={i} aria-hidden className="h-[112px] rounded-sm border-[1.5px] border-ink bg-white" />
+              <div key={i} aria-hidden className="h-[112px] rounded-sm border border-line bg-white" />
             ))}
           </div>
         }

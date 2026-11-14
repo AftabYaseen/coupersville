@@ -101,11 +101,11 @@ export function SearchForm({
 
         <div className="grid gap-1 sm:grid-cols-2">
           <label className="flex min-h-11 cursor-pointer items-center gap-3">
-            <input type="checkbox" name="available" value="1" defaultChecked={query.available === "1"} className="size-5 accent-ink" />
+            <input type="checkbox" name="available" value="1" defaultChecked={query.available === "1"} className="size-5 accent-primary" />
             Available now: only deals you can use at this time
           </label>
           <label className="flex min-h-11 cursor-pointer items-center gap-3">
-            <input type="checkbox" name="ending" value="1" defaultChecked={query.ending === "1"} className="size-5 accent-ink" />
+            <input type="checkbox" name="ending" value="1" defaultChecked={query.ending === "1"} className="size-5 accent-primary" />
             Ending soon: only deals ending in the next 7 days
           </label>
         </div>

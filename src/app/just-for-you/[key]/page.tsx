@@ -47,7 +47,7 @@ function Notice({ business, title, heading, body }: { business: string; title: s
       <p className="text-sm font-medium">
         {SHOPPER_LABEL} from {business}
       </p>
-      <h1 className="wordmark text-3xl text-ink">{heading}</h1>
+      <h1 className="wordmark text-3xl text-primary">{heading}</h1>
       <p>
         <span className="font-semibold">{title}</span>. {body}
       </p>
@@ -109,11 +109,11 @@ async function JustForYouContent({ params }: { params: PageProps<"/just-for-you/
   return (
     <div className="grid gap-8">
       <div>
-        <p className="inline-flex items-center gap-2 rounded-sm border-[1.5px] border-ink bg-white px-3 py-1 font-semibold text-ink">
+        <p className="inline-flex items-center gap-2 rounded-sm border border-line bg-white px-3 py-1 font-semibold text-primary">
           <Gift aria-hidden size={18} strokeWidth={1.5} />
           {SHOPPER_LABEL}
         </p>
-        <h1 className="wordmark mt-3 text-4xl text-ink">An offer from {d.business.name}, just for you</h1>
+        <h1 className="wordmark mt-3 text-4xl text-primary">An offer from {d.business.name}, just for you</h1>
         <p className="mt-2 max-w-2xl">This offer is private: it is not listed on Coupersville, and it can be redeemed once.</p>
       </div>
 
@@ -140,7 +140,7 @@ async function JustForYouContent({ params }: { params: PageProps<"/just-for-you/
           }
         >
           {d.image_path && (
-            <div className="relative mt-4 aspect-[16/9] overflow-hidden rounded-sm border-[1.5px] border-ink">
+            <div className="relative mt-4 aspect-[16/9] overflow-hidden rounded-sm border border-line">
               <Image
                 src={publicImageUrl(COUPON_IMAGE_BUCKET, d.image_path)}
                 alt=""
@@ -186,7 +186,7 @@ async function JustForYouContent({ params }: { params: PageProps<"/just-for-you/
               <ul className="mt-3 grid gap-4">
                 {stores.map((s) => (
                   <li key={s.id} className="flex gap-3">
-                    <MapPin aria-hidden size={18} strokeWidth={1.5} className="mt-1 shrink-0 text-ink" />
+                    <MapPin aria-hidden size={18} strokeWidth={1.5} className="mt-1 shrink-0 text-primary" />
                     <div>
                       <p className="font-semibold">
                         {s.store_name}
@@ -214,7 +214,7 @@ async function JustForYouContent({ params }: { params: PageProps<"/just-for-you/
                   alt=""
                   width={56}
                   height={56}
-                  className="size-14 rounded-sm border-[1.5px] border-ink object-cover"
+                  className="size-14 rounded-sm border border-line object-cover"
                 />
               )}
               <h2 id="business-heading" className="text-xl font-semibold">
@@ -229,7 +229,7 @@ async function JustForYouContent({ params }: { params: PageProps<"/just-for-you/
                     href={d.business.website_url}
                     rel="noopener noreferrer"
                     target="_blank"
-                    className="inline-flex min-h-11 items-center gap-2 font-medium text-ink underline underline-offset-4"
+                    className="inline-flex min-h-11 items-center gap-2 font-medium text-primary underline underline-offset-4"
                   >
                     <Globe aria-hidden size={18} strokeWidth={1.5} />
                     Visit website
@@ -238,7 +238,7 @@ async function JustForYouContent({ params }: { params: PageProps<"/just-for-you/
               )}
               {d.business.contact_phone && (
                 <li>
-                  <a href={`tel:${d.business.contact_phone}`} className="inline-flex min-h-11 items-center gap-2 font-medium text-ink">
+                  <a href={`tel:${d.business.contact_phone}`} className="inline-flex min-h-11 items-center gap-2 font-medium text-primary">
                     <Phone aria-hidden size={18} strokeWidth={1.5} />
                     {d.business.contact_phone}
                   </a>

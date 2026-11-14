@@ -80,11 +80,11 @@ export function SignupForm({ next }: { next?: string }) {
 
       <p className="text-sm">
         By creating an account you agree to the{" "}
-        <Link href="/terms" className="font-medium text-ink underline underline-offset-4">
+        <Link href="/terms" className="font-medium text-primary underline underline-offset-4">
           terms
         </Link>{" "}
         and confirm you have read how we handle your{" "}
-        <Link href="/privacy" className="font-medium text-ink underline underline-offset-4">
+        <Link href="/privacy" className="font-medium text-primary underline underline-offset-4">
           privacy
         </Link>
         .
@@ -96,13 +96,13 @@ export function SignupForm({ next }: { next?: string }) {
 
       <p className="text-sm">
         Already have an account?{" "}
-        <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-medium text-ink underline underline-offset-4">
+        <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-medium text-primary underline underline-offset-4">
           Sign in
         </Link>
       </p>
       <p className="text-sm">
         Running a business?{" "}
-        <Link href={JOIN_HREF} className="font-medium text-ink underline underline-offset-4">
+        <Link href={JOIN_HREF} className="font-medium text-primary underline underline-offset-4">
           Join Coupersville as a business
         </Link>
       </p>

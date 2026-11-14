@@ -17,9 +17,9 @@ export function LegalPage({ doc, linkPrivacy = false }: { doc: LegalDoc; linkPri
   const text = (s: string) => linkify(s, linkPrivacy);
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="wordmark text-4xl text-ink">{doc.title}</h1>
+      <h1 className="wordmark text-4xl text-primary">{doc.title}</h1>
       <p className="mt-2 text-sm tabular">Last updated: {doc.updated}</p>
-      <p role="note" className="mt-4 rounded-sm border-[1.5px] border-ink bg-white px-4 py-3 text-sm">
+      <p role="note" className="mt-4 rounded-sm border border-line bg-white px-4 py-3 text-sm">
         <strong className="font-semibold">Phase 1 Launch Notice:</strong> {doc.notice}
       </p>
       <div className="legal mt-6 grid gap-4">

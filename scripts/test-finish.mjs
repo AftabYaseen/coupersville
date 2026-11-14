@@ -157,9 +157,10 @@ async function pages() {
     /<title>How to use Coupersville coupons \| Coupersville<\/title>/.test(how.body) && /<title>Digital coupons for businesses \| Coupersville<\/title>/.test(biz.body),
   );
   check("pages have descriptions", /<meta name="description" content="Find a deal, get your one-time QR coupon/.test(how.body));
-  check("Open Graph image is set from the town sign", /<meta property="og:image" content="[^"]*opengraph-image/.test(home.body) && home.body.includes("og:image:alt"));
-  const og = await get(home.body.match(/<meta property="og:image" content="https?:\/\/[^/]+([^"]+)"/)?.[1] ?? "/opengraph-image.jpg");
-  check("the Open Graph image is a 1200 x 630 JPEG", og.status === 200 && og.type.startsWith("image/jpeg") && og.body.length > 50_000);
+  check("Open Graph image is set, with alt text", /<meta property="og:image" content="[^"]*opengraph-image/.test(home.body) && home.body.includes("og:image:alt"));
+  const og = await get(home.body.match(/<meta property="og:image" content="https?:\/\/[^/]+([^"]+)"/)?.[1] ?? "/opengraph-image.png");
+  check("the Open Graph image is the brand PNG (logo and Main Street)", og.status === 200 && og.type.startsWith("image/png") && og.body.length > 20_000);
+  check("og:image is 1200 x 630", home.body.includes('property="og:image:width" content="1200"') && home.body.includes('property="og:image:height" content="630"'));
   const sitemap = await get("/sitemap.xml");
   check("sitemap lists public pages and categories", sitemap.status === 200 && sitemap.body.includes("/how-to-save") && sitemap.body.includes("/c/"));
   const live = (await admin.from("live_coupons").select("id").limit(1)).data?.[0];
@@ -170,22 +171,25 @@ async function pages() {
   console.log("\nPWA");
   const manifest = await get("/manifest.webmanifest");
   const m = JSON.parse(manifest.body);
-  check("manifest: name, standalone, ink theme colour", m.name === "Coupersville" && m.display === "standalone" && m.theme_color === "#1B2A8F");
+  check("manifest: name, standalone, evergreen theme colour, cream background", m.name === "Coupersville" && m.display === "standalone" && m.theme_color === "#1F4D3F" && m.background_color === "#FFF8EC");
   for (const icon of m.icons) {
     const file = await get(icon.src);
     check(`icon ${icon.src} is a PNG`, file.status === 200 && file.type === "image/png" && file.body.length > 500);
   }
   check("there is a maskable icon", m.icons.some((i) => i.purpose === "maskable"));
-  check("theme colour meta tag", home.body.includes('name="theme-color" content="#1B2A8F"'));
+  check("theme colour meta tag", home.body.includes('name="theme-color" content="#1F4D3F"'));
   check("favicon and apple icon are linked", /rel="icon" href="\/icon/.test(home.body) && /rel="apple-touch-icon" href="\/apple-icon/.test(home.body));
-  for (const path of ["/icon", "/apple-icon"]) {
-    const file = await get((home.body.match(new RegExp(`href="(${path}[^"]*)"`)) ?? [])[1] ?? path);
-    check(`${path} renders`, file.status === 200 && file.type === "image/png");
+  for (const [path, type] of [["/icon.svg", "image/svg+xml"], ["/icon1.png", "image/png"], ["/apple-icon.png", "image/png"]]) {
+    const file = await get((home.body.match(new RegExp(`href="(${path.replace(".", "\\.")}[^"]*)"`)) ?? [])[1] ?? path);
+    check(`${path} is linked and served`, home.body.includes(`href="${path}`) && file.status === 200 && file.type.startsWith(type));
   }
   const sw = await get("/sw.js");
   check("service worker is served", sw.status === 200 && sw.body.includes("offline.html"));
   const offline = await get("/offline.html");
-  check("offline page is branded and self-contained", offline.status === 200 && offline.body.includes("You are offline") && offline.body.includes("@font-face") && !/<script|src="http/.test(offline.body));
+  check(
+    "offline page is branded and self-contained (inline logo, no fonts or files to fetch)",
+    offline.status === 200 && offline.body.includes("You are offline") && offline.body.includes('aria-label="Coupersville"') && offline.body.includes("#1f4d3f") && !/<script|src=|url\(/.test(offline.body),
+  );
 
   console.log("\nNot found");
   const missing = await get(`/no-such-page-${run}`);

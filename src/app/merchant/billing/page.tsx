@@ -112,13 +112,13 @@ async function BillingContent({ searchParams }: { searchParams: PageProps<"/merc
   return (
     <div className="mx-auto grid max-w-2xl gap-6 px-4 py-10">
       <div>
-        <h1 className="wordmark text-4xl text-ink">Billing</h1>
+        <h1 className="wordmark text-4xl text-primary">Billing</h1>
         <p className="mt-2">Your plan keeps your coupons live on Main Street.</p>
       </div>
       {message && <FormMessage tone={message.tone}>{message.text}</FormMessage>}
       {confirming && <AutoRefresh seconds={5} />}
       {!billing.publishingOpen && (
-        <p className="rounded-sm border-[1.5px] border-ink bg-stock-butter p-4">
+        <p className="rounded-sm border border-line bg-marigold-100 p-4">
           Publishing opens on {formatDay(billing.publishingOpensAt, OFFER_TIME_ZONE)}. You can build coupons and save drafts now.
         </p>
       )}
@@ -144,7 +144,7 @@ async function BillingContent({ searchParams }: { searchParams: PageProps<"/merc
       {(!billing.planCurrent || (billing.plan?.source === "complimentary" && billing.plan.offer_code !== ENTERPRISE_OFFER)) && !freeSeatPlan(billing.plan, billing.planCurrent) && (
         <OfferPanel billing={billing} businessStatus={business.status} now={now} timeZone={safeTimeZone(business.timezone)} />
       )}
-      <Link href="/merchant/billing/history" className="font-medium text-ink underline underline-offset-4">
+      <Link href="/merchant/billing/history" className="font-medium text-primary underline underline-offset-4">
         Billing history
       </Link>
     </div>
@@ -278,7 +278,7 @@ async function PaymentPanel({ plan, billing, timeZone }: { plan: Tables<"subscri
       {plan.status === "past_due" && reviewing ? (
         <p>Your renewal payment is being reviewed by our payment processor. Your coupons stay live meanwhile.</p>
       ) : plan.status === "past_due" ? (
-        <p className="text-signal">Your last payment failed. Update your card: we try it again 1, 3 and 7 days after the renewal date.</p>
+        <p className="text-urgent">Your last payment failed. Update your card: we try it again 1, 3 and 7 days after the renewal date.</p>
       ) : null}
       <div className="flex flex-wrap items-start gap-4">
         {free && !plan.anet_payment_profile_id ? (
@@ -318,7 +318,7 @@ function SeatsLeft({ offer }: { offer: Offer }) {
   return (
     <dl className="grid grid-cols-2 gap-3 tabular">
       {offer.free_seats > 0 && (
-        <div className="rounded-sm border-[1.5px] border-ink p-3">
+        <div className="rounded-sm border border-line p-3">
           <dt className="text-sm">Free seats left</dt>
           <dd className="text-2xl font-semibold">
             {freeSeatsLeft(offer)} of {offer.free_seats}
@@ -326,7 +326,7 @@ function SeatsLeft({ offer }: { offer: Offer }) {
         </div>
       )}
       {offer.seat_cap !== null && (
-        <div className="rounded-sm border-[1.5px] border-ink p-3">
+        <div className="rounded-sm border border-line p-3">
           <dt className="text-sm">Seats left</dt>
           <dd className="text-2xl font-semibold">
             {Math.max(0, offer.seat_cap - Number(offer.seats_used))} of {offer.seat_cap}
@@ -345,7 +345,7 @@ function termText(offer: Offer, offers: Offer[]): string {
 
 function PaymentsSoon() {
   return (
-    <p className="rounded-sm border-[1.5px] border-ink bg-stock-sky p-3">
+    <p className="rounded-sm border border-line bg-sky-100 p-3">
       Payments open soon. Until then, you can build your coupons and save them as drafts.
     </p>
   );

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function BusinessMembershipPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
-      <h1 className="wordmark text-4xl text-ink sm:text-5xl">One membership. Plenty of possibilities.</h1>
+      <h1 className="wordmark text-4xl text-primary sm:text-5xl">One membership. Plenty of possibilities.</h1>
       <Suspense fallback={<div className="panel mt-6 h-96" aria-hidden />}>
         <Levels />
       </Suspense>
@@ -41,7 +41,7 @@ async function Levels() {
           Yes. {campaignsSummary ?? "Every membership level includes several campaigns per location per month"}, subject to platform
           terms and acceptable-use requirements. Your monthly allowance is that number times your open locations. Businesses needing
           more can{" "}
-          <Link href="/contact" className="font-medium text-ink underline underline-offset-4">
+          <Link href="/contact" className="font-medium text-primary underline underline-offset-4">
             contact us
           </Link>{" "}
           for a {names.enterprise} custom quote.
@@ -54,7 +54,7 @@ async function Levels() {
         <>
           Yes. {names.plus} includes up to {plusLocations ?? 3} locations, and you can choose whether each coupon applies everywhere or
           only at selected locations. For more than {plusLocations ?? 3} locations,{" "}
-          <Link href="/contact" className="font-medium text-ink underline underline-offset-4">
+          <Link href="/contact" className="font-medium text-primary underline underline-offset-4">
             contact us
           </Link>{" "}
           for a customized consultation.
@@ -79,7 +79,7 @@ async function Levels() {
       </p>
 
       <section className="mt-8" aria-labelledby="levels-heading">
-        <h2 id="levels-heading" className="wordmark text-3xl text-ink">
+        <h2 id="levels-heading" className="wordmark text-3xl text-primary">
           Membership levels and pricing
         </h2>
         <ul className="mt-4 grid gap-4">
@@ -88,12 +88,12 @@ async function Levels() {
               <div className="grid content-start gap-3">
                 <h3 className="text-xl font-semibold">{l.name}</h3>
                 <dl className="grid grid-cols-2 gap-3 tabular sm:grid-cols-1">
-                  <div className="rounded-sm border-[1.5px] border-ink p-3">
+                  <div className="rounded-sm border border-line p-3">
                     <dt className="text-sm">Pay annually</dt>
                     <dd className="text-2xl font-semibold">{l.annual ?? "Custom quote"}</dd>
                     {l.annual && <dd className="text-sm">Paid in full at sign up</dd>}
                   </div>
-                  <div className="rounded-sm border-[1.5px] border-ink p-3">
+                  <div className="rounded-sm border border-line p-3">
                     <dt className="text-sm">Pay monthly</dt>
                     <dd className="text-2xl font-semibold">{l.monthly ?? (l.annual ? "Annual only" : "Custom quote")}</dd>
                     {l.monthly && <dd className="text-sm">Per month</dd>}
@@ -103,7 +103,7 @@ async function Levels() {
               <div className="grid content-start gap-3">
                 <p>{l.details}</p>
                 {l.code === FOUNDING_OFFER && (
-                  <Link href="/pioneer-circle" className="font-medium text-ink underline underline-offset-4 justify-self-start">
+                  <Link href="/pioneer-circle" className="font-medium text-primary underline underline-offset-4 justify-self-start">
                     What it means to join the {l.name}
                   </Link>
                 )}
@@ -123,7 +123,7 @@ async function Levels() {
       </section>
 
       <section className="mt-10" aria-labelledby="includes-heading">
-        <h2 id="includes-heading" className="wordmark text-3xl text-ink">
+        <h2 id="includes-heading" className="wordmark text-3xl text-primary">
           Membership includes
         </h2>
         <ul className="panel mt-4 grid list-disc gap-1.5 p-5 pl-10">
@@ -156,7 +156,7 @@ async function Levels() {
       </p>
 
       <section className="mt-10" aria-labelledby="pricing-faq-heading">
-        <h2 id="pricing-faq-heading" className="wordmark text-3xl text-ink">
+        <h2 id="pricing-faq-heading" className="wordmark text-3xl text-primary">
           Pricing questions
         </h2>
         <dl className="mt-4 grid gap-3">
@@ -169,7 +169,7 @@ async function Levels() {
         </dl>
         <p className="mt-4">
           More questions? See the{" "}
-          <Link href="/faq" className="font-medium text-ink underline underline-offset-4">
+          <Link href="/faq" className="font-medium text-primary underline underline-offset-4">
             frequently asked questions
           </Link>
           .

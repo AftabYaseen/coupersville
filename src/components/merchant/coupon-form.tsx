@@ -175,7 +175,7 @@ export function CouponForm(props: Props) {
       store={storeText}
     >
       {values.imagePath && (
-        <div className="relative mt-4 aspect-[16/9] overflow-hidden rounded-sm border-[1.5px] border-ink">
+        <div className="relative mt-4 aspect-[16/9] overflow-hidden rounded-sm border border-line">
           <Image src={publicImageUrl(COUPON_IMAGE_BUCKET, values.imagePath)} alt="" fill sizes="300px" className="object-cover" />
         </div>
       )}
@@ -195,11 +195,11 @@ export function CouponForm(props: Props) {
                 {VISIBILITY_CHOICES.map((choice) => (
                   <label
                     key={choice.value}
-                    className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-sm border-[1.5px] border-ink px-3 py-2 ${
-                      values.visibility === choice.value ? "bg-stock-sky" : "bg-white"
+                    className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-sm border border-line px-3 py-2 ${
+                      values.visibility === choice.value ? "bg-sky-100" : "bg-white"
                     }`}
                   >
-                    <input type="radio" value={choice.value} className="size-5 accent-ink" {...register("visibility")} />
+                    <input type="radio" value={choice.value} className="size-5 accent-primary" {...register("visibility")} />
                     {choice.label}
                   </label>
                 ))}
@@ -227,11 +227,11 @@ export function CouponForm(props: Props) {
                 {OFFER_KINDS.map((kind) => (
                   <label
                     key={kind.value}
-                    className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-sm border-[1.5px] border-ink px-3 ${
-                      values.discountType === kind.value ? "bg-stock-sky" : "bg-white"
+                    className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-sm border border-line px-3 ${
+                      values.discountType === kind.value ? "bg-sky-100" : "bg-white"
                     }`}
                   >
-                    <input type="radio" value={kind.value} className="size-4 accent-ink" {...register("discountType")} />
+                    <input type="radio" value={kind.value} className="size-4 accent-primary" {...register("discountType")} />
                     {kind.label}
                   </label>
                 ))}
@@ -366,7 +366,7 @@ export function CouponForm(props: Props) {
                 {PER_USER_CHOICES.map((choice) => (
                   <div key={choice.value} className="flex flex-wrap items-center gap-3">
                     <label className="flex min-h-11 cursor-pointer items-center gap-3">
-                      <input type="radio" value={choice.value} className="size-5 accent-ink" {...register("perUserMode")} />
+                      <input type="radio" value={choice.value} className="size-5 accent-primary" {...register("perUserMode")} />
                       <span>{choice.label}</span>
                     </label>
                     {choice.value === "limited" && values.perUserMode === "limited" && (
@@ -401,7 +401,7 @@ export function CouponForm(props: Props) {
             )}
 
             <label className="flex min-h-11 cursor-pointer items-center gap-3 font-medium">
-              <input type="checkbox" className="size-5 accent-ink" {...register("scheduleOn")} />
+              <input type="checkbox" className="size-5 accent-primary" {...register("scheduleOn")} />
               Only on certain days or times
             </label>
             {values.scheduleOn && (
@@ -414,8 +414,8 @@ export function CouponForm(props: Props) {
                       return (
                         <label
                           key={d.iso}
-                          className={`flex min-h-11 min-w-14 cursor-pointer items-center justify-center rounded-sm border-[1.5px] border-ink px-2 font-medium ${
-                            on ? "bg-ink text-white" : "bg-white text-ink"
+                          className={`flex min-h-11 min-w-14 cursor-pointer items-center justify-center rounded-sm border border-line px-2 font-medium ${
+                            on ? "bg-primary text-white" : "bg-white text-primary"
                           }`}
                         >
                           <input
@@ -454,14 +454,14 @@ export function CouponForm(props: Props) {
               ].map((opt) => (
                 <label
                   key={opt.label}
-                  className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-sm border-[1.5px] border-ink px-3 ${
-                    values.allLocations === opt.all ? "bg-stock-sky" : "bg-white"
+                  className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-sm border border-line px-3 ${
+                    values.allLocations === opt.all ? "bg-sky-100" : "bg-white"
                   }`}
                 >
                   <input
                     type="radio"
                     name="allLocationsChoice"
-                    className="size-4 accent-ink"
+                    className="size-4 accent-primary"
                     checked={values.allLocations === opt.all}
                     onChange={() => setValue("allLocations", opt.all, { shouldDirty: true })}
                   />
@@ -477,13 +477,13 @@ export function CouponForm(props: Props) {
                     <label key={loc.id} className="flex min-h-11 cursor-pointer items-center gap-3">
                       <input
                         type="checkbox"
-                        className="size-5 accent-ink"
+                        className="size-5 accent-primary"
                         checked={chosenIds.includes(loc.id)}
                         onChange={(e) => toggleLocation(loc.id, e.target.checked)}
                       />
                       <span>
                         {loc.label}
-                        {!loc.active && <span className="ml-2 text-sm text-signal">Closed</span>}
+                        {!loc.active && <span className="ml-2 text-sm text-urgent">Closed</span>}
                       </span>
                     </label>
                   ))}
@@ -497,7 +497,7 @@ export function CouponForm(props: Props) {
             {isDraft && !planActive && (
               <p className="text-sm">
                 You need an active membership to publish. Save this as a draft for now, then{" "}
-                <Link href="/merchant/billing" className="font-medium text-ink underline underline-offset-4">
+                <Link href="/merchant/billing" className="font-medium text-primary underline underline-offset-4">
                   see your membership options
                 </Link>
                 .

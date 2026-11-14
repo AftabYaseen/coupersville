@@ -3,15 +3,20 @@ import { absoluteUrl } from "@/lib/site";
 import { formatDay } from "@/lib/dates";
 import { PAST_DUE_GRACE_DAYS } from "@/lib/billing";
 
-// Brand-style emails: a white ticket on paper, ink outline, plain text wordmark, one ink button.
+// Brand-style emails (2026-11 rebrand): the logo on a white card on cream paper, Fraunces-style
+// serif headings, one pill-shaped evergreen button, details on a marigold-tint ticket stub.
 // Every template also has a plain text version. Inline styles only, since mail apps drop <style>.
+// Mail apps cannot load the site's fonts, so the font stacks fall back to system fonts.
 
-const INK = "#1B2A8F";
-const INK_DEEP = "#121A4D";
-const PAPER = "#F2F4F8";
-const BUTTER = "#FBEBB0";
-const SIGNAL = "#D8342C";
-const FONT = "Archivo, 'Helvetica Neue', Arial, sans-serif";
+const EVERGREEN = "#1F4D3F";
+const INK = "#14231E";
+const STONE = "#56605B";
+const CREAM = "#FFF8EC";
+const LINE = "#E7DFCF";
+const MARIGOLD_TINT = "#FDF1D6";
+const BRICK = "#B93A1F";
+const FONT = "'DM Sans', 'Helvetica Neue', Arial, sans-serif";
+const SERIF = "Fraunces, Georgia, 'Times New Roman', serif";
 
 export type RenderedEmail = { subject: string; html: string; text: string };
 
@@ -30,19 +35,19 @@ function escapeHtml(value: string): string {
 function renderBlock(block: Block): string {
   switch (block.kind) {
     case "p":
-      return `<p style="margin:0 0 16px;font-size:16px;line-height:1.5;color:${INK_DEEP};">${escapeHtml(block.text)}</p>`;
+      return `<p style="margin:0 0 16px;font-size:16px;line-height:1.55;color:${INK};">${escapeHtml(block.text)}</p>`;
     case "note":
-      return `<p style="margin:0 0 16px;font-size:14px;line-height:1.5;color:${INK_DEEP};">${escapeHtml(block.text)}</p>`;
+      return `<p style="margin:0 0 16px;font-size:14px;line-height:1.5;color:${STONE};">${escapeHtml(block.text)}</p>`;
     case "button":
-      return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 24px;"><tr><td style="background:${INK};border-radius:4px;">
-<a href="${escapeHtml(block.href)}" style="display:inline-block;padding:12px 20px;font-family:${FONT};font-size:16px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:4px;">${escapeHtml(block.label)}</a>
+      return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 24px;"><tr><td style="background:${EVERGREEN};border-radius:999px;">
+<a href="${escapeHtml(block.href)}" style="display:inline-block;padding:13px 24px;font-family:${FONT};font-size:16px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:999px;">${escapeHtml(block.label)}</a>
 </td></tr></table>`;
     case "stub":
-      return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;background:${BUTTER};border:1.5px solid ${INK};border-top-style:dashed;border-radius:0 0 6px 6px;">
+      return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;background:${MARIGOLD_TINT};border-top:2px dashed #C9BFA9;border-radius:0 0 14px 14px;">
 ${block.rows
   .map(
     ([label, value]) =>
-      `<tr><td style="padding:10px 16px 0;font-size:14px;color:${INK_DEEP};">${escapeHtml(label)}</td></tr><tr><td style="padding:2px 16px 10px;font-size:16px;font-weight:600;color:${INK_DEEP};">${escapeHtml(value)}</td></tr>`,
+      `<tr><td style="padding:10px 16px 0;font-size:14px;color:${STONE};">${escapeHtml(label)}</td></tr><tr><td style="padding:2px 16px 10px;font-size:16px;font-weight:600;color:${INK};">${escapeHtml(value)}</td></tr>`,
   )
   .join("")}
 </table>`;
@@ -65,18 +70,18 @@ function layout({ subject, heading, blocks, alert }: { subject: string; heading:
   const home = absoluteUrl("/");
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(subject)}</title></head>
-<body style="margin:0;padding:0;background:${PAPER};font-family:${FONT};color:${INK_DEEP};">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${PAPER};"><tr><td align="center" style="padding:24px 12px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border:1.5px solid ${INK};border-radius:6px;">
-<tr><td style="padding:20px 24px;border-bottom:1.5px solid ${INK};">
-<a href="${home}" style="font-family:${FONT};font-size:24px;font-weight:800;color:${INK};text-decoration:none;">Coupersville</a>
+<body style="margin:0;padding:0;background:${CREAM};font-family:${FONT};color:${INK};">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREAM};"><tr><td align="center" style="padding:24px 12px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border:1px solid ${LINE};border-radius:22px;">
+<tr><td style="padding:22px 24px;border-bottom:1px solid ${LINE};">
+<a href="${home}" style="text-decoration:none;"><img src="${absoluteUrl("/brand/coupersville-logo-horizontal.png")}" alt="Coupersville" width="175" height="40" style="display:block;border:0;width:175px;height:auto;"></a>
 </td></tr>
 <tr><td style="padding:24px 24px 8px;">
-<h1 style="margin:0 0 16px;font-size:24px;line-height:1.25;font-weight:700;color:${alert ? SIGNAL : INK};">${escapeHtml(heading)}</h1>
+<h1 style="margin:0 0 16px;font-family:${SERIF};font-size:26px;line-height:1.2;font-weight:600;color:${alert ? BRICK : INK};">${escapeHtml(heading)}</h1>
 ${blocks.map(renderBlock).join("\n")}
 </td></tr>
 </table>
-<p style="max-width:560px;margin:16px auto 0;font-size:13px;line-height:1.5;color:${INK_DEEP};">You are getting this email because you have an account on <a href="${home}" style="color:${INK};">Coupersville</a>.</p>
+<p style="max-width:560px;margin:16px auto 0;font-size:13px;line-height:1.5;color:${STONE};">You are getting this email because you have an account on <a href="${home}" style="color:${EVERGREEN};">Coupersville</a>.</p>
 </td></tr></table>
 </body></html>`;
 

@@ -49,7 +49,7 @@ export function ResetRequestForm() {
         {pending ? "Sending instructions" : "Send reset instructions"}
       </button>
 
-      <Link href="/login" className="min-h-11 content-center text-sm font-medium text-ink underline underline-offset-4">
+      <Link href="/login" className="min-h-11 content-center text-sm font-medium text-primary underline underline-offset-4">
         Back to sign in
       </Link>
     </form>

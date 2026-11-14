@@ -33,7 +33,7 @@ export function LoginForm({ next, notice, business = true }: { next?: string; no
 
   return (
     <>
-      <h1 className="wordmark text-3xl text-ink">{business ? "Welcome back." : "Sign in"}</h1>
+      <h1 className="wordmark text-3xl text-primary">{business ? "Welcome back." : "Sign in"}</h1>
       <p className="mt-2 mb-6">
         {business
           ? "Sign in to manage your business, create offers, scan coupons and review redemption activity."
@@ -66,7 +66,7 @@ export function LoginForm({ next, notice, business = true }: { next?: string; no
           />
         </Field>
 
-        <Link href="/reset-password" className="-mt-2 min-h-11 content-center justify-self-start text-sm font-medium text-ink underline underline-offset-4">
+        <Link href="/reset-password" className="-mt-2 min-h-11 content-center justify-self-start text-sm font-medium text-primary underline underline-offset-4">
           Forgot password?
         </Link>
 
@@ -78,7 +78,7 @@ export function LoginForm({ next, notice, business = true }: { next?: string; no
           {business ? (
             <>
               Not yet a Coupersville business?{" "}
-              <Link href="/business-membership" className="font-medium text-ink underline underline-offset-4">
+              <Link href="/business-membership" className="font-medium text-primary underline underline-offset-4">
                 View business membership
               </Link>
             </>
@@ -87,7 +87,7 @@ export function LoginForm({ next, notice, business = true }: { next?: string; no
               New here?{" "}
               <Link
                 href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}
-                className="font-medium text-ink underline underline-offset-4"
+                className="font-medium text-primary underline underline-offset-4"
               >
                 Create an account
               </Link>

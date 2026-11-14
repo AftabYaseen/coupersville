@@ -91,7 +91,7 @@ export function OfferForm({ code, defaults, renewOptions, seatsUsed, freeSeatsUs
         </Field>
       </div>
       <label className="flex min-h-11 items-center gap-3">
-        <input type="checkbox" className="size-5 accent-ink" {...register("active")} />
+        <input type="checkbox" className="size-5 accent-primary" {...register("active")} />
         <span>Active</span>
       </label>
       <button type="submit" className="btn justify-self-start" disabled={pending}>

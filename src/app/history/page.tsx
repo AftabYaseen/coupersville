@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Redemption history" };
 export default function HistoryPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:py-10">
-      <h1 className="wordmark text-4xl text-ink">Your history</h1>
+      <h1 className="wordmark text-4xl text-primary">Your history</h1>
       <Suspense fallback={<PageLoading />}>
         <HistoryContent />
       </Suspense>
@@ -64,7 +64,7 @@ async function HistoryContent() {
             : "Store no longer listed";
           const body = (
             <>
-              <span aria-hidden className={`w-3 shrink-0 border-r-[1.5px] border-dashed border-ink ${TINT_BG[r.stock_tint]}`} />
+              <span aria-hidden className={`w-3 shrink-0 border-r border-dashed border-line ${TINT_BG[r.stock_tint]}`} />
               <span className="grid min-w-0 flex-1 gap-1 p-4">
                 <span className="flex flex-wrap items-baseline justify-between gap-x-3">
                   <span className="font-semibold">{r.business_name}</span>
@@ -76,7 +76,7 @@ async function HistoryContent() {
                   <span className="font-semibold tabular">{formatOffer(r.discount_type, Number(r.discount_value))}</span>, {r.title}
                 </span>
                 <span className="flex items-start gap-1.5 text-sm">
-                  <MapPin aria-hidden size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-ink" />
+                  <MapPin aria-hidden size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-primary" />
                   {store}
                 </span>
               </span>

@@ -97,7 +97,7 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/admi
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="wordmark text-4xl text-ink">All coupons</h1>
+      <h1 className="wordmark text-4xl text-primary">All coupons</h1>
 
       <form action="/admin/coupons" className="panel mt-6 grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3" role="search">
         <div className="sm:col-span-2 lg:col-span-3">
@@ -147,7 +147,7 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/admi
           </select>
         </div>
         <label className="flex min-h-11 items-center gap-2 font-medium">
-          <input type="checkbox" name="featured" value="1" defaultChecked={Boolean(f.featured)} className="size-5 accent-ink" />
+          <input type="checkbox" name="featured" value="1" defaultChecked={Boolean(f.featured)} className="size-5 accent-primary" />
           Featured only
         </label>
         <div className="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-2 lg:justify-end">
@@ -189,25 +189,25 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/admi
               <li key={c.id} className="panel grid gap-3 p-4 md:grid-cols-[1fr_auto] md:items-start">
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2">
-                    <span className="offer-text bg-marigold px-1.5 pt-1 pb-0.5 text-xl tabular">
+                    <span className="offer-text bg-accent px-1.5 pt-1 pb-0.5 text-xl tabular">
                       {formatOffer(c.discount_type, Number(c.discount_value))}
                     </span>
                     <span className="font-semibold">{c.title}</span>
                     {c.visibility === "private" && (
                       <span className="inline-flex items-center gap-1 text-sm font-medium">
-                        <LockKeyhole aria-hidden size={16} strokeWidth={1.5} className="text-ink" />
+                        <LockKeyhole aria-hidden size={16} strokeWidth={1.5} className="text-primary" />
                         {PRIVATE_OFFER_LABEL}
                       </span>
                     )}
                     {c.featured && (
                       <span className="inline-flex items-center gap-1 text-sm font-medium">
-                        <Star aria-hidden size={16} strokeWidth={1.5} className="text-ink" />
+                        <Star aria-hidden size={16} strokeWidth={1.5} className="text-primary" />
                         Featured
                       </span>
                     )}
                   </p>
                   <p className="mt-1 text-sm">
-                    <Link href={`/admin/merchants/${c.business_id}`} className="font-medium text-ink underline underline-offset-4">
+                    <Link href={`/admin/merchants/${c.business_id}`} className="font-medium text-primary underline underline-offset-4">
                       {biz?.name ?? "Unknown business"}
                     </Link>
                     {c.categories ? `, ${c.categories.name}` : ""}
@@ -215,9 +215,9 @@ async function CouponsContent({ searchParams }: { searchParams: PageProps<"/admi
                   <p className="text-sm tabular">
                     {COUPON_VIEW_STATUS[view]}, {formatDay(c.starts_at, tz)} to {formatDay(c.expires_at, tz)}
                   </p>
-                  {hidden && <p className="text-sm font-semibold text-signal">{hidden}</p>}
+                  {hidden && <p className="text-sm font-semibold text-urgent">{hidden}</p>}
                   {c.admin_hold && (
-                    <p className="text-sm text-signal">
+                    <p className="text-sm text-urgent">
                       <span className="font-semibold">Unpublished by Coupersville</span>
                       {c.held_at ? ` on ${formatDay(c.held_at, tz)}` : ""}
                       {c.hold_reason ? `: ${c.hold_reason}` : ", no reason given"}

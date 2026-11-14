@@ -63,10 +63,10 @@ async function SubscriptionsContent({ searchParams }: { searchParams: PageProps<
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="wordmark text-4xl text-ink">Subscriptions</h1>
+      <h1 className="wordmark text-4xl text-primary">Subscriptions</h1>
       <p className="mt-2">
         Grant, extend or revoke complimentary plans. Paid plans are read-only here. Businesses still setting up are not listed.
-        {names.founding} seats are on the <Link href="/admin/offers" className="font-medium text-ink underline underline-offset-4">Offers</Link> page.
+        {names.founding} seats are on the <Link href="/admin/offers" className="font-medium text-primary underline underline-offset-4">Offers</Link> page.
       </p>
 
       <nav aria-label="Plan filter" className="mt-6 overflow-x-auto">
@@ -76,8 +76,8 @@ async function SubscriptionsContent({ searchParams }: { searchParams: PageProps<
               <Link
                 href={f.value === "all" ? "/admin/subscriptions" : `/admin/subscriptions?plan=${f.value}`}
                 aria-current={filter === f.value ? "page" : undefined}
-                className={`inline-flex min-h-11 items-center rounded-sm border-[1.5px] border-ink px-3 font-medium whitespace-nowrap ${
-                  filter === f.value ? "bg-ink text-white" : "bg-white text-ink"
+                className={`inline-flex min-h-11 items-center rounded-sm border border-line px-3 font-medium whitespace-nowrap ${
+                  filter === f.value ? "bg-primary text-white" : "bg-white text-primary"
                 }`}
               >
                 {f.label}
@@ -100,14 +100,14 @@ async function SubscriptionsContent({ searchParams }: { searchParams: PageProps<
             return (
               <li key={b.id} className="panel grid gap-4 p-4 md:grid-cols-[1fr_minmax(0,22rem)]">
                 <div className="min-w-0">
-                  <Link href={`/admin/merchants/${b.id}`} className="font-semibold text-ink underline underline-offset-4">
+                  <Link href={`/admin/merchants/${b.id}`} className="font-semibold text-primary underline underline-offset-4">
                     {b.name}
                   </Link>
                   <p className="mt-1 flex flex-wrap gap-2">
                     <StatusBadge status={b.status} />
                     <PlanBadge source={b.plan_source} active={b.plan_active} />
                   </p>
-                  <p className={`mt-2 text-sm tabular ${endsSoon(b) || plan.kind === "past_due" ? "font-semibold text-signal" : ""}`}>
+                  <p className={`mt-2 text-sm tabular ${endsSoon(b) || plan.kind === "past_due" ? "font-semibold text-urgent" : ""}`}>
                     {foundingSeat ? `${names.founding}, free seat. ` : ""}
                     {planSummary(plan, b.timezone)}
                   </p>

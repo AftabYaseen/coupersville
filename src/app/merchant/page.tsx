@@ -71,7 +71,7 @@ async function MerchantHome() {
     if (user.role === "merchant") redirect("/merchant/onboarding");
     return (
       <div className="mx-auto max-w-5xl px-4 py-10">
-        <h1 className="wordmark text-4xl text-ink">Merchant portal</h1>
+        <h1 className="wordmark text-4xl text-primary">Merchant portal</h1>
         <p className="panel mt-6 p-5">You do not manage a business on Coupersville.</p>
       </div>
     );
@@ -120,7 +120,7 @@ async function MerchantHome() {
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="grid gap-4">
         <div>
-          <h1 className="wordmark text-4xl text-ink">Welcome back, {business.name}.</h1>
+          <h1 className="wordmark text-4xl text-primary">Welcome back, {business.name}.</h1>
           <p className="mt-2">Manage your offers, locations and Coupersville membership from one place.</p>
           <p className="mt-1 text-sm">Signed in as {user.fullName ?? user.email}.</p>
         </div>
@@ -147,7 +147,7 @@ async function MerchantHome() {
         <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {summary.map((s) => (
             <div key={s.label} className="panel p-4">
-              <dt className="font-medium">{s.href ? <Link href={s.href} className="text-ink underline-offset-4 hover:underline">{s.label}</Link> : s.label}</dt>
+              <dt className="font-medium">{s.href ? <Link href={s.href} className="text-primary underline-offset-4 hover:underline">{s.label}</Link> : s.label}</dt>
               <dd className="text-3xl font-semibold tabular">{s.value}</dd>
             </div>
           ))}
@@ -155,7 +155,7 @@ async function MerchantHome() {
       )}
 
       {business.status === "suspended" && (
-        <p className="mt-6 rounded-sm border-[1.5px] border-signal bg-white p-4 text-signal">
+        <p className="mt-6 rounded-sm border border-urgent bg-white p-4 text-urgent">
           Your business is suspended, so shoppers cannot see your coupons. Contact Coupersville support to sort it out.
         </p>
       )}
@@ -197,7 +197,7 @@ async function MerchantHome() {
             <table className="w-full text-left">
               <caption className="sr-only">Redemptions by coupon</caption>
               <thead>
-                <tr className="border-b-[1.5px] border-ink">
+                <tr className="border-b border-line">
                   <th scope="col" className="p-3 font-semibold">
                     Coupon
                   </th>
@@ -208,9 +208,9 @@ async function MerchantHome() {
               </thead>
               <tbody>
                 {byCoupon.map((c) => (
-                  <tr key={c.id} className="border-b border-ink/20 last:border-0">
+                  <tr key={c.id} className="border-b border-line last:border-0">
                     <td className="p-3">
-                      <Link href={`/merchant/coupons/${c.id}`} className="font-medium text-ink underline underline-offset-4">
+                      <Link href={`/merchant/coupons/${c.id}`} className="font-medium text-primary underline underline-offset-4">
                         {c.title}
                       </Link>
                     </td>
@@ -244,7 +244,7 @@ async function MerchantHome() {
           ))}
         </ul>
         {counts.live > 0 && !planActive && (
-          <p className="mt-3 text-sm text-signal">Active coupons stay hidden from shoppers until your membership is active.</p>
+          <p className="mt-3 text-sm text-urgent">Active coupons stay hidden from shoppers until your membership is active.</p>
         )}
       </section>
 

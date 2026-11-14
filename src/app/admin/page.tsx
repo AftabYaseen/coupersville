@@ -39,7 +39,7 @@ async function AdminHome() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="wordmark text-4xl text-ink">Town hall</h1>
+      <h1 className="wordmark text-4xl text-primary">Town hall</h1>
       <p className="mt-2">Signed in as {user.fullName ?? user.email}.</p>
 
       {!parsed.success ? (
@@ -126,9 +126,9 @@ function TopList({
         <ol className="mt-3 grid gap-2">
           {rows.map((r) => (
             <li key={r.key} className="flex items-baseline justify-between gap-3">
-              <Link href={r.href} className="min-w-0 font-medium text-ink underline underline-offset-4">
+              <Link href={r.href} className="min-w-0 font-medium text-primary underline underline-offset-4">
                 {r.primary}
-                {r.secondary && <span className="block text-sm font-normal text-ink-deep no-underline">{r.secondary}</span>}
+                {r.secondary && <span className="block text-sm font-normal text-evergreen-900 no-underline">{r.secondary}</span>}
               </Link>
               <span className="tabular">{r.count}</span>
             </li>

@@ -22,7 +22,7 @@ export function MerchantNavLinks({
   label?: string;
 }) {
   return (
-    <nav aria-label={label} className="min-h-11 border-b-[1.5px] border-ink bg-white">
+    <nav aria-label={label} className="min-h-11 border-b border-line bg-white">
       <ul className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4">
         {links.map((link) => {
           // A portal's home link ("/merchant", "/admin") only matches itself.
@@ -35,7 +35,7 @@ export function MerchantNavLinks({
                 href={link.href}
                 aria-current={active ? "page" : undefined}
                 className={`inline-flex min-h-11 items-center border-b-[3px] px-3 font-medium whitespace-nowrap ${
-                  active ? "border-ink text-ink" : "border-transparent text-ink-deep"
+                  active ? "border-line text-primary" : "border-transparent text-evergreen-900"
                 }`}
               >
                 {link.label}

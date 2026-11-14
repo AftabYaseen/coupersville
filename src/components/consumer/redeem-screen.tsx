@@ -170,7 +170,7 @@ export function RedeemScreen({ tokenId, couponId, privateKey, shortCode, qrSvg, 
   const tz = ticket.timeZone;
 
   const codePanel = (
-    <div className="grid gap-3 rounded-sm border-[1.5px] border-ink bg-white p-4 text-center">
+    <div className="grid gap-3 rounded-sm border border-line bg-white p-4 text-center">
       {qrSvg && (
         <div
           role="img"
@@ -199,11 +199,11 @@ export function RedeemScreen({ tokenId, couponId, privateKey, shortCode, qrSvg, 
     stub = torn ? null : codePanel;
   } else if (expired) {
     stub = (
-      <div className="grid gap-3 rounded-sm border-[1.5px] border-ink bg-white p-4 text-center">
+      <div className="grid gap-3 rounded-sm border border-line bg-white p-4 text-center">
         <p className="text-lg font-semibold">This QR code has expired</p>
         <p className="text-sm">
           Return to the{" "}
-          <Link href={couponHref} className="font-medium text-ink underline underline-offset-4">
+          <Link href={couponHref} className="font-medium text-primary underline underline-offset-4">
             coupon page
           </Link>{" "}
           to check whether the offer is still available, or get a new code if you are at the business now.
@@ -221,7 +221,7 @@ export function RedeemScreen({ tokenId, couponId, privateKey, shortCode, qrSvg, 
 
   return (
     <div className="grid gap-5">
-      <h1 className="wordmark text-3xl text-ink">
+      <h1 className="wordmark text-3xl text-primary">
         {redemption ? "Coupon accepted." : expired ? "Code expired" : "Show this code to the business."}
       </h1>
       {!redemption && !expired && (

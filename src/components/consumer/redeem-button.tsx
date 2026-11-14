@@ -90,13 +90,13 @@ function GenerateStep({ couponId, privateKey, onClose }: { couponId: string; pri
 
   // Rendered into <body> so the ticket stub's notch mask cannot clip it.
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-deep/40 sm:items-center" onClick={pending ? undefined : onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-evergreen-900/40 sm:items-center" onClick={pending ? undefined : onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={headingId}
         aria-describedby={textId}
-        className="grid w-full max-w-md gap-4 rounded-t-sm border-[1.5px] border-ink bg-white p-5 pb-8 sm:rounded-sm"
+        className="grid w-full max-w-md gap-4 rounded-t-sm border border-line bg-white p-5 pb-8 sm:rounded-sm"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id={headingId} className="text-xl font-semibold">

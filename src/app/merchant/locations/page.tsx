@@ -32,7 +32,7 @@ async function LocationsContent() {
     <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="wordmark text-4xl text-ink">Stores</h1>
+          <h1 className="wordmark text-4xl text-primary">Stores</h1>
           {usage && <p className="mt-1 font-semibold tabular">{locationsText(usage)}</p>}
         </div>
         {!full && (
@@ -49,13 +49,13 @@ async function LocationsContent() {
       ) : (
         <ul className="mt-6 grid gap-3">
           {locations.map((loc) => (
-            <li key={loc.id} className={`panel p-5 ${loc.active ? "" : "bg-paper"}`}>
+            <li key={loc.id} className={`panel p-5 ${loc.active ? "" : "bg-cream-50"}`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-semibold">
                     {loc.store_name}
                     {loc.store_number && <span className="font-normal tabular"> #{loc.store_number}</span>}
-                    {!loc.active && <span className="ml-2 text-sm font-medium text-signal">Closed</span>}
+                    {!loc.active && <span className="ml-2 text-sm font-medium text-urgent">Closed</span>}
                   </h2>
                   <p className="mt-1">
                     {[loc.address_line1, loc.address_line2].filter(Boolean).join(", ")}
@@ -63,7 +63,7 @@ async function LocationsContent() {
                     {[loc.city, loc.state, loc.postal_code, loc.country].filter(Boolean).join(", ")}
                   </p>
                   <p className="mt-2 flex items-center gap-1.5 text-sm">
-                    <MapPin aria-hidden size={16} strokeWidth={1.5} className="text-ink" />
+                    <MapPin aria-hidden size={16} strokeWidth={1.5} className="text-primary" />
                     {loc.lat !== null ? "Map pin set" : "No map pin yet"}
                   </p>
                 </div>

@@ -200,70 +200,90 @@ Protect `/merchant` and `/admin` in middleware and again on the server in each p
 
 ## Brand and UI
 
-The idea: Coupersville is a town, and coupons are printed tickets from its shops. The look is two-ink printing on ticket stock. It must not look like a generic SaaS template.
+"Main Street Modern" (client-approved visual rebrand, 2026-11-13; package in `docs/coupersville-rebrand/`). Small-town warmth (a soft serif, a cream "paper" background, awnings, the town sign) with modern product clarity (clean UI, strong contrast, one accent for savings). The coupon is still a ticket. The rebrand changed the look only: features, routes, data and wording stayed the same.
+
+### Logo and icons
+
+- The mark is a house that is also a coupon (notches and perforation across the middle, marigold window and door). Files from the package live in `public/brand/` and are rebuilt with `node scripts/make-brand-assets.mjs` (sharp only; never run the package's Python tools).
+- Header: the horizontal lockup (`coupersville-logo-horizontal.svg`, at least 120px wide, `alt="Coupersville"`). Dark surfaces (footer): `coupersville-logo-reversed-transparent.svg`. Emails: `coupersville-logo-horizontal.png`.
+- Icons: `src/app/icon.svg` (favicon, simplified perforation), `icon1.png` (32px), `apple-icon.png` (180px); manifest icons in `public/icons/` (192, 512 and a maskable 512). Theme colour `#1F4D3F`, manifest background `#FFF8EC`.
+- Open Graph image: `src/app/opengraph-image.png` (1200 x 630, the logo beside the Main Street illustration).
+- Never recolour, stretch, retype or outline the logo, remove its notches, or put the full-colour logo on a dark or busy background.
 
 ### Colour tokens
 
+Defined once in `src/app/globals.css` (`--cv-*`, mapped to Tailwind colours of the same names).
+
 ```
---ink:        #1B2A8F   primary, outlines, buttons
---ink-deep:   #121A4D   body text (use instead of black)
---marigold:   #FFB81C   discount values, key highlights
---paper:      #F2F4F8   page background
---white:      #FFFFFF   surfaces
---signal:     #D8342C   expiring soon and errors only
---stock-mint:   #CFEBDD
---stock-pink:   #F9D2DC
---stock-sky:    #CFE2F7
---stock-butter: #FBEBB0
+evergreen-900  #14231E   ink: body text, footer, dark bands
+evergreen-800  #173D32   primary hover
+evergreen-700  #1F4D3F   primary: buttons, links, logo (Tailwind: primary)
+evergreen-500  #3C7A63   decorative only (illustration)
+mint-100       #E4F1EA   info and success tint, badges
+marigold-400   #F2B33D   accent: savings highlights, accent button, focus ring (Tailwind: accent)
+marigold-700   #8A5A00   marigold-coloured text on light backgrounds
+marigold-100   #FDF1D6   accent tint
+brick-600      #B93A1F   urgency: ending soon, errors (Tailwind: urgent)
+brick-100      #FBE6DF   urgency tint
+sky-100        #E3EEF7   category tint
+lilac-100      #EEE8F6   category tint (illustration)
+cream-50       #FFF8EC   page background
+white          #FFFFFF   cards, inputs
+stone-600      #56605B   secondary text
+line           #E7DFCF   decorative borders and dividers
+field          #7A827E   form field borders (3.95:1 on white)
 ```
 
-Each category has a stock tint. A coupon ticket uses its category's tint as its background, so colour carries meaning.
+Proportions: mostly cream and white, evergreen for structure, marigold as a spotlight, brick and tints sparingly.
+
+Category tints: the stored `stock_tint` values never change; they display as mint → mint-100, pink → brick-100, sky → sky-100, butter → marigold-100 (`TINT_BG` in `src/components/consumer/shop-card.tsx` and the `.ticket[data-tint]` rules).
+
+Contrast (WCAG 2.2, use only these pairs for text): white on evergreen-700 9.58; ink on cream 15.43; ink on marigold-400 8.76; ink on marigold-100 14.53; evergreen-700 on mint-100 8.24; marigold-400 on evergreen-700 5.15; white on brick-600 5.69; brick-600 on brick-100 4.74; brick-600 on cream 5.39; marigold-700 on marigold-100 5.29; stone-600 on cream 6.18 and on white 6.52; footer text `#C9D6CF` on evergreen-900 10.86. **Never marigold-400 text on a light background** (1.86 on white).
 
 ### Type
 
-One family: **Archivo** (variable, via `next/font/google`, with the width axis enabled).
+- **Fraunces** (headings, deal values; weight 600, `SOFT` 60, letter-spacing -0.015em) and **DM Sans** (everything else; 400, 500, 600, 700). Both via `next/font/google`, which downloads them at build time and serves them from this site: no request goes to Google when a page loads (the privacy notice promises no third parties). Never add a Google Fonts `<link>`.
+- `h1`, `h2` and `.wordmark` are Fraunces; `.offer-text` is the deal value ("20% OFF", "FREE", "ONLY $1") in Fraunces.
+- Sentence case everywhere. Tabular numerals for dates, counts and money. No all-caps eyebrows.
 
-- Offer text ("20% OFF", "$5 OFF"): width 62 to 75, weight 800 to 900, tight line height, large.
-- Everything else: normal width, weights 400, 500, 600.
-- Sentence case everywhere. Tabular numerals for dates, counts, and money.
+### Components (in `src/app/globals.css`)
 
-### Shape
+- Buttons: pill shaped, at least 44px tall. `.btn` evergreen; `.btn-secondary` evergreen outline; `.btn-accent` marigold with ink text (at most one per view, for the main action such as the home search); `.btn-on-dark` for evergreen bands.
+- Inputs: `.field-input`, white, 14px radius, `field` border; labels always visible above (`.field-label`).
+- Cards: `.panel`, white, 1px `line` border, 22px radius, small warm shadow. Badges: `.badge` (mint), `.badge-urgent` (brick), `.badge-accent` (marigold).
+- Radius: sm 8, md 14, lg 22, pill. Shadows: warm and low (`shadow-sm`, `shadow-md`, `shadow-lg`).
+- Focus: a 3px marigold outline with a 2px ink inner edge on everything (`:focus-visible`), so it shows on cream, white and evergreen.
+- **The ticket** (`<Ticket>`, `src/components/ticket.tsx`): the tinted top carries the merchant, the deal value and the title; half-circle notches and a dashed perforation divide it from the white stub (expiry, limits, store, actions). The shadow is a drop-shadow on the whole ticket so it follows the notches. Use the ticket motif for deals and offers only (also the error pages and the home page's Pioneer Circle card).
+- Cards may lift 3px on hover (`.card-lift`), never with reduced motion.
 
-- The coupon is a **ticket**, not a card: half-circle notches cut into the left and right edges, and a dashed perforation line between the offer side and the stub (expiry, limits, store). Build it as one reusable `<Ticket>` component.
-- Flat. No box shadows, no gradients, no glass effects.
-- 1.5px `--ink` outlines where separation is needed.
-- Buttons: solid `--ink` with white text, 4px radius. Secondary buttons: ink outline. No pill buttons.
-- Mobile first. Design every consumer screen at 380px wide before scaling up. Tap targets at least 44px.
+### Layout and imagery
 
-### Imagery and identity (client update, 2026-10-08)
-
-- Name stays "Coupersville". No logo or wordmark for now; the header uses plain text.
-- `public/town-sign.jpg` (the welcome sign, 1666px wide) appears only on the home page, as a postcard in the hero (client round 3, 2026-11-12: below "Local offers. Local shoppers. One simple marketplace." and its supporting line; beside the headline on wide screens, above it on a phone): shown up to 560px wide, white surface, 1.5px ink outline, no text over it, via `next/image`. Not on sign-in or sign-up. (Client update 2026-10-19: replaces the earlier `Img-1.jpeg`, which is deleted.)
-- `public/Img-2.jpeg` (shop interior) and `public/coffee-shop.jpg` are reference for the long-term look. Both are git-ignored. Do not use them anywhere yet.
-- Palette confirmed: keep the ink and marigold tokens above. No palette change.
-- Long-term vision, targeted around March 2027: the site feels like a small town, and opening a category feels like walking into that shop to see its coupons. Until then, build for function.
+- Header: cream, logo left, account controls right, the site links on a second row. Footer: evergreen-900 with the reversed logo.
+- Home: the hero (marketplace line, headline with "live." highlighted, the illustrated Main Street from the package in `src/components/main-street-art.tsx`, then the search bar inside the hero), then featured, New around town, the categories, Catch these before they're gone (on a brick tint band) and the business callout on an evergreen band. The illustration carries no sample offers.
+- `public/town-sign.jpg` (the client's welcome sign) is on the About page, as a framed photo. Not on the home page, sign-in or sign-up.
+- `public/Img-2.jpeg` and `public/coffee-shop.jpg` are git-ignored references. Do not use them.
+- Mobile first: check every screen at 380px and 1440px, with no sideways scroll. Tap targets at least 44px.
+- Icons: `lucide-react`, 1.8px stroke, evergreen or ink. No emoji as icons.
 
 ### The one animated moment
 
-When a redemption is verified, the consumer's redeem screen shows an ink stamp reading "Redeemed" with the date, rotated a few degrees, pressing onto the ticket, and the stub tears away. Respect `prefers-reduced-motion`. No other decorative animation anywhere: no fade-in-on-scroll, no hover effects on every card.
+When a redemption is verified, the redeem screen shows a stamp reading "Redeemed" with the date, rotated a few degrees, pressing onto the ticket, and the stub tears away. Hover lifts are the only other motion. Respect `prefers-reduced-motion` (both turn off).
 
 ### Do not use
 
-- Purple or blue gradients, glassmorphism, soft grey drop shadows
-- Inter, Poppins, Space Grotesk, or any serif display font
-- Cream backgrounds, terracotta accents, near-black with neon accents
+- Marigold text on light backgrounds; colour alone to signal urgency (always say "Ending soon")
+- Fonts loaded from Google at runtime, or any font other than Fraunces and DM Sans
+- Glassmorphism, neon, heavy or grey drop shadows
 - All-caps labels with wide letter spacing, small labels above every heading
-- Monospace fonts for data labels
-- Arrows appended to button or link text
-- Emoji as icons (use `lucide-react`, 1.5px stroke, ink colour)
+- Arrows appended to button or link text; emoji as icons
 - Em dashes anywhere in UI copy or docs
+- Sample merchants, sample deals, trust claims or numbers the site does not have (the package's trust strip, "Main Street promise", Notify me and Invite a shop are not used)
 
 ### Copy
 
 Public and merchant wording follows the client's copy deck (`docs/Coupersville_Website_Copy_Deck.pdf`, 2026-11-10), in sentence case, with no all-caps eyebrows. Shared lines live in `src/lib/site-copy.ts`. Shoppers browse freely but sign up with their email before saving or redeeming: never write that no account is needed; use `ACCOUNT_LINE` ("No password, no app, no printing. Just enter your email and a one-time code the first time you redeem."). Coupon pages show each coupon's real rules, never a fixed "One per customer". The Pioneer Circle (founding offer) callout reads its name, dates and free seats from `offers` (`src/lib/founding-callout.ts`).
 
 Phase 3 of the deck (2026-11-12): Get my coupon opens "Ready to use this deal?" with Generate my QR coupon and Not yet, so no code or timer starts until Generate. The coupon page has a breadcrumb (Coupersville > category > business) and Get directions links that open the store address in Apple Maps or Google Maps only when tapped (nothing from a maps service loads with the page). Good to know comes from `src/lib/good-to-know.ts`, shared with the builder's Preview coupon. Publish now asks "Publish this coupon now?" first. The dashboard shows Redemptions this month (`business_redemption_stats.this_month`, calendar month in the business timezone).
-
 
 Plain, short, sentence case. Buttons say what happens: "Save coupon", "Redeem now", "Publish coupon". The same action keeps the same name across the flow. Light town flavour in a few headings only ("Welcome to Coupersville", "New on Main Street"). Errors say what went wrong and what to do next. Empty screens invite an action.
 

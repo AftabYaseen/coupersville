@@ -119,7 +119,7 @@ export function RemoveStaffButton({ memberId, name }: { memberId: string; name: 
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          className="btn border-signal bg-signal"
+          className="btn border-urgent bg-urgent"
           disabled={pending}
           onClick={() => startTransition(async () => setMessage(toMessage(await removeStaff(memberId))))}
         >

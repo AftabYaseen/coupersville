@@ -8,7 +8,7 @@ import { categorySchema, slugify, STOCK_TINTS, type CategoryInput, type Category
 import { Field, FormMessage } from "@/components/field";
 
 const TINT_LABELS = { mint: "Mint", pink: "Pink", sky: "Sky", butter: "Butter" } as const;
-const TINT_BG = { mint: "bg-stock-mint", pink: "bg-stock-pink", sky: "bg-stock-sky", butter: "bg-stock-butter" } as const;
+const TINT_BG = { mint: "bg-mint-100", pink: "bg-brick-100", sky: "bg-sky-100", butter: "bg-marigold-100" } as const;
 
 type Props = {
   categoryId?: string;
@@ -71,11 +71,11 @@ export function CategoryForm({ categoryId, defaults, onDone }: Props) {
           {STOCK_TINTS.map((t) => (
             <label
               key={t}
-              className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-sm border-[1.5px] border-ink px-3 ${TINT_BG[t]} ${
+              className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-sm border border-line px-3 ${TINT_BG[t]} ${
                 tint === t ? "font-semibold" : ""
               }`}
             >
-              <input type="radio" value={t} className="size-4 accent-ink" {...register("tint")} />
+              <input type="radio" value={t} className="size-4 accent-primary" {...register("tint")} />
               {TINT_LABELS[t]}
             </label>
           ))}

@@ -25,7 +25,7 @@ async function SignupContent({ searchParams }: { searchParams: PageProps<"/signu
     const categories = await listActiveCategories();
     return (
       <>
-        <h1 className="wordmark text-3xl text-ink">Open your door in Coupersville.</h1>
+        <h1 className="wordmark text-3xl text-primary">Open your door in Coupersville.</h1>
         <p className="mt-2 mb-8">
           Join a growing community of businesses giving customers more reasons to discover, visit and return. Start by creating your
           business account.
@@ -37,7 +37,7 @@ async function SignupContent({ searchParams }: { searchParams: PageProps<"/signu
 
   return (
     <>
-      <h1 className="wordmark text-3xl text-ink">Create an account</h1>
+      <h1 className="wordmark text-3xl text-primary">Create an account</h1>
       <p className="mt-2 mb-6">Browse freely. An account lets you save and redeem coupons.</p>
       <SignupForm next={next} />
     </>

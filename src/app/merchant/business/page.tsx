@@ -20,7 +20,7 @@ async function BusinessContent() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="wordmark text-4xl text-ink">Business profile</h1>
+      <h1 className="wordmark text-4xl text-primary">Business profile</h1>
       <p className="mt-2 mb-8">This is how your shop appears to people in Coupersville.</p>
       <div className="grid gap-8">
         <BusinessImages businessId={business.id} logoPath={business.logo_path} coverPath={business.cover_path} />

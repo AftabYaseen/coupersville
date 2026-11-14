@@ -68,7 +68,7 @@ export function HostedPageButton({
                   // Different terms: agree again.
                   setAgreed(false);
                 }}
-                className="size-5 accent-ink"
+                className="size-5 accent-primary"
               />
               <span className="tabular">{text}</span>
             </label>
@@ -76,7 +76,7 @@ export function HostedPageButton({
         </fieldset>
       )}
       {terms && (
-        <div className="grid gap-3 rounded-sm border-[1.5px] border-ink bg-white p-4">
+        <div className="grid gap-3 rounded-sm border border-line bg-white p-4">
           <h3 className="font-semibold">Automatic renewal</h3>
           {Object.entries(terms).map(([value, text]) => (
             <p key={value} data-renewal-terms={value} hidden={value !== (cycle ?? "annual")} className="text-sm tabular">
@@ -84,7 +84,7 @@ export function HostedPageButton({
             </p>
           ))}
           <label htmlFor={boxId} className="flex min-h-11 items-start gap-3">
-            <input id={boxId} type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 size-5 shrink-0 accent-ink" />
+            <input id={boxId} type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 size-5 shrink-0 accent-primary" />
             <span className="font-medium">I agree to these automatic renewal terms.</span>
           </label>
         </div>

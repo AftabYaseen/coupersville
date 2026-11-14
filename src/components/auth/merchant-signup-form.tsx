@@ -54,7 +54,7 @@ export function MerchantSignupForm({ categories }: { categories: CategoryOption[
   if (created) {
     return (
       <div className="grid gap-4" role="status">
-        <h2 className="wordmark text-3xl text-ink">Welcome to Coupersville.</h2>
+        <h2 className="wordmark text-3xl text-primary">Welcome to Coupersville.</h2>
         <p>{created}</p>
         <Link href="/login" className="btn btn-secondary">
           Merchant sign in
@@ -116,11 +116,11 @@ export function MerchantSignupForm({ categories }: { categories: CategoryOption[
 
       <p className="text-sm">
         By creating an account, you confirm that you are authorized to represent this business and agree to the Coupersville{" "}
-        <Link href="/terms" className="font-medium text-ink underline underline-offset-4">
+        <Link href="/terms" className="font-medium text-primary underline underline-offset-4">
           Terms of use
         </Link>{" "}
         and{" "}
-        <Link href="/privacy" className="font-medium text-ink underline underline-offset-4">
+        <Link href="/privacy" className="font-medium text-primary underline underline-offset-4">
           Privacy notice
         </Link>
         .
@@ -132,7 +132,7 @@ export function MerchantSignupForm({ categories }: { categories: CategoryOption[
 
       <p className="text-sm">
         Already have a Coupersville business account?{" "}
-        <Link href="/login" className="font-medium text-ink underline underline-offset-4">
+        <Link href="/login" className="font-medium text-primary underline underline-offset-4">
           Merchant sign in
         </Link>
       </p>

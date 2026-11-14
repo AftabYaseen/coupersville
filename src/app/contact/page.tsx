@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="wordmark text-4xl text-ink sm:text-5xl">How can we help?</h1>
+      <h1 className="wordmark text-4xl text-primary sm:text-5xl">How can we help?</h1>
       <p className="mt-3 text-lg">
         Whether you are looking for a deal, managing a business account or considering a Coupersville membership, send us a message
         and choose the topic that best matches your question.
@@ -31,7 +31,7 @@ async function DirectEmail() {
   return (
     <p className="mt-6 text-sm">
       You can also email us at{" "}
-      <a href={`mailto:${email}`} className="font-medium text-ink underline underline-offset-4">
+      <a href={`mailto:${email}`} className="font-medium text-primary underline underline-offset-4">
         {email}
       </a>
       .

@@ -30,7 +30,7 @@ async function StaffContent() {
   if (role !== "owner") {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10">
-        <h1 className="wordmark text-4xl text-ink">Staff</h1>
+        <h1 className="wordmark text-4xl text-primary">Staff</h1>
         <p className="panel mt-6 p-5">Only the business owner can invite or remove staff.</p>
       </div>
     );
@@ -53,7 +53,7 @@ async function StaffContent() {
   return (
     <div className="mx-auto grid max-w-3xl gap-8 px-4 py-10">
       <div>
-        <h1 className="wordmark text-4xl text-ink">Staff</h1>
+        <h1 className="wordmark text-4xl text-primary">Staff</h1>
         <p className="mt-2">Staff can open the scanner to redeem coupons. They cannot see or change anything else.</p>
       </div>
 
@@ -83,7 +83,7 @@ async function StaffContent() {
                 <li key={inv.id} className="panel grid gap-3 p-4 sm:flex sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="font-semibold break-all">{inv.email}</p>
-                    <p className={`text-sm tabular ${pending ? "" : "text-signal"}`}>
+                    <p className={`text-sm tabular ${pending ? "" : "text-urgent"}`}>
                       {pending
                         ? `Invited ${formatDay(inv.created_at, tz)}, link works until ${formatDay(inv.expires_at, tz)}`
                         : `Link expired ${formatDay(inv.expires_at, tz)}. Cancel it and invite again.`}

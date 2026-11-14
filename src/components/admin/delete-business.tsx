@@ -17,7 +17,7 @@ export function DeleteBusiness({ businessId, name, consequences }: { businessId:
 
   if (!open) {
     return (
-      <button type="button" className="btn btn-secondary border-signal text-signal w-fit" onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-secondary border-urgent text-urgent w-fit" onClick={() => setOpen(true)}>
         <Trash2 aria-hidden size={18} strokeWidth={1.5} />
         Delete business
       </button>
@@ -28,7 +28,7 @@ export function DeleteBusiness({ businessId, name, consequences }: { businessId:
 
   return (
     <form
-      className="grid gap-4 rounded-sm border-[1.5px] border-signal bg-white p-5"
+      className="grid gap-4 rounded-sm border border-urgent bg-white p-5"
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
@@ -41,7 +41,7 @@ export function DeleteBusiness({ businessId, name, consequences }: { businessId:
         });
       }}
     >
-      <h3 className="text-lg font-semibold text-signal">Delete {name}?</h3>
+      <h3 className="text-lg font-semibold text-urgent">Delete {name}?</h3>
       <ul className="grid list-disc gap-1.5 pl-5">
         {consequences.map((line) => (
           <li key={line}>{line}</li>
@@ -61,7 +61,7 @@ export function DeleteBusiness({ businessId, name, consequences }: { businessId:
         />
       </Field>
       <div className="flex flex-wrap gap-3">
-        <button type="submit" className="btn border-signal bg-signal" disabled={pending || !ready}>
+        <button type="submit" className="btn border-urgent bg-urgent" disabled={pending || !ready}>
           {pending ? "Deleting business" : "Delete business"}
         </button>
         <button

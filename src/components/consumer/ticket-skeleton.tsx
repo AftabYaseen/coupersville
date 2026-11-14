@@ -3,13 +3,13 @@ export function TicketSkeleton() {
   return (
     <div className="ticket" aria-hidden>
       <div className="ticket-main px-5 pt-5 pb-6">
-        <div className="h-4 w-28 rounded-sm bg-paper" />
-        <div className="mt-3 h-12 w-40 rounded-sm bg-paper" />
-        <div className="mt-4 h-5 w-3/4 rounded-sm bg-paper" />
+        <div className="h-4 w-28 rounded-sm bg-evergreen-900/10" />
+        <div className="mt-3 h-12 w-40 rounded-sm bg-evergreen-900/10" />
+        <div className="mt-4 h-5 w-3/4 rounded-sm bg-evergreen-900/10" />
       </div>
       <div className="ticket-stub grid gap-2 px-5 pt-4 pb-4">
-        <div className="h-4 w-36 rounded-sm bg-paper" />
-        <div className="h-4 w-24 rounded-sm bg-paper" />
+        <div className="h-4 w-36 rounded-sm bg-evergreen-900/10" />
+        <div className="h-4 w-24 rounded-sm bg-evergreen-900/10" />
       </div>
     </div>
   );

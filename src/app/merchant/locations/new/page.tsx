@@ -19,7 +19,7 @@ async function NewLocationContent() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="wordmark mb-8 text-4xl text-ink">Add a store</h1>
+      <h1 className="wordmark mb-8 text-4xl text-primary">Add a store</h1>
       <LocationForm
         defaults={{
           storeName: "",

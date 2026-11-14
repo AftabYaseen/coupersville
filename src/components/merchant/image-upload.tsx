@@ -57,7 +57,7 @@ export function ImageUpload({ label, hint, bucket, businessId, value, onChange, 
         {label}
       </p>
       {value ? (
-        <div className={`relative overflow-hidden rounded-sm border-[1.5px] border-ink bg-white ${previewBox}`}>
+        <div className={`relative overflow-hidden rounded-sm border border-line bg-white ${previewBox}`}>
           <Image
             src={publicImageUrl(bucket, value)}
             alt=""
@@ -68,7 +68,7 @@ export function ImageUpload({ label, hint, bucket, businessId, value, onChange, 
         </div>
       ) : (
         <div
-          className={`flex items-center justify-center rounded-sm border-[1.5px] border-dashed border-ink bg-white text-sm ${previewBox}`}
+          className={`flex items-center justify-center rounded-sm border border-dashed border-line bg-white text-sm ${previewBox}`}
         >
           No image yet
         </div>

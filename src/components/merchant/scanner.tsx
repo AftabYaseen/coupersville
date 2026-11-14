@@ -30,7 +30,7 @@ const READER_ID = "coupon-reader";
 const STORE_KEY = "coupersville:scan-store";
 const STORE_EVENT = "coupersville:scan-store";
 
-const TINT_BG = { mint: "bg-stock-mint", pink: "bg-stock-pink", sky: "bg-stock-sky", butter: "bg-stock-butter" } as const;
+const TINT_BG = { mint: "bg-mint-100", pink: "bg-brick-100", sky: "bg-sky-100", butter: "bg-marigold-100" } as const;
 
 // The chosen store lives on this device so staff pick it once.
 function readSavedStore(): string | null {
@@ -216,7 +216,7 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
   if (!store) {
     return (
       <div className="mx-auto max-w-md px-4 py-8">
-        <h1 className="wordmark text-4xl text-ink">Which store are you at?</h1>
+        <h1 className="wordmark text-4xl text-primary">Which store are you at?</h1>
         <p className="mt-2">Pick it once. This phone remembers it.</p>
         <ul className="mt-6 grid gap-3">
           {stores.map((s) => (
@@ -230,7 +230,7 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
                   setChanging(false);
                 }}
               >
-                <Store aria-hidden size={22} strokeWidth={1.5} className="shrink-0 text-ink" />
+                <Store aria-hidden size={22} strokeWidth={1.5} className="shrink-0 text-primary" />
                 <span>
                   <span className="block font-semibold">{s.label}</span>
                   <span className="block text-sm">{s.detail}</span>
@@ -259,13 +259,13 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
       <FullScreen label="Coupon valid">
         <div className="mx-auto grid w-full max-w-md gap-5 px-4 py-6">
           <p className="font-medium">Review the purchase requirements below before applying the discount. Nothing is recorded until you confirm.</p>
-          <section className={`rounded-sm border-[1.5px] border-ink p-5 ${TINT_BG[offer.stock_tint]}`}>
-            <p className="offer-text inline-block bg-marigold px-2 pt-1.5 pb-1 text-5xl tabular">
+          <section className={`rounded-sm border border-line p-5 ${TINT_BG[offer.stock_tint]}`}>
+            <p className="offer-text inline-block bg-accent px-2 pt-1.5 pb-1 text-5xl tabular">
               {formatOffer(offer.discount_type, offer.discount_value)}
             </p>
             {offer.just_for_you && (
-              <p className="mt-3 inline-flex items-center gap-1.5 rounded-sm border-[1.5px] border-ink bg-white px-2 py-0.5 font-medium">
-                <LockKeyhole aria-hidden size={16} strokeWidth={1.5} className="text-ink" />
+              <p className="mt-3 inline-flex items-center gap-1.5 rounded-sm border border-line bg-white px-2 py-0.5 font-medium">
+                <LockKeyhole aria-hidden size={16} strokeWidth={1.5} className="text-primary" />
                 {SHOPPER_LABEL}
               </p>
             )}
@@ -313,8 +313,8 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
       return (
         <FullScreen label="Redemption confirmed" tone="success">
           <div className="mx-auto grid w-full max-w-md justify-items-center gap-4 px-4 py-10 text-center">
-            <CheckCircle2 aria-hidden size={96} strokeWidth={1.5} className="text-ink" />
-            <h2 className="wordmark text-5xl text-ink">Redemption confirmed</h2>
+            <CheckCircle2 aria-hidden size={96} strokeWidth={1.5} className="text-primary" />
+            <h2 className="wordmark text-5xl text-primary">Redemption confirmed</h2>
             {response.offer && (
               <p className="text-xl">
                 <span className="font-semibold tabular">{formatOffer(response.offer.discount_type, response.offer.discount_value)}</span>
@@ -341,8 +341,8 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
     return (
       <FullScreen label={`Coupon not valid: ${failure.title}`} tone="failure">
         <div className="mx-auto grid w-full max-w-md justify-items-center gap-4 px-4 py-10 text-center">
-          <XCircle aria-hidden size={96} strokeWidth={1.5} className="text-signal" />
-          <h2 className="wordmark text-4xl text-signal">Coupon not valid</h2>
+          <XCircle aria-hidden size={96} strokeWidth={1.5} className="text-urgent" />
+          <h2 className="wordmark text-4xl text-urgent">Coupon not valid</h2>
           <p className="text-xl font-semibold">{failure.title}</p>
           <p className="text-lg">
             {failure.body}
@@ -382,7 +382,7 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
     <div className="mx-auto grid max-w-md gap-5 px-4 py-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="wordmark text-3xl text-ink">Scan a Coupersville coupon</h1>
+          <h1 className="wordmark text-3xl text-primary">Scan a Coupersville coupon</h1>
           <p className="text-sm">At {store.label}</p>
         </div>
         {stores.length > 1 && (
@@ -394,7 +394,7 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
 
       {cameraNote && (
         <div className="panel flex gap-3 p-4">
-          <CameraOff aria-hidden size={22} strokeWidth={1.5} className="mt-0.5 shrink-0 text-ink" />
+          <CameraOff aria-hidden size={22} strokeWidth={1.5} className="mt-0.5 shrink-0 text-primary" />
           <p>{cameraNote}</p>
         </div>
       )}
@@ -402,7 +402,7 @@ export function Scanner({ stores }: { stores: ScanStore[] }) {
       <div className={cameraNote ? "hidden" : "grid gap-2"}>
         <div
           id={READER_ID}
-          className="aspect-square w-full overflow-hidden rounded-sm border-[1.5px] border-ink bg-ink-deep [&_video]:h-full [&_video]:w-full [&_video]:object-cover"
+          className="aspect-square w-full overflow-hidden rounded-sm border border-line bg-evergreen-900 [&_video]:h-full [&_video]:w-full [&_video]:object-cover"
         />
         <p className="text-sm" role="status">
           {checking
@@ -455,7 +455,7 @@ function FullScreen({
   useEffect(() => {
     heading.current?.focus();
   }, []);
-  const bg = tone === "success" ? "bg-stock-mint" : tone === "failure" ? "bg-white border-t-[10px] border-signal" : "bg-paper";
+  const bg = tone === "success" ? "bg-mint-100" : tone === "failure" ? "bg-white border-t-[10px] border-urgent" : "bg-cream-50";
   return (
     <div
       ref={heading}
@@ -466,7 +466,7 @@ function FullScreen({
       className={`fixed inset-0 z-50 overflow-y-auto outline-none ${bg}`}
     >
       {tone === "neutral" && (
-        <div className="border-b-[1.5px] border-ink bg-white">
+        <div className="border-b border-line bg-white">
           <p className="mx-auto max-w-md px-4 py-4 text-xl font-semibold">{label}</p>
         </div>
       )}

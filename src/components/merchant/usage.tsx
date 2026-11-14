@@ -16,7 +16,7 @@ export function ContactForMore({ email }: { email: string }) {
   return (
     <p className="text-sm">
       More than 3 locations?{" "}
-      <a href={`mailto:${email}`} className="font-medium text-ink underline underline-offset-4">
+      <a href={`mailto:${email}`} className="font-medium text-primary underline underline-offset-4">
         Contact us at {email}
       </a>
     </p>

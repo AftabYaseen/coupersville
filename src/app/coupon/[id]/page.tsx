@@ -75,7 +75,7 @@ async function CouponContent({
     return (
       <div className="panel mx-auto grid max-w-xl gap-4 p-5 sm:p-6">
         <p className="text-sm font-medium">{ended.businessName}</p>
-        <h1 className="wordmark text-3xl text-ink">This deal has ended.</h1>
+        <h1 className="wordmark text-3xl text-primary">This deal has ended.</h1>
         <p>
           <span className="font-semibold">{ended.title}</span> is no longer available. Explore Coupersville to find another offer from
           this business or discover something new.
@@ -122,19 +122,19 @@ async function CouponContent({
       <nav aria-label="Breadcrumb">
         <ol className="flex flex-wrap items-center gap-x-1 text-sm">
           <li className="flex items-center gap-1">
-            <Link href="/" className="inline-flex min-h-11 items-center font-medium text-ink underline-offset-4 hover:underline">
+            <Link href="/" className="inline-flex min-h-11 items-center font-medium text-primary underline-offset-4 hover:underline">
               Coupersville
             </Link>
-            <ChevronRight aria-hidden size={16} strokeWidth={1.5} className="text-ink" />
+            <ChevronRight aria-hidden size={16} strokeWidth={1.5} className="text-primary" />
           </li>
           <li className="flex items-center gap-1">
             <Link
               href={`/c/${shop.slug}`}
-              className="inline-flex min-h-11 items-center font-medium text-ink underline-offset-4 hover:underline"
+              className="inline-flex min-h-11 items-center font-medium text-primary underline-offset-4 hover:underline"
             >
               {shop.name}
             </Link>
-            <ChevronRight aria-hidden size={16} strokeWidth={1.5} className="text-ink" />
+            <ChevronRight aria-hidden size={16} strokeWidth={1.5} className="text-primary" />
           </li>
           <li aria-current="page" className="inline-flex min-h-11 items-center">
             {business.name}
@@ -167,7 +167,7 @@ async function CouponContent({
           }
         >
           {coupon.image_path && (
-            <div className="relative mt-4 aspect-[16/9] overflow-hidden rounded-sm border-[1.5px] border-ink">
+            <div className="relative mt-4 aspect-[16/9] overflow-hidden rounded-sm border border-line">
               <Image
                 src={publicImageUrl(COUPON_IMAGE_BUCKET, coupon.image_path)}
                 alt=""
@@ -216,7 +216,7 @@ async function CouponContent({
                 <ul className="mt-3 grid gap-4">
                   {stores.map((s) => (
                     <li key={s.id} className="flex gap-3">
-                      <MapPin aria-hidden size={18} strokeWidth={1.5} className="mt-1 shrink-0 text-ink" />
+                      <MapPin aria-hidden size={18} strokeWidth={1.5} className="mt-1 shrink-0 text-primary" />
                       <div>
                         <p className="font-semibold">
                           {s.store_name}
@@ -251,7 +251,7 @@ async function CouponContent({
                   alt=""
                   width={56}
                   height={56}
-                  className="size-14 rounded-sm border-[1.5px] border-ink object-cover"
+                  className="size-14 rounded-sm border border-line object-cover"
                 />
               )}
               <h2 id="business-heading" className="text-xl font-semibold">
@@ -266,7 +266,7 @@ async function CouponContent({
                     href={business.website_url}
                     rel="noopener noreferrer"
                     target="_blank"
-                    className="inline-flex min-h-11 items-center gap-2 font-medium text-ink underline underline-offset-4"
+                    className="inline-flex min-h-11 items-center gap-2 font-medium text-primary underline underline-offset-4"
                   >
                     <Globe aria-hidden size={18} strokeWidth={1.5} />
                     Visit website
@@ -275,7 +275,7 @@ async function CouponContent({
               )}
               {business.contact_phone && (
                 <li>
-                  <a href={`tel:${business.contact_phone}`} className="inline-flex min-h-11 items-center gap-2 font-medium text-ink">
+                  <a href={`tel:${business.contact_phone}`} className="inline-flex min-h-11 items-center gap-2 font-medium text-primary">
                     <Phone aria-hidden size={18} strokeWidth={1.5} />
                     {business.contact_phone}
                   </a>

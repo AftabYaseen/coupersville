@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Saved coupons" };
 export default function SavedPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
-      <h1 className="wordmark text-4xl text-ink">Saved coupons</h1>
+      <h1 className="wordmark text-4xl text-primary">Saved coupons</h1>
       <Suspense
         fallback={
           <div className="mt-6">
@@ -92,9 +92,9 @@ async function SavedContent() {
             {gone.map((s) => (
               <li key={s.coupon_id} className="panel flex flex-col overflow-hidden p-0 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 flex-1 items-stretch">
-                  <span aria-hidden className={`w-3 shrink-0 border-r-[1.5px] border-dashed border-ink ${TINT_BG[s.stock_tint]}`} />
+                  <span aria-hidden className={`w-3 shrink-0 border-r border-dashed border-line ${TINT_BG[s.stock_tint]}`} />
                   <div className="min-w-0 p-4">
-                    <p className="text-sm font-semibold text-signal">
+                    <p className="text-sm font-semibold text-urgent">
                       {s.ended ? `Ended ${formatDay(s.expires_at, s.business_timezone)}` : "No longer available"}
                     </p>
                     <p className="font-semibold">

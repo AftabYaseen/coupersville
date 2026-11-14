@@ -33,10 +33,10 @@ const ICONS: Record<string, LucideIcon> = {
 };
 
 export const TINT_BG: Record<Enums<"stock_tint">, string> = {
-  mint: "bg-stock-mint",
-  pink: "bg-stock-pink",
-  sky: "bg-stock-sky",
-  butter: "bg-stock-butter",
+  mint: "bg-mint-100",
+  pink: "bg-brick-100",
+  sky: "bg-sky-100",
+  butter: "bg-marigold-100",
 };
 
 type Shop = { slug: string; name: string; description: string | null; stock_tint: Enums<"stock_tint">; liveCount: number };
@@ -46,22 +46,17 @@ export const dealCount = (n: number) => (n === 1 ? "1 available deal" : `${n} av
 export function ShopCard({ shop }: { shop: Shop }) {
   const Icon = ICONS[shop.slug] ?? Store;
   return (
-    <Link href={`/c/${shop.slug}`} className="block h-full overflow-hidden rounded-sm border-[1.5px] border-ink bg-white">
-      {/* Awning: alternating ink and stock stripes, drawn flat. */}
-      <span aria-hidden className="flex h-3 border-b-[1.5px] border-ink">
-        {Array.from({ length: 8 }, (_, i) => (
-          <span key={i} className={`flex-1 ${i % 2 === 0 ? "bg-ink" : TINT_BG[shop.stock_tint]}`} />
-        ))}
+    <Link
+      href={`/c/${shop.slug}`}
+      className="card-lift flex h-full items-start gap-4 rounded-md border border-line bg-white p-4 shadow-sm hover:border-primary hover:shadow-md"
+    >
+      <span className={`flex size-12 shrink-0 items-center justify-center rounded-md ${TINT_BG[shop.stock_tint]}`}>
+        <Icon aria-hidden size={24} strokeWidth={1.8} className="text-evergreen-900" />
       </span>
-      <span className={`flex h-full items-start gap-3 p-4 ${TINT_BG[shop.stock_tint]}`}>
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-sm border-[1.5px] border-ink bg-white">
-          <Icon aria-hidden size={22} strokeWidth={1.5} className="text-ink" />
-        </span>
-        <span className="min-w-0">
-          <span className="block font-semibold leading-tight">{shop.name}</span>
-          {shop.description && <span className="mt-1 block text-sm">{shop.description}</span>}
-          <span className="mt-1 block text-sm font-medium tabular">{dealCount(shop.liveCount)}</span>
-        </span>
+      <span className="min-w-0">
+        <span className="block font-semibold leading-tight">{shop.name}</span>
+        {shop.description && <span className="mt-1 block text-sm text-stone-600">{shop.description}</span>}
+        <span className="mt-1 block text-sm font-semibold text-primary tabular">{dealCount(shop.liveCount)}</span>
       </span>
     </Link>
   );
